@@ -375,7 +375,11 @@ class Game {
         );
 
         let terrain = new Terrain(this);
-        terrain.draw();
+        for (let i = -2; i <= 2; i++) {
+            for (let j = -2; j <= 2; j++) {
+                await terrain.drawChunck(i, j);
+            }
+        }
 
         this.gameLoaded = true;
         I18Nizer.Translate(LOCALE);
