@@ -422,7 +422,7 @@ class Game {
         this.animLightIntensity = Mummu.AnimationFactory.CreateNumber(this.light, this.light, "intensity");
         this.animSpotlightIntensity = Mummu.AnimationFactory.CreateNumber(this.spotlight, this.spotlight, "intensity");
         let skyBoxHolder = new BABYLON.Mesh("skybox-holder");
-        skyBoxHolder.rotation.x = Math.PI * 0.3;
+        skyBoxHolder.rotation.x = 0;
         this.skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1500 }, this.scene);
         this.skybox.parent = skyBoxHolder;
         let skyboxMaterial = new BABYLON.StandardMaterial("skyBox", this.scene);
@@ -499,12 +499,8 @@ class Game {
             autoplay: true,
             loop: true
         });
-        let terrain = new Terrain(this);
-        for (let i = -2; i <= 2; i++) {
-            for (let j = -2; j <= 2; j++) {
-                await terrain.drawChunck(i, j);
-            }
-        }
+        this.terrain = new Terrain(this);
+        this.terrainManager = new TerrainManager(this.terrain);
         this.gameLoaded = true;
         I18Nizer.Translate(LOCALE);
         if (USE_POKI_SDK) {
@@ -543,6 +539,7 @@ class Game {
         this.performanceWatcher.update(rawDT);
         if (isFinite(rawDT)) {
             this.globalTimer += rawDT;
+            this.terrainManager.update();
         }
     }
     storyIdToExpertId(storyId) {
@@ -964,17 +961,30 @@ class StrokeText extends HTMLElement {
     }
 }
 customElements.define("stroke-text", StrokeText);
+class Chunck extends BABYLON.Mesh {
+    constructor(i, j, terrain) {
+        super("chunck_" + i.toFixed(0) + "_" + j.toFixed(0));
+        this.i = i;
+        this.j = j;
+        this.terrain = terrain;
+    }
+}
 class Terrain {
     constructor(game) {
         this.game = game;
-        this.worldZero = 10;
-        this.chunckL = 128;
+        this.worldZero = 100;
+        this.chunckL = 64;
         this.mapL = 512;
-        let masterSeed = Nabu.MasterSeed.GetFor("Paulita");
+        this.chuncks = new Nabu.UniqueList();
+        let masterSeed = Nabu.MasterSeed.GetFor("Paulita6");
         let seededMap = Nabu.SeededMap.CreateFromMasterSeed(masterSeed, 4, 512);
         this.mapL = 1024;
         this.generator = new Nabu.TerrainMapGenerator(seededMap, [2048, 512, 128, 64]);
         this.material = new TerrainMaterial("terrain", this.game.scene);
+        this.waterMaterial = new BABYLON.StandardMaterial("water-material");
+        this.waterMaterial.specularColor.copyFromFloats(0.4, 0.4, 0.4);
+        this.waterMaterial.alpha = 0.5;
+        this.waterMaterial.diffuseColor.copyFromFloats(0.1, 0.3, 0.9);
     }
     tmpMapGet(i, j) {
         let iM = 1;
@@ -997,12 +1007,10 @@ class Terrain {
         }
         return this._tmpMaps[iM][jM].get(i, j);
     }
-    async drawChunck(iChunck, jChunck) {
-        console.log("chunck " + iChunck + " " + jChunck);
+    async generateChunck(iChunck, jChunck) {
         let IMap = this.worldZero + Math.floor(iChunck * this.chunckL / this.mapL);
         let JMap = this.worldZero + Math.floor(jChunck * this.chunckL / this.mapL);
         this._tmpMaps = [];
-        console.log("map " + IMap + " " + JMap);
         this._tmpMaps = [];
         for (let i = 0; i < 3; i++) {
             this._tmpMaps[i] = [];
@@ -1010,16 +1018,14 @@ class Terrain {
                 this._tmpMaps[i][j] = await this.generator.getMap(IMap + i - 1, JMap + j - 1);
             }
         }
-        if (!this.meshes) {
-            this.meshes = [];
-        }
-        if (!this.meshes[iChunck]) {
-            this.meshes[iChunck] = [];
-        }
-        let chunck = new BABYLON.Mesh("terrain");
+        let chunck = new Chunck(iChunck, jChunck, this);
         chunck.position.copyFromFloats(iChunck * this.chunckL, 0, jChunck * this.chunckL);
         chunck.material = this.material;
-        this.meshes[iChunck][jChunck] = chunck;
+        let water = new BABYLON.Mesh("water");
+        BABYLON.CreateGroundVertexData({ size: this.chunckL }).applyToMesh(water);
+        water.position.copyFromFloats(this.chunckL * 0.5, -0.5 / 3, this.chunckL * 0.5);
+        water.material = this.waterMaterial;
+        water.parent = chunck;
         let l = this.chunckL;
         let lInc = l + 1;
         let vertexData = new BABYLON.VertexData();
@@ -1082,7 +1088,95 @@ class Terrain {
         vertexData.positions = positions;
         vertexData.indices = indices;
         vertexData.normals = normals;
-        vertexData.applyToMesh(this.meshes[iChunck][jChunck]);
+        vertexData.applyToMesh(chunck);
+        return chunck;
+    }
+}
+class TerrainManager {
+    constructor(terrain) {
+        this.terrain = terrain;
+        this.range = 5;
+        this.createTasks = [];
+        this.disposeTasks = [];
+        this._lastRefreshPosition = new BABYLON.Vector3(Infinity, 0, Infinity);
+        this._lock = false;
+    }
+    get game() {
+        return this.terrain.game;
+    }
+    addCreateTask(i, j) {
+        let disposeTaskIndex = this.disposeTasks.findIndex(t => { return t.i === i && t.j === j; });
+        if (disposeTaskIndex >= 0) {
+            this.disposeTasks.splice(disposeTaskIndex, 1);
+        }
+        if (!this.terrain.chuncks.array.find(chunck => { return chunck.i === i && chunck.j === j; })) {
+            if (!this.createTasks.find(t => { return t.i === i && t.j === j; })) {
+                this.createTasks.push({ i: i, j: j });
+            }
+        }
+    }
+    addDisposeTask(i, j) {
+        let createTaskIndex = this.createTasks.findIndex(t => { return t.i === i && t.j === j; });
+        if (createTaskIndex >= 0) {
+            this.createTasks.splice(createTaskIndex, 1);
+        }
+        if (this.terrain.chuncks.array.find(chunck => { return chunck.i === i && chunck.j === j; })) {
+            if (!this.disposeTasks.find(t => { return t.i === i && t.j === j; })) {
+                this.disposeTasks.push({ i: i, j: j });
+            }
+        }
+    }
+    refreshTaskList() {
+        let position = this.game.camera.globalPosition.clone();
+        position.y = 0;
+        let iCenter = Math.floor(position.x / this.terrain.chunckL);
+        let jCenter = Math.floor(position.z / this.terrain.chunckL);
+        for (let i = iCenter - 4; i <= iCenter + 4; i++) {
+            for (let j = jCenter - 4; j <= jCenter + 4; j++) {
+                let cx = (i + 0.5) * this.terrain.chunckL;
+                let cz = (j + 0.5) * this.terrain.chunckL;
+                let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
+                if (d < this.range * this.terrain.chunckL) {
+                    this.addCreateTask(i, j);
+                }
+            }
+        }
+        this.terrain.chuncks.forEach(chunck => {
+            let cx = (chunck.i + 0.5) * this.terrain.chunckL;
+            let cz = (chunck.j + 0.5) * this.terrain.chunckL;
+            let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
+            if (d > (this.range + 1) * this.terrain.chunckL) {
+                this.addDisposeTask(chunck.i, chunck.j);
+            }
+        });
+        this._lastRefreshPosition = position;
+    }
+    async update() {
+        if (this._lock) {
+            return;
+        }
+        this._lock = true;
+        let position = this.game.camera.globalPosition;
+        if (Math.abs(position.x - this._lastRefreshPosition.x) > this.terrain.chunckL * 0.25 || Math.abs(position.z - this._lastRefreshPosition.z) > this.terrain.chunckL * 0.25) {
+            this.refreshTaskList();
+        }
+        if (this.createTasks.length > 0) {
+            let task = this.createTasks.pop();
+            let chunck = this.terrain.chuncks.array.find(chunck => { return chunck.i === task.i && chunck.j === task.j; });
+            if (!chunck) {
+                chunck = await this.terrain.generateChunck(task.i, task.j);
+                this.terrain.chuncks.push(chunck);
+            }
+        }
+        else if (this.disposeTasks.length > 0) {
+            let task = this.disposeTasks.pop();
+            let chunck = this.terrain.chuncks.array.find(chunck => { return chunck.i === task.i && chunck.j === task.j; });
+            if (chunck) {
+                this.terrain.chuncks.remove(chunck);
+                chunck.dispose();
+            }
+        }
+        this._lock = false;
     }
 }
 class TerrainMaterial extends BABYLON.ShaderMaterial {
@@ -1101,6 +1195,7 @@ class TerrainMaterial extends BABYLON.ShaderMaterial {
         this.setLightInvDir(BABYLON.Vector3.One().normalize());
         this.setColor3("grassColor", BABYLON.Color3.FromHexString("#7c8d4c"));
         this.setColor3("dirtColor", BABYLON.Color3.FromHexString("#725428"));
+        this.setColor3("sandColor", BABYLON.Color3.FromHexString("#f0f0b5"));
     }
     getLightInvDir() {
         return this._lightInvDirW;

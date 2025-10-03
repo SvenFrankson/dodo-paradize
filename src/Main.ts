@@ -223,6 +223,9 @@ class Game {
 
     public gameLoaded: boolean = false;
 
+    public terrain: Terrain;
+    public terrainManager: TerrainManager;
+
     constructor(canvasElement: string) {
         Game.Instance = this;
         
@@ -272,7 +275,7 @@ class Game {
         this.animSpotlightIntensity = Mummu.AnimationFactory.CreateNumber(this.spotlight, this.spotlight, "intensity");
 
         let skyBoxHolder = new BABYLON.Mesh("skybox-holder");
-        skyBoxHolder.rotation.x = Math.PI * 0.3;
+        skyBoxHolder.rotation.x = 0;
 
         this.skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1500 }, this.scene);
         this.skybox.parent = skyBoxHolder;
@@ -374,12 +377,8 @@ class Game {
             }
         );
 
-        let terrain = new Terrain(this);
-        for (let i = -2; i <= 2; i++) {
-            for (let j = -2; j <= 2; j++) {
-                await terrain.drawChunck(i, j);
-            }
-        }
+        this.terrain = new Terrain(this);
+        this.terrainManager = new TerrainManager(this.terrain);
 
         this.gameLoaded = true;
         I18Nizer.Translate(LOCALE);
@@ -445,6 +444,7 @@ class Game {
         this.performanceWatcher.update(rawDT);
         if (isFinite(rawDT)) {
             this.globalTimer += rawDT;
+            this.terrainManager.update();
         }
     }
 
