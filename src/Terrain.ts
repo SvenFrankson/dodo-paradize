@@ -17,12 +17,46 @@ class Terrain {
         this.material = new TerrainMaterial("terrain", this.game.scene);
     }
 
+    private _tmpMaps: Nabu.TerrainMap[][];
+    public tmpMapGet(i: number, j: number): number {
+        let iM = 1;
+        let jM = 1;
+        
+        if (i < 0) {
+            i += 1024;
+            iM--;
+        }
+        if (j < 0) {
+            j += 1024;
+            jM--;
+        }
+        if (i >= 1024) {
+            i -= 1024;
+            iM++;
+        }
+        if (j >= 1024) {
+            j -= 1024;
+            jM++;
+        }
+
+        return this._tmpMaps[iM][jM].get(i, j);
+    }
+
     public async drawChunck(iChunck: number, jChunck: number): Promise<void> {
         console.log("chunck " + iChunck + " " + jChunck);
         let IMap = this.worldZero + Math.floor(iChunck * this.chunckL / this.mapL);
         let JMap = this.worldZero + Math.floor(jChunck * this.chunckL / this.mapL);
+        this._tmpMaps = [];
         console.log("map " + IMap + " " + JMap);
-        let map = await this.generator.getMap(IMap, JMap);
+
+        this._tmpMaps = [];
+        for (let i = 0; i < 3; i++) {
+            this._tmpMaps[i] = [];
+            for (let j = 0; j < 3; j++) {
+                this._tmpMaps[i][j] = await this.generator.getMap(IMap + i - 1, JMap + j - 1);
+            }
+        }
+
         if (!this.meshes) {
             this.meshes = [];
         }
@@ -53,11 +87,10 @@ class Terrain {
 
         for (let j = 0; j <= l; j++) {
             for (let i = 0; i <= l; i++) {
-                let h = map.get(iOffset + i, jOffset + j) - 128;
+                let h = this.tmpMapGet(iOffset + i, jOffset + j) - 128;
                 positions.push(i, h / 3, j);
             }
         }
-
 
         let pt0 = BABYLON.Vector3.Zero();
         let pt1 = BABYLON.Vector3.Zero();
@@ -66,11 +99,11 @@ class Terrain {
 
         for (let j = 0; j <= l; j++) {
             for (let i = 0; i <= l; i++) {
-                let h = map.get(iOffset + i, jOffset + j) - 128;
-                let hIP = map.get(iOffset + i + 1, jOffset + j) - 128;
-                let hIM = map.get(iOffset + i - 1, jOffset + j) - 128;
-                let hJP = map.get(iOffset + i, jOffset + j + 1) - 128;
-                let hJM = map.get(iOffset + i, jOffset + j - 1) - 128;
+                let h = this.tmpMapGet(iOffset + i, jOffset + j) - 128;
+                let hIP = this.tmpMapGet(iOffset + i + 1, jOffset + j) - 128;
+                let hIM = this.tmpMapGet(iOffset + i - 1, jOffset + j) - 128;
+                let hJP = this.tmpMapGet(iOffset + i, jOffset + j + 1) - 128;
+                let hJM = this.tmpMapGet(iOffset + i, jOffset + j - 1) - 128;
 
                 pt0.copyFromFloats(1, hIP - h, 0);
                 pt1.copyFromFloats(0, hJP - h, 1);
