@@ -324,30 +324,6 @@ class Game {
             this.performanceWatcher.supportTexture3D = false;
         }
 
-        let borderDatas = await this.vertexDataLoader.get("./datas/meshes/border.babylon");
-        borderDatas.forEach(data => {
-            let positions = data.positions;
-
-            for (let i = 0; i < positions.length / 3; i++) {
-                let x = positions[3 * i];
-                let y = positions[3 * i + 1];
-                let z = positions[3 * i + 2];
-
-                let nx = data.normals[3 * i];
-                let ny = data.normals[3 * i + 1];
-                let nz = data.normals[3 * i + 2];
-
-                if (Math.abs(z - 0.55) < 0.01 || Math.abs(z + 0.55) < 0.01) {
-                    let n = new BABYLON.Vector3(nx, ny, 0);
-                    n.normalize();
-                    
-                    data.normals[3 * i] = n.x;
-                    data.normals[3 * i + 1] = n.y;
-                    data.normals[3 * i + 2] = n.z;
-                }
-            }
-        })
-
         setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP++, "puzzles loaded");
 
         this.canvas.addEventListener("pointerdown", this.onPointerDown);

@@ -1,7 +1,7 @@
 var USE_POKI_SDK = false;
 var USE_CG_SDK = false;
 var OFFLINE_MODE = false;
-var NO_VERTEX_DATA_LOADER = true;
+var NO_VERTEX_DATA_LOADER = false;
 var ADVENT_CAL = false;
 var TOP_HOST = "uknwn";
 
@@ -113,37 +113,18 @@ function loadStep() {
         displayed_progress = displayed_progress * 0.985 + real_progress * 0.015;
 
         let ok = Math.sqrt(displayed_progress);
-        if (ok > 0.1) {
-            document.querySelector("#cas-message-1").style.opacity = "1";
-        }
-        if (ok > 0.3) {
-            document.querySelector("#cas-message-2").style.opacity = "1";
-        }
-        if (ok > 0.6) {
-            document.querySelector("#cas-message-3").style.opacity = "1";
-        }
         let c = Math.floor((1 - ok) * (1 - ok) * 256).toString(16).padStart(2, "0").substring(0, 2);
         document.querySelector("#loading-bar-text").style.color = "#" + c + c + c;
         document.querySelector("#loading-bar-text").innerHTML = "Loading...";
         document.querySelector("#loading-bar-progress").style.width = (ok * 70).toFixed(2) + "%";
         document.querySelector("#loading-text").innerHTML = "Loading... " + (ok * 100).toFixed(0) + "%";
-        document.querySelector("#click-anywhere-screen img").style.opacity = ok;
-
-        //document.querySelector("#click-anywhere-screen .white-track").style.opacity = displayed_progress;
-        //document.querySelector("#click-anywhere-screen .message-bottom").innerHTML = "loading... " + (displayed_progress * 100).toFixed(0) + "%";
         requestAnimationFrame(loadStep);
     }
     else {
-        document.querySelector("#cas-message-1").style.opacity = "1";
-        document.querySelector("#cas-message-2").style.opacity = "1";
-        document.querySelector("#cas-message-3").style.opacity = "1";
         document.querySelector("#loading-bar-progress").style.width = "70%";
         document.querySelector("#loading-text").innerHTML = "Press to Enter";
         document.querySelector("#loading-bar-text").style.color = "#000000";
         document.querySelector("#loading-bar-text").innerHTML = "Done !";
-        document.querySelector("#click-anywhere-screen img").style.opacity = "1";
-        //document.querySelector("#click-anywhere-screen .white-track").style.opacity = "1";
-        //document.querySelector("#click-anywhere-screen .message-bottom").innerHTML = "Click or press anywhere to Enter";
     }
 }
 
@@ -194,8 +175,8 @@ async function doLoad() {
     await loadScript("./lib/mummu/mummu.js");
     setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP++, "mummu.js loaded");
 
-    await loadScript("./fluid-x.js");
-    setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP++, "fluid-x.js loaded");
+    await loadScript("./game.js");
+    setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP++, "game.js loaded");
 
     await gameLoaded();
     setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP, "all done");

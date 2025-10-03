@@ -91,11 +91,11 @@ class SoundManager {
         for (let i = 0; i < this.managedSounds.length; i++) {
             this.managedSounds[i].load();
         }
-        (document.querySelector("#sound-btn") as HTMLButtonElement).classList.remove("mute");
+        //(document.querySelector("#sound-btn") as HTMLButtonElement).classList.remove("mute");
     }
 
     public soundOff(): void {
         BABYLON.Engine.audioEngine.setGlobalVolume(0);
-        (document.querySelector("#sound-btn") as HTMLButtonElement).classList.add("mute");
+        //(document.querySelector("#sound-btn") as HTMLButtonElement).classList.add("mute");
     }
 }
