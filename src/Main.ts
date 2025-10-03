@@ -128,7 +128,6 @@ let onFirstPlayerInteractionTouch = (ev: Event) => {
 
     IsTouchScreen = 1;
     document.body.classList.add("touchscreen");
-    Game.Instance.camera.panningSensibility *= 0.4;
 
     if (!PlayerHasInteracted) {
         firstPlayerInteraction();
@@ -208,7 +207,7 @@ class Game {
     public performanceWatcher: PerformanceWatcher;
     public analytics: Analytics;
 
-    public camera: BABYLON.ArcRotateCamera;
+    public camera: BABYLON.FreeCamera;
 
     public light: BABYLON.HemisphericLight;
     public spotlight: BABYLON.SpotLight;
@@ -264,6 +263,7 @@ class Game {
 
         this.light = new BABYLON.HemisphericLight("light", (new BABYLON.Vector3(2, 4, 3)).normalize(), this.scene);
         this.light.groundColor.copyFromFloats(0.3, 0.3, 0.3);
+        this.light.intensity = 0.7;
 
         this.spotlight = new BABYLON.SpotLight("spotlight", BABYLON.Vector3.Zero(), BABYLON.Vector3.Down(), Math.PI / 6, 10, this.scene);
         this.spotlight.intensity = 0;
@@ -289,9 +289,8 @@ class Game {
         skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
         this.skybox.material = skyboxMaterial;
 
-        this.camera = new BABYLON.ArcRotateCamera("camera", - Math.PI * 0.5, Math.PI * 0.1, 15, BABYLON.Vector3.Zero());
-        this.camera.wheelPrecision *= 10;
-        this.camera.pinchPrecision *= 10;
+        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 128, 0));
+        this.camera.attachControl();
         
         this.router = new CarillonRouter(this);
         this.router.initialize();
@@ -374,6 +373,9 @@ class Game {
                 loop: true
             }
         );
+
+        let terrain = new Terrain(this);
+        terrain.draw();
 
         this.gameLoaded = true;
         I18Nizer.Translate(LOCALE);
