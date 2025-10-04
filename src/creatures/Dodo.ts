@@ -447,7 +447,7 @@ class Dodo extends Creature {
 
         this.body.freezeWorldMatrix();
 
-        let hipR = new BABYLON.Vector3(0.81, 0, -0.34);
+        let hipR = new BABYLON.Vector3(0.72, 0, -0.34);
         BABYLON.Vector3.TransformCoordinatesToRef(hipR, this.body.getWorldMatrix(), hipR);
 
         let kneeR = hipR.clone().addInPlace(this.feet[0].position).scaleInPlace(0.5);
@@ -467,7 +467,7 @@ class Dodo extends Creature {
         this.upperLegs[0].position.copyFrom(hipR);
         this.lowerLegs[0].position.copyFrom(kneeR);
 
-        let hipL = new BABYLON.Vector3(- 0.81, 0, -0.34);
+        let hipL = new BABYLON.Vector3(- 0.72, 0, -0.34);
         BABYLON.Vector3.TransformCoordinatesToRef(hipL, this.body.getWorldMatrix(), hipL);
 
         let kneeL = hipL.clone().addInPlace(this.feet[1].position).scaleInPlace(0.5);

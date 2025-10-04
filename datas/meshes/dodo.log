@@ -14,10 +14,10 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
 	processing begun of mesh:  0-body
 		processing begun of material:  Material
-		num positions      :  172
-		num normals        :  172
+		num positions      :  171
+		num normals        :  171
 		num tangents       :  0
-		num uvs            :  344
+		num uvs            :  342
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  192
@@ -41,13 +41,13 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num triangles      :  32
 	processing begun of mesh:  3-head
 		WARNING: No materials have been assigned: 
-		num positions      :  66
-		num normals        :  66
+		num positions      :  424
+		num normals        :  424
 		num tangents       :  0
-		num uvs            :  132
+		num uvs            :  848
 		num uvs2           :  0
 		num colors         :  0
-		num triangles      :  64
+		num triangles      :  520
 ========= Writing of JSON file started =========
 	writing mesh:  0-body
 	writing mesh:  1-upper-leg
@@ -55,4 +55,4 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	writing mesh:  3-head
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.1368 secs
+elapsed time:  0 min, 0.048 secs
