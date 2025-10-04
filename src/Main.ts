@@ -223,8 +223,10 @@ class Game {
 
     public gameLoaded: boolean = false;
 
+    public defaultToonMaterial: BABYLON.StandardMaterial;
     public terrain: Terrain;
     public terrainManager: TerrainManager;
+    public playerDodo: Dodo;
 
     constructor(canvasElement: string) {
         Game.Instance = this;
@@ -377,8 +379,14 @@ class Game {
             }
         );
 
+        this.defaultToonMaterial = new BABYLON.StandardMaterial("default-toon-material");
+        this.defaultToonMaterial.specularColor.copyFromFloats(0, 0, 0);
+
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
+        this.playerDodo = new Dodo("Sven", this);
+        await this.playerDodo.instantiate();
+        this.playerDodo.setWorldPosition(new BABYLON.Vector3(-3.866651255957095, 6.411329332679692, 52.84466100342614));
 
         this.gameLoaded = true;
         I18Nizer.Translate(LOCALE);
@@ -445,6 +453,7 @@ class Game {
         if (isFinite(rawDT)) {
             this.globalTimer += rawDT;
             this.terrainManager.update();
+            this.playerDodo.update(rawDT);
         }
     }
 

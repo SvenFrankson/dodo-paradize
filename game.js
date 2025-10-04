@@ -499,8 +499,13 @@ class Game {
             autoplay: true,
             loop: true
         });
+        this.defaultToonMaterial = new BABYLON.StandardMaterial("default-toon-material");
+        this.defaultToonMaterial.specularColor.copyFromFloats(0, 0, 0);
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
+        this.playerDodo = new Dodo("Sven", this);
+        await this.playerDodo.instantiate();
+        this.playerDodo.setWorldPosition(new BABYLON.Vector3(-3.866651255957095, 6.411329332679692, 52.84466100342614));
         this.gameLoaded = true;
         I18Nizer.Translate(LOCALE);
         if (USE_POKI_SDK) {
@@ -540,6 +545,7 @@ class Game {
         if (isFinite(rawDT)) {
             this.globalTimer += rawDT;
             this.terrainManager.update();
+            this.playerDodo.update(rawDT);
         }
     }
     storyIdToExpertId(storyId) {
@@ -1467,6 +1473,688 @@ class UserInterfaceInputManager {
                 });
             }
         });
+    }
+}
+var LifeState;
+(function (LifeState) {
+    LifeState[LifeState["Folded"] = 0] = "Folded";
+    LifeState[LifeState["Ok"] = 1] = "Ok";
+    LifeState[LifeState["Dying"] = 2] = "Dying";
+    LifeState[LifeState["Disposed"] = 3] = "Disposed";
+})(LifeState || (LifeState = {}));
+class Creature extends BABYLON.Mesh {
+    constructor(name, game) {
+        super(name);
+        this.game = game;
+        this._lifeState = LifeState.Folded;
+        this.hitpoint = 1;
+        this.stamina = 10;
+        this.speed = 1;
+        this.currentSpeed = 0;
+        this.bounty = 10;
+    }
+    get lifeState() {
+        if (this.isDisposed()) {
+            return LifeState.Disposed;
+        }
+        return this._lifeState;
+    }
+    set lifeState(s) {
+        this._lifeState = s;
+    }
+    get isAlive() {
+        return this.hitpoint > 0;
+    }
+    barycenterWorldPositionToRef(ref) {
+        BABYLON.Vector3.TransformCoordinatesToRef(new BABYLON.Vector3(0, 0.5, 0), this.getWorldMatrix(), ref);
+    }
+    setWorldPosition(p) {
+        this.position.copyFrom(p);
+    }
+    wound(amount) {
+        if (this.isAlive) {
+            this.hitpoint -= amount;
+            if (this.hitpoint <= 0) {
+                this.kill();
+            }
+        }
+    }
+    async instantiate() { }
+    update(dt) { }
+    async fold() { }
+    async unfold() { }
+    async kill() {
+        this.dispose();
+    }
+}
+var CreepNames = [
+    "dodo"
+];
+var CreepHexColors = [
+    "#334152",
+    "red",
+    "white"
+];
+class CreatureFactory {
+    static CreateCreep(name, game) {
+        if (name === "dodo") {
+            return new Dodo("dodo", game, {
+                speed: 1,
+                stepDuration: 0.8,
+                color: new BABYLON.Color3(Math.random(), Math.random(), Math.random()),
+                bounty: 10
+            });
+        }
+    }
+}
+/// <reference path="Creature.ts"/>
+class Dodo extends Creature {
+    constructor(name, game, prop) {
+        super(name, game);
+        this.stepDuration = 0.4;
+        this.color = BABYLON.Color3.White();
+        this.targetLook = BABYLON.Vector3.Zero();
+        this.bodyTargetPos = BABYLON.Vector3.Zero();
+        this.bodyVelocity = BABYLON.Vector3.Zero();
+        //public eyes: BABYLON.Mesh[];
+        //public topEyelids: BABYLON.Mesh[];
+        //public bottomEyelids: BABYLON.Mesh[];
+        //public wing: BABYLON.Mesh;
+        //public canon: BABYLON.Mesh;
+        this.stepHeight = 0.65;
+        this.foldedBodyHeight = 0.2;
+        this.unfoldedBodyHeight = 1.1;
+        this.bodyHeight = this.foldedBodyHeight;
+        this.animateWait = Mummu.AnimationFactory.EmptyVoidCallback;
+        this.animateBodyHeight = Mummu.AnimationFactory.EmptyNumberCallback;
+        this.walking = 0;
+        this.footIndex = 0;
+        if (prop) {
+            if (isFinite(prop.speed)) {
+                this.speed = prop.speed;
+            }
+            if (isFinite(prop.stepDuration)) {
+                this.stepDuration = prop.stepDuration;
+            }
+            if (isFinite(prop.bounty)) {
+                this.bounty = prop.bounty;
+            }
+            if (prop.color) {
+                this.color = prop.color;
+            }
+        }
+        this.brain = new Brain(this);
+        this.rotationQuaternion = BABYLON.Quaternion.Identity();
+        this.body = Dodo.OutlinedMesh("body");
+        this.head = Dodo.OutlinedMesh("head");
+        this.head.rotationQuaternion = BABYLON.Quaternion.Identity();
+        /*
+        this.eyes = [
+            Dodo.OutlinedMesh("eyeR"),
+            Dodo.OutlinedMesh("eyeL")
+        ];
+        this.eyes[0].parent = this.head;
+        this.eyes[0].position.copyFromFloats(0.236, 0.046, 0.705);
+        this.eyes[1].parent = this.head;
+        this.eyes[1].position.copyFromFloats(-0.236, 0.046, 0.705);
+
+        this.topEyelids = [
+            Dodo.OutlinedMesh("topEyelidR"),
+            Dodo.OutlinedMesh("topEyelidL")
+        ];
+        this.topEyelids[0].parent = this.head;
+        this.topEyelids[0].position.copyFromFloats(0.236, 0.046, 0.705);
+        this.topEyelids[0].rotation.x = Math.PI / 4;
+        this.topEyelids[1].parent = this.head;
+        this.topEyelids[1].position.copyFromFloats(-0.236, 0.046, 0.705);
+        this.topEyelids[1].rotation.x = Math.PI / 4;
+
+        this.bottomEyelids = [
+            Dodo.OutlinedMesh("bottomEyelidR"),
+            Dodo.OutlinedMesh("bottomEyelidL")
+        ];
+        this.bottomEyelids[0].parent = this.head;
+        this.bottomEyelids[0].position.copyFromFloats(0.236, 0.046, 0.705);
+        this.bottomEyelids[0].rotation.x = - Math.PI / 4;
+        this.bottomEyelids[1].parent = this.head;
+        this.bottomEyelids[1].position.copyFromFloats(-0.236, 0.046, 0.705);
+        this.bottomEyelids[1].rotation.x = - Math.PI / 4;
+
+        this.canon = Dodo.OutlinedMesh("canon");
+        this.canon.position.copyFromFloats(0, - 0.04, 0.46);
+        this.canon.parent = this.body;
+
+        if (prop && prop.hasWings) {
+            this.wing = Dodo.OutlinedMesh("body");
+            this.wing.parent = this.body;
+        }
+        */
+        this.upperLegs = [
+            Dodo.OutlinedMesh("upperLegR"),
+            Dodo.OutlinedMesh("upperLegL")
+        ];
+        this.upperLegs[0].rotationQuaternion = BABYLON.Quaternion.Identity();
+        this.upperLegs[1].rotationQuaternion = BABYLON.Quaternion.Identity();
+        this.lowerLegs = [
+            Dodo.OutlinedMesh("lowerLegR"),
+            Dodo.OutlinedMesh("lowerLegL")
+        ];
+        this.lowerLegs[0].rotationQuaternion = BABYLON.Quaternion.Identity();
+        this.lowerLegs[1].rotationQuaternion = BABYLON.Quaternion.Identity();
+        this.feet = [
+            new DodoFoot("footR", this),
+            new DodoFoot("footL", this)
+        ];
+        this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
+        this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
+        /*
+        this.tailEnd = new BABYLON.Mesh("tailend");
+
+        this.tail = new BABYLON.Mesh("tail");
+        */
+        this.hitCollider = new BABYLON.Mesh("hit-collider");
+        this.hitCollider.parent = this;
+        this.hitCollider.isVisible = false;
+        this.hitCollider.parent = this.body;
+        this.animateWait = Mummu.AnimationFactory.CreateWait(this);
+        this.animateBodyHeight = Mummu.AnimationFactory.CreateNumber(this, this, "bodyHeight", undefined, undefined, Nabu.Easing.easeInOutSine);
+        /*
+        this.animateCanonRotX = Mummu.AnimationFactory.CreateNumber(this, this.canon.rotation, "x");
+        this.animateTopEyeLids = [
+            Mummu.AnimationFactory.CreateNumber(this.topEyelids[0], this.topEyelids[0].rotation, "x"),
+            Mummu.AnimationFactory.CreateNumber(this.topEyelids[1], this.topEyelids[1].rotation, "x")
+        ];
+        this.animateBottomEyeLids = [
+            Mummu.AnimationFactory.CreateNumber(this.bottomEyelids[0], this.bottomEyelids[0].rotation, "x"),
+            Mummu.AnimationFactory.CreateNumber(this.bottomEyelids[1], this.bottomEyelids[1].rotation, "x")
+        ];
+        */
+    }
+    //public tailEnd: BABYLON.Mesh;
+    //public tail: BABYLON.Mesh;
+    static OutlinedMesh(name) {
+        let mesh = new BABYLON.Mesh(name);
+        //mesh.renderOutline = true;
+        //mesh.outlineColor.copyFromFloats(0, 0, 0);
+        //mesh.outlineWidth = 0.03;
+        return mesh;
+    }
+    async instantiate() {
+        this.material = this.game.defaultToonMaterial;
+        this.body.material = this.material;
+        this.head.material = this.material;
+        //this.eyes[0].material = this.material;
+        //this.eyes[1].material = this.material;
+        //this.topEyelids[0].material = this.material;
+        //this.topEyelids[1].material = this.material;
+        //this.bottomEyelids[0].material = this.material;
+        //this.bottomEyelids[1].material = this.material;
+        this.upperLegs[0].material = this.material;
+        this.upperLegs[1].material = this.material;
+        this.lowerLegs[0].material = this.material;
+        this.lowerLegs[1].material = this.material;
+        //this.tailEnd.material = this.material;
+        //this.tail.material = this.material;
+        let datas = await this.game.vertexDataLoader.get("./datas/meshes/dodo.babylon");
+        datas = datas.map(vertexData => {
+            return Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(vertexData), this.color, new BABYLON.Color3(0, 1, 0));
+        });
+        datas[0].applyToMesh(this.body);
+        datas[3].applyToMesh(this.head);
+        //datas[2].applyToMesh(this.eyes[0]);
+        //datas[2].applyToMesh(this.eyes[1]);
+        //datas[3].applyToMesh(this.topEyelids[0]);
+        //datas[3].applyToMesh(this.topEyelids[1]);
+        //datas[4].applyToMesh(this.bottomEyelids[0]);
+        //datas[4].applyToMesh(this.bottomEyelids[1]);
+        datas[1].applyToMesh(this.upperLegs[0]);
+        datas[1].applyToMesh(this.upperLegs[1]);
+        datas[2].applyToMesh(this.lowerLegs[0]);
+        datas[2].applyToMesh(this.lowerLegs[1]);
+        await this.feet[0].instantiate();
+        await this.feet[1].instantiate();
+        //datas[1].applyToMesh(this.upperLegs[0]);
+        //datas[1].applyToMesh(this.upperLegs[1]);
+        //this.upperLegs[1].scaling.copyFromFloats(-1, 1, 1);
+        //datas[2].applyToMesh(this.lowerLegs[0]);
+        //datas[2].applyToMesh(this.lowerLegs[1]);
+        //this.lowerLegs[1].scaling.copyFromFloats(-1, 1, 1);
+        //datas[3].applyToMesh(this.feet[0]);
+        //datas[3].applyToMesh(this.feet[1]);
+        //this.feet[1].scaling.copyFromFloats(-1, 1, 1);
+        datas[0].applyToMesh(this.hitCollider);
+        //datas[10].applyToMesh(this);
+        /*
+        let base = BABYLON.MeshBuilder.CreateSphere("base", { diameter: 0.3 });
+        base.parent = this;
+        base.material = material;
+        
+        let dir = BABYLON.MeshBuilder.CreateBox("dir", { width: 0.1, height: 0.3, depth: 1 });
+        dir.position.z = 0.5;
+        dir.parent = this;
+        dir.material = material;
+        */
+        this.hitpoint = this.stamina;
+        setInterval(() => {
+            this.eyeBlink();
+        }, 5000);
+    }
+    dispose() {
+        super.dispose();
+        this.feet[0].dispose();
+        this.feet[1].dispose();
+        this.upperLegs[0].dispose();
+        this.upperLegs[1].dispose();
+        this.lowerLegs[0].dispose();
+        this.lowerLegs[1].dispose();
+        this.body.dispose();
+        this.head.dispose();
+        //this.tail.dispose();
+        //this.tailEnd.dispose();
+    }
+    setWorldPosition(p) {
+        this.position.copyFrom(p);
+        this.computeWorldMatrix(true);
+        this.body.position.copyFrom(p);
+        this.body.position.y += this.bodyHeight;
+        let pRight = new BABYLON.Vector3(0.4, 0.2, this.speed * 0.2);
+        BABYLON.Vector3.TransformCoordinatesToRef(pRight, this.getWorldMatrix(), this.feet[0].position);
+        let pLeft = new BABYLON.Vector3(-0.4, 0.2, this.speed * 0.2);
+        BABYLON.Vector3.TransformCoordinatesToRef(pLeft, this.getWorldMatrix(), this.feet[1].position);
+    }
+    barycenterWorldPositionToRef(ref) {
+        BABYLON.Vector3.TransformCoordinatesToRef(new BABYLON.Vector3(0, 0.2, 0.2), this.body.getWorldMatrix(), ref);
+    }
+    async fold() {
+        this.lifeState = LifeState.Folded;
+        await this.animateBodyHeight(this.foldedBodyHeight, 1.5);
+    }
+    async unfold() {
+        await this.animateBodyHeight(this.unfoldedBodyHeight, 1.5);
+        this.lifeState = LifeState.Ok;
+    }
+    async kill() {
+        if (this.lifeState >= LifeState.Dying) {
+            return;
+        }
+        this.lifeState = LifeState.Dying;
+        await this.animateWait(0.3);
+        this.blink(1);
+        await this.animateBodyHeight(1.02, 1, Nabu.Easing.easeOutElastic);
+        let explosionCloud = new Explosion(this.game);
+        explosionCloud.origin.copyFrom(this.body.absolutePosition);
+        explosionCloud.setRadius(0.6);
+        explosionCloud.color = new BABYLON.Color3(0.2, 0.2, 0.2);
+        explosionCloud.lifespan = 3;
+        explosionCloud.maxOffset = new BABYLON.Vector3(0, 0.4, 0);
+        explosionCloud.tZero = 0.8;
+        explosionCloud.boom();
+        await this.animateWait(0.1);
+        let explosionFire = new Explosion(this.game);
+        explosionFire.origin.copyFrom(this.body.absolutePosition);
+        explosionFire.setRadius(0.45);
+        explosionFire.color = BABYLON.Color3.FromHexString("#ff7b00");
+        explosionFire.lifespan = 1;
+        explosionFire.tZero = 1;
+        explosionFire.boom();
+        let explosionFireYellow = new Explosion(this.game);
+        explosionFireYellow.origin.copyFrom(this.body.absolutePosition);
+        explosionFireYellow.setRadius(0.45);
+        explosionFireYellow.color = BABYLON.Color3.FromHexString("#ffdd00");
+        explosionFireYellow.lifespan = 1;
+        explosionFireYellow.tZero = 1;
+        explosionFireYellow.boom();
+        this.body.visibility = 0;
+        this.body.getChildMeshes().forEach(child => {
+            child.visibility = 0;
+        });
+        await this.animateWait(2);
+        await this.animateBodyHeight(this.foldedBodyHeight, 0.5, Nabu.Easing.easeInCubic);
+        await this.animateWait(0.3);
+        this.dispose();
+    }
+    async blink(duration) {
+        let t0 = performance.now() / 1000;
+        let t = performance.now() / 1000;
+        while (t - t0 < duration) {
+            await this.animateWait(0.04);
+            await this.animateWait(0.08);
+            this.body.material = this.game.defaultToonMaterial;
+            await this.animateWait(0.04);
+        }
+    }
+    async animateFoot(foot, target, targetQ) {
+        return new Promise(resolve => {
+            let origin = foot.position.clone();
+            let dist = BABYLON.Vector3.Distance(origin, target);
+            let duration = this.stepDuration;
+            let originQ = foot.rotationQuaternion.clone();
+            let t0 = performance.now() / 1000;
+            let step = () => {
+                let t = performance.now() / 1000;
+                let f = (t - t0) / duration;
+                if (f < 1) {
+                    f = Nabu.Easing.easeInSine(f);
+                    BABYLON.Quaternion.SlerpToRef(originQ, targetQ, f, foot.rotationQuaternion);
+                    BABYLON.Vector3.LerpToRef(origin, target, f, foot.position);
+                    foot.position.y += Math.min(dist, this.stepHeight) * Math.sin(f * Math.PI);
+                    requestAnimationFrame(step);
+                }
+                else {
+                    foot.position.copyFrom(target);
+                    foot.rotationQuaternion.copyFrom(targetQ);
+                    resolve();
+                }
+            };
+            step();
+        });
+    }
+    walk() {
+        if (this.walking === 0 && this.isAlive) {
+            let xFactor = this.footIndex === 0 ? 1 : -1;
+            let spread = 0.7 - 0.2 * this.currentSpeed / this.speed;
+            let pos = new BABYLON.Vector3(xFactor * spread, 0.15, this.speed * 0.2);
+            let up = BABYLON.Vector3.Up();
+            BABYLON.Vector3.TransformCoordinatesToRef(pos, this.getWorldMatrix(), pos);
+            let ray = new BABYLON.Ray(pos.add(new BABYLON.Vector3(0, 1, 0)), new BABYLON.Vector3(0, -1, 0));
+            let pick = this._scene.pickWithRay(ray, (mesh => {
+                return mesh.name.startsWith("chunck");
+            }));
+            if (pick.hit) {
+                pos = pick.pickedPoint;
+                up = pick.getNormal(true, false);
+            }
+            let foot = this.feet[this.footIndex];
+            if (BABYLON.Vector3.DistanceSquared(foot.position, pos.add(up.scale(0.15))) > 0.05) {
+                this.walking = 1;
+                let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
+                foot.groundPos = pos;
+                foot.groundUp = up;
+                this.animateFoot(foot, pos.add(up.scale(0.15)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
+                    this.walking = 0;
+                    this.footIndex = (this.footIndex + 1) % 2;
+                });
+            }
+            else {
+                this.footIndex = (this.footIndex + 1) % 2;
+            }
+        }
+    }
+    static FlatManhattan(from, to) {
+        return Math.abs(from.x - to.x) + Math.abs(from.z - to.z);
+    }
+    update(dt) {
+        this.brain.update(dt);
+        this.walk();
+        let f = 0.5;
+        let dy = this.feet[1].position.y - this.feet[0].position.y;
+        f += dy / this.stepHeight * 0.4;
+        f = Nabu.MinMax(f, 0.2, 0.8);
+        this.bodyTargetPos.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
+        this.bodyTargetPos.addInPlace(this.forward.scale(this.currentSpeed * 0));
+        this.bodyTargetPos.y += this.bodyHeight;
+        let pForce = this.bodyTargetPos.subtract(this.body.position);
+        pForce.scaleInPlace(40 * dt);
+        this.bodyVelocity.addInPlace(pForce);
+        this.bodyVelocity.scaleInPlace(Nabu.Easing.smoothNSec(1 / dt, 0.5));
+        //if (this.bodyVelocity.length() > this.speed * 3) {
+        //    this.bodyVelocity.normalize().scaleInPlace(this.speed * 3);
+        //} 
+        this.body.position.addInPlace(this.bodyVelocity.scale(dt));
+        //this.body.position.copyFrom(this.bodyTargetPos);
+        let right = this.feet[0].position.subtract(this.feet[1].position);
+        right.normalize();
+        right.addInPlace(this.right.scale(1.5));
+        right.normalize();
+        this.body.rotationQuaternion = BABYLON.Quaternion.Slerp(this.rotationQuaternion, Mummu.QuaternionFromXYAxis(right, this.up), 0.9);
+        this.body.freezeWorldMatrix();
+        let hipR = new BABYLON.Vector3(0.4, -0.2, 0);
+        BABYLON.Vector3.TransformCoordinatesToRef(hipR, this.body.getWorldMatrix(), hipR);
+        let kneeR = hipR.clone().addInPlace(this.feet[0].position).scaleInPlace(0.5);
+        kneeR.subtractInPlace(this.forward);
+        kneeR.addInPlace(this.right.scale(0.5));
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, hipR, 0.5 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, this.feet[0].position, 0.52 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, hipR, 0.5 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, this.feet[0].position, 0.52 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, hipR, 0.5 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, this.feet[0].position, 0.52 * 1.3 + 0.1);
+        Mummu.QuaternionFromZYAxisToRef(kneeR.subtract(hipR), hipR.subtract(this.feet[0].position), this.upperLegs[0].rotationQuaternion);
+        Mummu.QuaternionFromZYAxisToRef(this.feet[0].position.subtract(kneeR), hipR.subtract(this.feet[0].position), this.lowerLegs[0].rotationQuaternion);
+        this.upperLegs[0].position.copyFrom(hipR);
+        this.lowerLegs[0].position.copyFrom(kneeR);
+        let hipL = new BABYLON.Vector3(-0.4, -0.2, 0);
+        BABYLON.Vector3.TransformCoordinatesToRef(hipL, this.body.getWorldMatrix(), hipL);
+        let kneeL = hipL.clone().addInPlace(this.feet[1].position).scaleInPlace(0.5);
+        kneeL.subtractInPlace(this.forward);
+        kneeL.subtractInPlace(this.right.scale(0.5));
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, hipL, 0.5 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, this.feet[1].position, 0.52 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, hipL, 0.5 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, this.feet[1].position, 0.52 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, hipL, 0.5 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, this.feet[1].position, 0.52 * 1.3 + 0.1);
+        Mummu.QuaternionFromZYAxisToRef(kneeL.subtract(hipL), hipL.subtract(this.feet[1].position), this.upperLegs[1].rotationQuaternion);
+        Mummu.QuaternionFromZYAxisToRef(this.feet[1].position.subtract(kneeL), hipL.subtract(this.feet[1].position), this.lowerLegs[1].rotationQuaternion);
+        this.upperLegs[1].position.copyFrom(hipL);
+        this.lowerLegs[1].position.copyFrom(kneeL);
+        let neck = new BABYLON.Vector3(0, 0, 0.75);
+        BABYLON.Vector3.TransformCoordinatesToRef(neck, this.body.getWorldMatrix(), neck);
+        this.head.position.copyFrom(neck);
+        let forward = this.forward;
+        if (this.targetLook) {
+            forward.copyFrom(this.targetLook).subtractInPlace(neck).normalize();
+        }
+        let q = Mummu.QuaternionFromZYAxis(forward, this.up);
+        BABYLON.Quaternion.SlerpToRef(this.head.rotationQuaternion, BABYLON.Quaternion.Slerp(this.body.rotationQuaternion, q, 0.5), 0.01, this.head.rotationQuaternion);
+        /*
+        let db = this.head.absolutePosition.add(this.head.forward.scale(0.5)).subtract(this.bodyTargetPos);
+        db.scaleInPlace(2);
+        let rComp = this.right.scale(BABYLON.Vector3.Dot(db, this.right));
+        db.subtractInPlace(rComp.scale(2));
+        let tailEndP = this.body.absolutePosition.subtract(db);
+        let tailF = Nabu.Easing.smoothNSec(1 / dt, 0.5);
+        if (isFinite(tailF)) {
+            this.tailEnd.position.scaleInPlace(tailF).addInPlace(tailEndP.scale(1 - tailF));
+        }
+
+        let tailPoints = [new BABYLON.Vector3(0, 0, -0.55)];
+        BABYLON.Vector3.TransformCoordinatesToRef(tailPoints[0], this.body.getWorldMatrix(), tailPoints[0]);
+        let d = BABYLON.Vector3.Dot(this.tailEnd.position.subtract(tailPoints[0]), this.body.forward.scale(-1));
+        tailPoints[1] = tailPoints[0].add(this.body.forward.scale(-1).scale(d * 0.5));
+        tailPoints[2] = this.tailEnd.position;
+        let dir = tailPoints[2].subtract(tailPoints[1]).normalize();
+        let l = 2 - BABYLON.Vector3.Distance(tailPoints[0], tailPoints[1]) - BABYLON.Vector3.Distance(tailPoints[1], tailPoints[2]);
+        tailPoints[3] = tailPoints[2].add(dir.scale(l));
+
+        tailPoints = [tailPoints[0], tailPoints[3]];
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(-1), dir);
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(-1), dir);
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(-1), dir);
+
+        let data = Mummu.CreateWireVertexData({
+            path: tailPoints,
+            radiusFunc: (f) => {
+                return 0.3 - 0.25 * f;
+            },
+            tesselation: 8,
+            pathUps: tailPoints.map(() => { return this.body.up; }),
+            color: BABYLON.Color4.FromColor3(this.color)
+        })
+        data.applyToMesh(this.tail);
+        */
+        /*
+        let dFoot = BABYLON.Vector3.Dot(this.feet[0].position.subtract(this.feet[1].position), this.forward);
+        if (dFoot > 0) {
+            let a = dFoot * Math.PI * 0.3;
+            let up = this.feet[1].groundUp;
+            up = Mummu.Rotate(up, this.feet[1].right, a);
+            this.feet[1].rotationQuaternion = Mummu.QuaternionFromYZAxis(up, this.feet[1].forward);
+        }
+        else {
+            let a = - dFoot * Math.PI * 0.3;
+            let up = this.feet[0].groundUp;
+            up = Mummu.Rotate(up, this.feet[0].right, a);
+            this.feet[0].rotationQuaternion = Mummu.QuaternionFromYZAxis(up, this.feet[0].forward);
+        }
+        */
+        this.feet[0].update(dt);
+        this.feet[1].update(dt);
+    }
+    async eyeBlink(eyeIndex = -1) {
+        let eyeIndexes = [0, 1];
+        if (eyeIndex != -1) {
+            eyeIndexes = [eyeIndex];
+        }
+        eyeIndexes.forEach(i => {
+            //this.animateTopEyeLids[i](Math.PI / 2, 0.15)
+            //this.animateBottomEyeLids[i](- Math.PI / 2, 0.15)
+        });
+        await this.animateWait(0.25);
+        eyeIndexes.forEach(i => {
+            //this.animateTopEyeLids[i](Math.PI / 4, 0.15)
+            //this.animateBottomEyeLids[i](- Math.PI / 4, 0.15)
+        });
+        await this.animateWait(0.15);
+    }
+}
+class DodoFoot extends BABYLON.Mesh {
+    constructor(name, joey) {
+        super(name);
+        this.joey = joey;
+        this.groundPos = BABYLON.Vector3.Zero();
+        this.groundUp = BABYLON.Vector3.Up();
+        this.scaling.copyFromFloats(1.3, 1.3, 1.3);
+        this.claws = [
+            Dodo.OutlinedMesh("clawR"),
+            Dodo.OutlinedMesh("clawL"),
+            Dodo.OutlinedMesh("clawB")
+        ];
+        this.claws[0].position.copyFromFloats(-0.103, -0.025, 0.101);
+        this.claws[0].rotation.y = -Math.PI / 8;
+        this.claws[0].parent = this;
+        this.claws[1].position.copyFromFloats(0.103, -0.025, 0.101);
+        this.claws[1].rotation.y = Math.PI / 8;
+        this.claws[1].parent = this;
+        this.claws[2].position.copyFromFloats(0, -0.025, -0.101);
+        this.claws[2].rotation.y = Math.PI;
+        this.claws[2].parent = this;
+    }
+    async instantiate() {
+        let datas = await this.joey.game.vertexDataLoader.get("./datas/meshes/dodo.babylon");
+        datas = datas.map(vertexData => {
+            return Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(vertexData), this.joey.color, new BABYLON.Color3(0, 1, 0));
+        });
+        //datas[8].applyToMesh(this);
+        this.material = this.joey.material;
+        //datas[9].applyToMesh(this.claws[0]);
+        //datas[9].applyToMesh(this.claws[1]);
+        //datas[9].applyToMesh(this.claws[2]);
+        this.claws[0].material = this.joey.material;
+        this.claws[1].material = this.joey.material;
+        this.claws[2].material = this.joey.material;
+    }
+    update(dt) {
+        for (let i = 0; i < this.claws.length; i++) {
+            let clawTip = new BABYLON.Vector3(0, 0, 0.26);
+            BABYLON.Vector3.TransformCoordinatesToRef(clawTip, this.claws[i].getWorldMatrix(), clawTip);
+            let dP = clawTip.subtract(this.groundPos);
+            let dot = BABYLON.Vector3.Dot(dP, this.groundUp);
+            if (dot > 0) {
+                this.claws[i].rotation.x += 0.2 * Math.PI * dt;
+            }
+            else if (dP.length() < 1) {
+                this.claws[i].rotation.x += 50 * dot * Math.PI * dt;
+            }
+            this.claws[i].rotation.x = Nabu.MinMax(this.claws[i].rotation.x, -Math.PI * 0.4, Math.PI * 0.5);
+        }
+    }
+}
+var BrainMode;
+(function (BrainMode) {
+    BrainMode[BrainMode["Idle"] = 0] = "Idle";
+    BrainMode[BrainMode["Travel"] = 1] = "Travel";
+})(BrainMode || (BrainMode = {}));
+class Brain {
+    constructor(joey) {
+        this.joey = joey;
+        this.mode = BrainMode.Idle;
+        this.subBrains = [];
+        this.subBrains[BrainMode.Idle] = new BrainIdle(this);
+        this.subBrains[BrainMode.Travel] = new BrainTravel(this);
+    }
+    get terrain() {
+        return this.joey.game.terrain;
+    }
+    update(dt) {
+        if (this.mode === BrainMode.Idle) {
+            if (Math.random() < 0.005) {
+                this.subBrains[BrainMode.Travel].onReach = () => {
+                    this.mode = BrainMode.Idle;
+                };
+                this.subBrains[BrainMode.Travel].onCantFindPath = () => {
+                    this.mode = BrainMode.Idle;
+                };
+                this.mode = BrainMode.Travel;
+            }
+        }
+        let subBrain = this.subBrains[this.mode];
+        if (subBrain) {
+            subBrain.update(dt);
+        }
+    }
+}
+class SubBrain {
+    constructor(brain) {
+        this.brain = brain;
+    }
+    get joey() {
+        return this.brain.joey;
+    }
+    get terrain() {
+        return this.brain.terrain;
+    }
+    update(dt) {
+    }
+}
+/// <reference path="SubBrain.ts"/>
+class BrainIdle extends SubBrain {
+    constructor() {
+        super(...arguments);
+        this._targetQ = BABYLON.Quaternion.Identity();
+        this._targetLook = BABYLON.Vector3.Zero();
+        this._targetBodyHeight = 0.95;
+    }
+    update(dt) {
+        if (Math.random() < 0.001) {
+            let targetDir = this.joey.forward.clone();
+            Mummu.RotateInPlace(targetDir, this.joey.up, (2 * Math.random() - 1) * Math.PI / 3);
+            targetDir.normalize();
+            Mummu.QuaternionFromZYAxisToRef(targetDir, this.joey.up, this._targetQ);
+            this._targetBodyHeight = 0.8 + 0.4 * Math.random();
+        }
+        if (Math.random() < 0.003) {
+            this._targetLook.copyFrom(this.joey.position);
+            this._targetLook.addInPlace(this.joey.forward.scale(10));
+            this._targetLook.x += Math.random() * 10 - 5;
+            this._targetLook.y += Math.random() * 10 - 5;
+            this._targetLook.z += Math.random() * 10 - 5;
+        }
+        this.joey.currentSpeed *= 0.99;
+        BABYLON.Quaternion.SlerpToRef(this.joey.rotationQuaternion, this._targetQ, 0.01, this.joey.rotationQuaternion);
+        this.joey.bodyHeight = this.joey.bodyHeight * 0.99 + this._targetBodyHeight * 0.01;
+        BABYLON.Vector3.SlerpToRef(this.joey.targetLook, this._targetLook, 0.03, this.joey.targetLook);
+    }
+}
+class BrainTravel extends SubBrain {
+    constructor() {
+        super(...arguments);
+        this.onReach = () => { };
+        this.onCantFindPath = () => { };
+    }
+    recomputePath() {
+    }
+    update(dt) {
     }
 }
 class CubicNoiseTexture {
