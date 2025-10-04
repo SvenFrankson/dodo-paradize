@@ -13,7 +13,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	Python World class constructor completed
 	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
 	processing begun of mesh:  0-body
-		processing begun of material:  Material
+		processing begun of material:  Green
 		num positions      :  171
 		num normals        :  171
 		num tangents       :  0
@@ -22,7 +22,8 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num colors         :  0
 		num triangles      :  192
 	processing begun of mesh:  1-upper-leg
-		WARNING: No materials have been assigned: 
+		processing begun of material:  Green
+		registered as also a user of material:  Green
 		num positions      :  63
 		num normals        :  63
 		num tangents       :  0
@@ -31,7 +32,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num colors         :  0
 		num triangles      :  64
 	processing begun of mesh:  2-lower-leg
-		WARNING: No materials have been assigned: 
+		processing begun of material:  Red
 		num positions      :  42
 		num normals        :  42
 		num tangents       :  0
@@ -40,19 +41,32 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num colors         :  0
 		num triangles      :  32
 	processing begun of mesh:  3-head
-		WARNING: No materials have been assigned: 
-		num positions      :  424
-		num normals        :  424
+		processing begun of material:  Blue
+		processing begun of material:  Red
+		registered as also a user of material:  Red
+		processing begun of multimaterial:  dodo.Multimaterial#0
+		num positions      :  104
+		num normals        :  104
 		num tangents       :  0
-		num uvs            :  848
+		num uvs            :  208
 		num uvs2           :  0
 		num colors         :  0
-		num triangles      :  520
+		num triangles      :  76
+	processing begun of mesh:  4-eye
+		WARNING: No materials have been assigned: 
+		num positions      :  98
+		num normals        :  98
+		num tangents       :  0
+		num uvs            :  196
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  120
 ========= Writing of JSON file started =========
 	writing mesh:  0-body
 	writing mesh:  1-upper-leg
 	writing mesh:  2-lower-leg
 	writing mesh:  3-head
+	writing mesh:  4-eye
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.048 secs
+elapsed time:  0 min, 0.0349 secs

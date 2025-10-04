@@ -26,7 +26,7 @@ class DodoFoot extends BABYLON.Mesh {
     public async instantiate(): Promise<void> {
         let datas = await this.joey.game.vertexDataLoader.get("./datas/meshes/dodo.babylon");
         datas = datas.map(vertexData => {
-            return Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(vertexData), this.joey.color, new BABYLON.Color3(0, 1, 0));
+            return Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(vertexData), this.joey.colors[2], new BABYLON.Color3(0, 1, 0));
         });
 
         //datas[8].applyToMesh(this);

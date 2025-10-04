@@ -1574,11 +1574,10 @@ class Dodo extends Creature {
     constructor(name, game, prop) {
         super(name, game);
         this.stepDuration = 0.4;
-        this.color = BABYLON.Color3.White();
+        this.colors = [];
         this.targetLook = BABYLON.Vector3.Zero();
         this.bodyTargetPos = BABYLON.Vector3.Zero();
         this.bodyVelocity = BABYLON.Vector3.Zero();
-        //public eyes: BABYLON.Mesh[];
         //public topEyelids: BABYLON.Mesh[];
         //public bottomEyelids: BABYLON.Mesh[];
         //public wing: BABYLON.Mesh;
@@ -1593,6 +1592,11 @@ class Dodo extends Creature {
         this.lowerLegLength = 1;
         this.walking = 0;
         this.footIndex = 0;
+        this.colors = [
+            new BABYLON.Color3(Math.random(), Math.random(), Math.random()),
+            new BABYLON.Color3(Math.random(), Math.random(), Math.random()),
+            new BABYLON.Color3(Math.random(), Math.random(), Math.random())
+        ];
         if (prop) {
             if (isFinite(prop.speed)) {
                 this.speed = prop.speed;
@@ -1604,7 +1608,7 @@ class Dodo extends Creature {
                 this.bounty = prop.bounty;
             }
             if (prop.color) {
-                this.color = prop.color;
+                this.colors[0] = prop.color;
             }
         }
         this.brain = new Brain(this);
@@ -1612,16 +1616,15 @@ class Dodo extends Creature {
         this.body = Dodo.OutlinedMesh("body");
         this.head = Dodo.OutlinedMesh("head");
         this.head.rotationQuaternion = BABYLON.Quaternion.Identity();
-        /*
         this.eyes = [
             Dodo.OutlinedMesh("eyeR"),
             Dodo.OutlinedMesh("eyeL")
         ];
         this.eyes[0].parent = this.head;
-        this.eyes[0].position.copyFromFloats(0.236, 0.046, 0.705);
+        this.eyes[0].position.copyFromFloats(0.218532, 0.200658, 0.242955);
         this.eyes[1].parent = this.head;
-        this.eyes[1].position.copyFromFloats(-0.236, 0.046, 0.705);
-
+        this.eyes[1].position.copyFromFloats(-0.218532, 0.200658, 0.242955);
+        /*
         this.topEyelids = [
             Dodo.OutlinedMesh("topEyelidR"),
             Dodo.OutlinedMesh("topEyelidL")
@@ -1671,11 +1674,7 @@ class Dodo extends Creature {
         ];
         this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
         this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
-        /*
-        this.tailEnd = new BABYLON.Mesh("tailend");
-
-        this.tail = new BABYLON.Mesh("tail");
-        */
+        this.neck = new BABYLON.Mesh("neck");
         this.hitCollider = new BABYLON.Mesh("hit-collider");
         this.hitCollider.parent = this;
         this.hitCollider.isVisible = false;
@@ -1694,8 +1693,6 @@ class Dodo extends Creature {
         ];
         */
     }
-    //public tailEnd: BABYLON.Mesh;
-    //public tail: BABYLON.Mesh;
     static OutlinedMesh(name) {
         let mesh = new BABYLON.Mesh(name);
         //mesh.renderOutline = true;
@@ -1707,8 +1704,8 @@ class Dodo extends Creature {
         this.material = this.game.defaultToonMaterial;
         this.body.material = this.material;
         this.head.material = this.material;
-        //this.eyes[0].material = this.material;
-        //this.eyes[1].material = this.material;
+        this.eyes[0].material = this.material;
+        this.eyes[1].material = this.material;
         //this.topEyelids[0].material = this.material;
         //this.topEyelids[1].material = this.material;
         //this.bottomEyelids[0].material = this.material;
@@ -1718,15 +1715,19 @@ class Dodo extends Creature {
         this.lowerLegs[0].material = this.material;
         this.lowerLegs[1].material = this.material;
         //this.tailEnd.material = this.material;
-        //this.tail.material = this.material;
+        this.neck.material = this.material;
         let datas = await this.game.vertexDataLoader.get("./datas/meshes/dodo.babylon");
         datas = datas.map(vertexData => {
-            return Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(vertexData), this.color, new BABYLON.Color3(0, 1, 0));
+            let clonedVertexData = Mummu.CloneVertexData(vertexData);
+            Mummu.ColorizeVertexDataInPlace(clonedVertexData, this.colors[0], new BABYLON.Color3(0, 1, 0));
+            Mummu.ColorizeVertexDataInPlace(clonedVertexData, this.colors[1], new BABYLON.Color3(0, 0, 1));
+            Mummu.ColorizeVertexDataInPlace(clonedVertexData, this.colors[2], new BABYLON.Color3(1, 0, 0));
+            return clonedVertexData;
         });
         datas[0].applyToMesh(this.body);
         datas[3].applyToMesh(this.head);
-        //datas[2].applyToMesh(this.eyes[0]);
-        //datas[2].applyToMesh(this.eyes[1]);
+        datas[4].applyToMesh(this.eyes[0]);
+        datas[4].applyToMesh(this.eyes[1]);
         //datas[3].applyToMesh(this.topEyelids[0]);
         //datas[3].applyToMesh(this.topEyelids[1]);
         //datas[4].applyToMesh(this.bottomEyelids[0]);
@@ -1773,7 +1774,7 @@ class Dodo extends Creature {
         this.lowerLegs[1].dispose();
         this.body.dispose();
         this.head.dispose();
-        //this.tail.dispose();
+        this.neck.dispose();
         //this.tailEnd.dispose();
     }
     setWorldPosition(p) {
@@ -1962,7 +1963,7 @@ class Dodo extends Creature {
         Mummu.QuaternionFromZYAxisToRef(this.feet[1].position.subtract(kneeL), hipL.subtract(this.feet[1].position), this.lowerLegs[1].rotationQuaternion);
         this.upperLegs[1].position.copyFrom(hipL);
         this.lowerLegs[1].position.copyFrom(kneeL);
-        let neck = new BABYLON.Vector3(0, 1.2, 1.2);
+        let neck = new BABYLON.Vector3(0, 1.4, 1.2);
         BABYLON.Vector3.TransformCoordinatesToRef(neck, this.body.getWorldMatrix(), neck);
         this.head.position.copyFrom(neck);
         let forward = this.forward;
@@ -1971,42 +1972,26 @@ class Dodo extends Creature {
         }
         let q = Mummu.QuaternionFromZYAxis(forward, this.up);
         BABYLON.Quaternion.SlerpToRef(this.head.rotationQuaternion, BABYLON.Quaternion.Slerp(this.body.rotationQuaternion, q, 0.5), 0.01, this.head.rotationQuaternion);
-        /*
         let db = this.head.absolutePosition.add(this.head.forward.scale(0.5)).subtract(this.bodyTargetPos);
         db.scaleInPlace(2);
         let rComp = this.right.scale(BABYLON.Vector3.Dot(db, this.right));
         db.subtractInPlace(rComp.scale(2));
-        let tailEndP = this.body.absolutePosition.subtract(db);
-        let tailF = Nabu.Easing.smoothNSec(1 / dt, 0.5);
-        if (isFinite(tailF)) {
-            this.tailEnd.position.scaleInPlace(tailF).addInPlace(tailEndP.scale(1 - tailF));
-        }
-
-        let tailPoints = [new BABYLON.Vector3(0, 0, -0.55)];
+        let tailPoints = [new BABYLON.Vector3(0, -0.1, 0.5), new BABYLON.Vector3(0, 0.5, 1.1), this.head.absolutePosition];
         BABYLON.Vector3.TransformCoordinatesToRef(tailPoints[0], this.body.getWorldMatrix(), tailPoints[0]);
-        let d = BABYLON.Vector3.Dot(this.tailEnd.position.subtract(tailPoints[0]), this.body.forward.scale(-1));
-        tailPoints[1] = tailPoints[0].add(this.body.forward.scale(-1).scale(d * 0.5));
-        tailPoints[2] = this.tailEnd.position;
-        let dir = tailPoints[2].subtract(tailPoints[1]).normalize();
-        let l = 2 - BABYLON.Vector3.Distance(tailPoints[0], tailPoints[1]) - BABYLON.Vector3.Distance(tailPoints[1], tailPoints[2]);
-        tailPoints[3] = tailPoints[2].add(dir.scale(l));
-
-        tailPoints = [tailPoints[0], tailPoints[3]];
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(-1), dir);
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(-1), dir);
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(-1), dir);
-
+        BABYLON.Vector3.TransformCoordinatesToRef(tailPoints[1], this.body.getWorldMatrix(), tailPoints[1]);
+        let dir = new BABYLON.Vector3(0, -1, 0);
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward, dir);
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward, dir);
         let data = Mummu.CreateWireVertexData({
             path: tailPoints,
             radiusFunc: (f) => {
-                return 0.3 - 0.25 * f;
+                return 0.5 - 0.35 * f;
             },
             tesselation: 8,
-            pathUps: tailPoints.map(() => { return this.body.up; }),
-            color: BABYLON.Color4.FromColor3(this.color)
-        })
-        data.applyToMesh(this.tail);
-        */
+            pathUps: tailPoints.map(() => { return this.body.up.subtract(this.body.forward); }),
+            color: BABYLON.Color4.FromColor3(this.colors[1])
+        });
+        data.applyToMesh(this.neck);
         /*
         let dFoot = BABYLON.Vector3.Dot(this.feet[0].position.subtract(this.feet[1].position), this.forward);
         if (dFoot > 0) {
@@ -2067,7 +2052,7 @@ class DodoFoot extends BABYLON.Mesh {
     async instantiate() {
         let datas = await this.joey.game.vertexDataLoader.get("./datas/meshes/dodo.babylon");
         datas = datas.map(vertexData => {
-            return Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(vertexData), this.joey.color, new BABYLON.Color3(0, 1, 0));
+            return Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(vertexData), this.joey.colors[2], new BABYLON.Color3(0, 1, 0));
         });
         //datas[8].applyToMesh(this);
         this.material = this.joey.material;
@@ -2119,7 +2104,7 @@ class Brain {
                 this.subBrains[BrainMode.Travel].onCantFindPath = () => {
                     this.mode = BrainMode.Idle;
                 };
-                this.mode = BrainMode.Travel;
+                //this.mode = BrainMode.Travel;
             }
         }
         let subBrain = this.subBrains[this.mode];

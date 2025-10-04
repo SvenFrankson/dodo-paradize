@@ -26,7 +26,7 @@ class Brain {
                 (this.subBrains[BrainMode.Travel] as BrainTravel).onCantFindPath = () => {
                     this.mode = BrainMode.Idle;
                 }
-                this.mode = BrainMode.Travel;
+                //this.mode = BrainMode.Travel;
             }
         }
 
