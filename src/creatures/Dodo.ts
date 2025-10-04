@@ -10,7 +10,7 @@ interface IJoeyProp {
 
 class Dodo extends Creature {
 
-    public stepDuration: number = 0.3;
+    public stepDuration: number = 0.5;
     public colors: BABYLON.Color3[] = [];
     public brain: Brain;
 
@@ -21,12 +21,13 @@ class Dodo extends Creature {
     public bodyVelocity: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public neck: BABYLON.Mesh;
     public head: BABYLON.Mesh;
+    public headVelocity: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public eyes: BABYLON.Mesh[];
     //public topEyelids: BABYLON.Mesh[];
     //public bottomEyelids: BABYLON.Mesh[];
     //public wing: BABYLON.Mesh;
     //public canon: BABYLON.Mesh;
-    public stepHeight: number = 0.3;
+    public stepHeight: number = 0.5;
     public foldedBodyHeight: number = 0.2
     public unfoldedBodyHeight: number = 1.5;
     public bodyHeight: number = this.foldedBodyHeight;
@@ -445,7 +446,7 @@ class Dodo extends Creature {
 
         let right = this.feet[0].position.subtract(this.feet[1].position);
         right.normalize();
-        right.addInPlace(this.right.scale(1.5));
+        right.addInPlace(this.right.scale(3));
         right.normalize();
         this.body.rotationQuaternion = BABYLON.Quaternion.Slerp(this.rotationQuaternion, Mummu.QuaternionFromXYAxis(right, this.up), 0.9);
 
@@ -492,13 +493,18 @@ class Dodo extends Creature {
         this.lowerLegs[1].position.copyFrom(kneeL);
 
         let neck = new BABYLON.Vector3(0, 1.4, 1.2);
-        BABYLON.Vector3.TransformCoordinatesToRef(neck, this.body.getWorldMatrix(), neck);
+        let matrix = BABYLON.Matrix.Compose(BABYLON.Vector3.One(), this.rotationQuaternion, this.body.absolutePosition);
+        BABYLON.Vector3.TransformCoordinatesToRef(neck, matrix, neck);
+        let headForce = neck.subtract(this.head.position);
+        headForce.scaleInPlace(100 * dt);
+        this.headVelocity.scaleInPlace(Nabu.Easing.smoothNSec(1 / dt, 0.25));
+        this.headVelocity.addInPlace(headForce);
 
-        this.head.position.copyFrom(neck);
+        this.head.position.addInPlace(this.headVelocity.scale(dt));
 
         let forward = this.forward;
         if (this.targetLook) {
-            forward.copyFrom(this.targetLook).subtractInPlace(neck).normalize();
+            forward.copyFrom(this.targetLook).subtractInPlace(this.head.position).normalize();
         }
         let q = Mummu.QuaternionFromZYAxis(forward, this.up);
         BABYLON.Quaternion.SlerpToRef(this.head.rotationQuaternion, BABYLON.Quaternion.Slerp(this.body.rotationQuaternion, q, 0.5), 0.01, this.head.rotationQuaternion);
@@ -512,10 +518,8 @@ class Dodo extends Creature {
         BABYLON.Vector3.TransformCoordinatesToRef(tailPoints[0], this.body.getWorldMatrix(), tailPoints[0]);
         BABYLON.Vector3.TransformCoordinatesToRef(tailPoints[1], this.body.getWorldMatrix(), tailPoints[1]);
 
-        let dir = new BABYLON.Vector3(0, -1, 0);
-
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward, dir);
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward, dir);
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward, BABYLON.Vector3.Up());
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward, BABYLON.Vector3.Up());
 
         let data = Mummu.CreateWireVertexData({
             path: tailPoints,
