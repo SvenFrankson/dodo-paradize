@@ -28,14 +28,16 @@ class Dodo extends Creature {
     //public canon: BABYLON.Mesh;
     public stepHeight: number = 0.65;
     public foldedBodyHeight: number = 0.2
-    public unfoldedBodyHeight: number = 1.1;
-    public bodyHeight: number = this.foldedBodyHeight;
+    public unfoldedBodyHeight: number = 1.5;
+    public bodyHeight: number = this.unfoldedBodyHeight;
     public animateWait = Mummu.AnimationFactory.EmptyVoidCallback;
     public animateBodyHeight = Mummu.AnimationFactory.EmptyNumberCallback;
     //public animateCanonRotX = Mummu.AnimationFactory.EmptyNumberCallback;
     //public animateTopEyeLids = [Mummu.AnimationFactory.EmptyNumberCallback];
     //public animateBottomEyeLids = [Mummu.AnimationFactory.EmptyNumberCallback];
     public feet: DodoFoot[];
+    public upperLegLength: number = 0.8;
+    public lowerLegLength: number = 1;
     public upperLegs: BABYLON.Mesh[];
     public lowerLegs: BABYLON.Mesh[];
     //public tailEnd: BABYLON.Mesh;
@@ -445,19 +447,19 @@ class Dodo extends Creature {
 
         this.body.freezeWorldMatrix();
 
-        let hipR = new BABYLON.Vector3(0.4, -0.2, 0);
+        let hipR = new BABYLON.Vector3(0.81, 0, -0.34);
         BABYLON.Vector3.TransformCoordinatesToRef(hipR, this.body.getWorldMatrix(), hipR);
 
         let kneeR = hipR.clone().addInPlace(this.feet[0].position).scaleInPlace(0.5);
         kneeR.subtractInPlace(this.forward);
-        kneeR.addInPlace(this.right.scale(0.5));
+        kneeR.addInPlace(this.right.scale(0.1));
 
-        Mummu.ForceDistanceFromOriginInPlace(kneeR, hipR, 0.5 * 1.3 + 0.1);
-        Mummu.ForceDistanceFromOriginInPlace(kneeR, this.feet[0].position, 0.52 * 1.3 + 0.1);
-        Mummu.ForceDistanceFromOriginInPlace(kneeR, hipR, 0.5 * 1.3 + 0.1);
-        Mummu.ForceDistanceFromOriginInPlace(kneeR, this.feet[0].position, 0.52 * 1.3 + 0.1);
-        Mummu.ForceDistanceFromOriginInPlace(kneeR, hipR, 0.5 * 1.3 + 0.1);
-        Mummu.ForceDistanceFromOriginInPlace(kneeR, this.feet[0].position, 0.52 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, hipR, this.upperLegLength);
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, this.feet[0].position, this.lowerLegLength);
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, hipR, this.upperLegLength);
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, this.feet[0].position, this.lowerLegLength);
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, hipR, this.upperLegLength);
+        Mummu.ForceDistanceFromOriginInPlace(kneeR, this.feet[0].position, this.lowerLegLength);
 
         Mummu.QuaternionFromZYAxisToRef(kneeR.subtract(hipR), hipR.subtract(this.feet[0].position), this.upperLegs[0].rotationQuaternion);
         Mummu.QuaternionFromZYAxisToRef(this.feet[0].position.subtract(kneeR), hipR.subtract(this.feet[0].position), this.lowerLegs[0].rotationQuaternion);
@@ -465,19 +467,19 @@ class Dodo extends Creature {
         this.upperLegs[0].position.copyFrom(hipR);
         this.lowerLegs[0].position.copyFrom(kneeR);
 
-        let hipL = new BABYLON.Vector3(- 0.4, -0.2, 0);
+        let hipL = new BABYLON.Vector3(- 0.81, 0, -0.34);
         BABYLON.Vector3.TransformCoordinatesToRef(hipL, this.body.getWorldMatrix(), hipL);
 
         let kneeL = hipL.clone().addInPlace(this.feet[1].position).scaleInPlace(0.5);
         kneeL.subtractInPlace(this.forward);
-        kneeL.subtractInPlace(this.right.scale(0.5));
+        kneeL.subtractInPlace(this.right.scale(0.1));
 
-        Mummu.ForceDistanceFromOriginInPlace(kneeL, hipL, 0.5 * 1.3 + 0.1);
-        Mummu.ForceDistanceFromOriginInPlace(kneeL, this.feet[1].position, 0.52 * 1.3 + 0.1);
-        Mummu.ForceDistanceFromOriginInPlace(kneeL, hipL, 0.5 * 1.3 + 0.1);
-        Mummu.ForceDistanceFromOriginInPlace(kneeL, this.feet[1].position, 0.52 * 1.3 + 0.1);
-        Mummu.ForceDistanceFromOriginInPlace(kneeL, hipL, 0.5 * 1.3 + 0.1);
-        Mummu.ForceDistanceFromOriginInPlace(kneeL, this.feet[1].position, 0.52 * 1.3 + 0.1);
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, hipL, this.upperLegLength);
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, this.feet[1].position, this.lowerLegLength);
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, hipL, this.upperLegLength);
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, this.feet[1].position, this.lowerLegLength);
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, hipL, this.upperLegLength);
+        Mummu.ForceDistanceFromOriginInPlace(kneeL, this.feet[1].position, this.lowerLegLength);
 
         Mummu.QuaternionFromZYAxisToRef(kneeL.subtract(hipL), hipL.subtract(this.feet[1].position), this.upperLegs[1].rotationQuaternion);
         Mummu.QuaternionFromZYAxisToRef(this.feet[1].position.subtract(kneeL), hipL.subtract(this.feet[1].position), this.lowerLegs[1].rotationQuaternion);
@@ -485,7 +487,7 @@ class Dodo extends Creature {
         this.upperLegs[1].position.copyFrom(hipL);
         this.lowerLegs[1].position.copyFrom(kneeL);
 
-        let neck = new BABYLON.Vector3(0, 0, 0.75);
+        let neck = new BABYLON.Vector3(0, 1.2, 1.2);
         BABYLON.Vector3.TransformCoordinatesToRef(neck, this.body.getWorldMatrix(), neck);
 
         this.head.position.copyFrom(neck);
