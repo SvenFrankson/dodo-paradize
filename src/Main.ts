@@ -296,6 +296,23 @@ class Game {
 
         this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 128, 0));
         this.camera.attachControl();
+
+        if (window.localStorage.getItem("camera-position")) {
+            let positionItem = JSON.parse(window.localStorage.getItem("camera-position"));
+            let position = new BABYLON.Vector3(positionItem.x, positionItem.y, positionItem.z);
+            if (Mummu.IsFinite(position)) {
+                this.camera.position = position;
+            }
+        }
+        if (window.localStorage.getItem("camera-rotation")) {
+            let rotationItem = JSON.parse(window.localStorage.getItem("camera-rotation"));
+            let rotation = new BABYLON.Vector3(rotationItem.x, rotationItem.y, rotationItem.z);
+            if (Mummu.IsFinite(rotation)) {
+                this.camera.rotation.x = rotation.x;
+                this.camera.rotation.y = rotation.y;
+                this.camera.rotation.z = rotation.z;
+            }
+        }
         
         this.router = new CarillonRouter(this);
         this.router.initialize();
@@ -454,6 +471,13 @@ class Game {
             this.globalTimer += rawDT;
             this.terrainManager.update();
             this.playerDodo.update(rawDT);
+
+            let camPos = this.camera.position.clone();
+            let camRotation = this.camera.rotation.clone();
+            if (HasLocalStorage) {
+                window.localStorage.setItem("camera-position", JSON.stringify({ x: camPos.x, y: camPos.y, z: camPos.z }));
+                window.localStorage.setItem("camera-rotation", JSON.stringify({ x: camRotation.x, y: camRotation.y, z: camRotation.z }));
+            }
         }
     }
 
