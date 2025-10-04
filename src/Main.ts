@@ -403,6 +403,7 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.playerDodo = new Dodo("Sven", this);
         await this.playerDodo.instantiate();
+        this.playerDodo.unfold();
         this.playerDodo.setWorldPosition(new BABYLON.Vector3(-3.866651255957095, 6.411329332679692, 52.84466100342614));
 
         this.gameLoaded = true;

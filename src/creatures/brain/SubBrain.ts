@@ -1,6 +1,6 @@
 class SubBrain {
 
-    public get joey(): Dodo {
+    public get dodo(): Dodo {
         return this.brain.joey;
     }
 

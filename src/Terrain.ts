@@ -94,7 +94,6 @@ class Terrain {
         if (jOffset < 0) {
             jOffset = this.mapL + jOffset;
         }
-        console.log("offset " + iOffset + " " + jOffset);
 
         for (let j = 0; j <= l; j++) {
             for (let i = 0; i <= l; i++) {

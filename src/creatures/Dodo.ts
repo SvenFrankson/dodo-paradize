@@ -10,7 +10,7 @@ interface IJoeyProp {
 
 class Dodo extends Creature {
 
-    public stepDuration: number = 0.4;
+    public stepDuration: number = 0.3;
     public colors: BABYLON.Color3[] = [];
     public brain: Brain;
 
@@ -26,10 +26,10 @@ class Dodo extends Creature {
     //public bottomEyelids: BABYLON.Mesh[];
     //public wing: BABYLON.Mesh;
     //public canon: BABYLON.Mesh;
-    public stepHeight: number = 0.65;
+    public stepHeight: number = 0.3;
     public foldedBodyHeight: number = 0.2
     public unfoldedBodyHeight: number = 1.5;
-    public bodyHeight: number = this.unfoldedBodyHeight;
+    public bodyHeight: number = this.foldedBodyHeight;
     public animateWait = Mummu.AnimationFactory.EmptyVoidCallback;
     public animateBodyHeight = Mummu.AnimationFactory.EmptyNumberCallback;
     //public animateCanonRotX = Mummu.AnimationFactory.EmptyNumberCallback;
@@ -379,6 +379,7 @@ class Dodo extends Creature {
     public footIndex: number = 0;
     public walk(): void {
         if (this.walking === 0 && this.isAlive) {
+            console.log("walk");
             let xFactor = this.footIndex === 0 ? 1 : - 1;
             let spread = 0.7 - 0.2 * this.currentSpeed / this.speed;
             let pos = new BABYLON.Vector3(xFactor * spread, 0.15, this.speed * 0.2);
