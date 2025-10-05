@@ -517,12 +517,18 @@ class Game {
         });
         this.defaultToonMaterial = new BABYLON.StandardMaterial("default-toon-material");
         this.defaultToonMaterial.specularColor.copyFromFloats(0, 0, 0);
+        BABYLON.MeshBuilder.CreateBox("debug", { width: 0.01, height: 1000, depth: 0.01 });
+        let data = BABYLON.CreateBoxVertexData({ width: 4 * BRICK_S, height: 3 * BRICK_H, depth: 2 * BRICK_S });
+        Mummu.TranslateVertexDataInPlace(data, new BABYLON.Vector3(1.5 * BRICK_S, 1.5 * BRICK_H, 0.5 * BRICK_S));
+        let brick = new BABYLON.Mesh("brick");
+        data.applyToMesh(brick);
+        brick.position.copyFromFloats(BRICK_S * 0.5, TILE_H, BRICK_S * 0.5);
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
         this.playerDodo = new Dodo("Sven", this);
         await this.playerDodo.instantiate();
         this.playerDodo.unfold();
-        this.playerDodo.setWorldPosition(new BABYLON.Vector3(-3.866651255957095, 6.411329332679692, 52.84466100342614));
+        this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
         this.gameLoaded = true;
         I18Nizer.Translate(LOCALE);
         if (USE_POKI_SDK) {
@@ -990,6 +996,10 @@ class StrokeText extends HTMLElement {
     }
 }
 customElements.define("stroke-text", StrokeText);
+var BRICK_S = 0.336;
+var BRICK_H = 0.134;
+var TILE_S = BRICK_S * 2;
+var TILE_H = BRICK_H * 3;
 class Chunck extends BABYLON.Mesh {
     constructor(i, j, terrain) {
         super("chunck_" + i.toFixed(0) + "_" + j.toFixed(0));
@@ -1002,10 +1012,13 @@ class Terrain {
     constructor(game) {
         this.game = game;
         this.worldZero = 100;
-        this.chunckL = 64;
+        this.chunckLength = 64;
+        this.chunckSize_m = this.chunckLength * TILE_S;
         this.mapL = 512;
         this.chuncks = new Nabu.UniqueList();
-        let masterSeed = Nabu.MasterSeed.GetFor("Paulita6");
+        let name = Math.floor(Math.random() * 1000000).toFixed(0);
+        console.log(name);
+        let masterSeed = Nabu.MasterSeed.GetFor("Paulita&Sven");
         let seededMap = Nabu.SeededMap.CreateFromMasterSeed(masterSeed, 4, 512);
         this.mapL = 1024;
         this.generator = new Nabu.TerrainMapGenerator(seededMap, [2048, 512, 128, 64]);
@@ -1037,8 +1050,8 @@ class Terrain {
         return this._tmpMaps[iM][jM].get(i, j);
     }
     async generateChunck(iChunck, jChunck) {
-        let IMap = this.worldZero + Math.floor(iChunck * this.chunckL / this.mapL);
-        let JMap = this.worldZero + Math.floor(jChunck * this.chunckL / this.mapL);
+        let IMap = this.worldZero + Math.floor(iChunck * this.chunckLength / this.mapL);
+        let JMap = this.worldZero + Math.floor(jChunck * this.chunckLength / this.mapL);
         this._tmpMaps = [];
         this._tmpMaps = [];
         for (let i = 0; i < 3; i++) {
@@ -1048,31 +1061,31 @@ class Terrain {
             }
         }
         let chunck = new Chunck(iChunck, jChunck, this);
-        chunck.position.copyFromFloats(iChunck * this.chunckL, 0, jChunck * this.chunckL);
+        chunck.position.copyFromFloats(iChunck * this.chunckSize_m, 0, jChunck * this.chunckSize_m);
         chunck.material = this.material;
         let water = new BABYLON.Mesh("water");
-        BABYLON.CreateGroundVertexData({ size: this.chunckL }).applyToMesh(water);
-        water.position.copyFromFloats(this.chunckL * 0.5, -0.5 / 3, this.chunckL * 0.5);
+        BABYLON.CreateGroundVertexData({ size: this.chunckSize_m }).applyToMesh(water);
+        water.position.copyFromFloats(this.chunckSize_m * 0.5, -0.5 / 3, this.chunckSize_m * 0.5);
         water.material = this.waterMaterial;
         water.parent = chunck;
-        let l = this.chunckL;
+        let l = this.chunckLength;
         let lInc = l + 1;
         let vertexData = new BABYLON.VertexData();
         let positions = [];
         let indices = [];
         let normals = [];
-        let iOffset = (iChunck * this.chunckL) % this.mapL;
+        let iOffset = (iChunck * this.chunckLength) % this.mapL;
         if (iOffset < 0) {
             iOffset = this.mapL + iOffset;
         }
-        let jOffset = (jChunck * this.chunckL) % this.mapL;
+        let jOffset = (jChunck * this.chunckLength) % this.mapL;
         if (jOffset < 0) {
             jOffset = this.mapL + jOffset;
         }
         for (let j = 0; j <= l; j++) {
             for (let i = 0; i <= l; i++) {
                 let h = this.tmpMapGet(iOffset + i, jOffset + j) - 128;
-                positions.push(i, h / 3, j);
+                positions.push(i * TILE_S, h * TILE_H, j * TILE_S);
             }
         }
         let pt0 = BABYLON.Vector3.Zero();
@@ -1157,23 +1170,23 @@ class TerrainManager {
     refreshTaskList() {
         let position = this.game.camera.globalPosition.clone();
         position.y = 0;
-        let iCenter = Math.floor(position.x / this.terrain.chunckL);
-        let jCenter = Math.floor(position.z / this.terrain.chunckL);
+        let iCenter = Math.floor(position.x / this.terrain.chunckSize_m);
+        let jCenter = Math.floor(position.z / this.terrain.chunckSize_m);
         for (let i = iCenter - 4; i <= iCenter + 4; i++) {
             for (let j = jCenter - 4; j <= jCenter + 4; j++) {
-                let cx = (i + 0.5) * this.terrain.chunckL;
-                let cz = (j + 0.5) * this.terrain.chunckL;
+                let cx = (i + 0.5) * this.terrain.chunckSize_m;
+                let cz = (j + 0.5) * this.terrain.chunckSize_m;
                 let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
-                if (d < this.range * this.terrain.chunckL) {
+                if (d < this.range * this.terrain.chunckSize_m) {
                     this.addCreateTask(i, j);
                 }
             }
         }
         this.terrain.chuncks.forEach(chunck => {
-            let cx = (chunck.i + 0.5) * this.terrain.chunckL;
-            let cz = (chunck.j + 0.5) * this.terrain.chunckL;
+            let cx = (chunck.i + 0.5) * this.terrain.chunckSize_m;
+            let cz = (chunck.j + 0.5) * this.terrain.chunckSize_m;
             let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
-            if (d > (this.range + 1) * this.terrain.chunckL) {
+            if (d > (this.range + 1) * this.terrain.chunckSize_m) {
                 this.addDisposeTask(chunck.i, chunck.j);
             }
         });
@@ -1185,7 +1198,7 @@ class TerrainManager {
         }
         this._lock = true;
         let position = this.game.camera.globalPosition;
-        if (Math.abs(position.x - this._lastRefreshPosition.x) > this.terrain.chunckL * 0.25 || Math.abs(position.z - this._lastRefreshPosition.z) > this.terrain.chunckL * 0.25) {
+        if (Math.abs(position.x - this._lastRefreshPosition.x) > this.terrain.chunckSize_m * 0.25 || Math.abs(position.z - this._lastRefreshPosition.z) > this.terrain.chunckSize_m * 0.25) {
             this.refreshTaskList();
         }
         if (this.createTasks.length > 0) {
@@ -1511,7 +1524,7 @@ class Creature extends BABYLON.Mesh {
         this._lifeState = LifeState.Folded;
         this.hitpoint = 1;
         this.stamina = 10;
-        this.speed = 3;
+        this.speed = 1;
         this.currentSpeed = 0;
         this.bounty = 10;
     }
@@ -1583,14 +1596,14 @@ class Dodo extends Creature {
         //public bottomEyelids: BABYLON.Mesh[];
         //public wing: BABYLON.Mesh;
         //public canon: BABYLON.Mesh;
-        this.stepHeight = 0.5;
-        this.foldedBodyHeight = 0.2;
-        this.unfoldedBodyHeight = 1.5;
+        this.stepHeight = 0.2;
+        this.foldedBodyHeight = 0.1;
+        this.unfoldedBodyHeight = 0.3;
         this.bodyHeight = this.foldedBodyHeight;
         this.animateWait = Mummu.AnimationFactory.EmptyVoidCallback;
         this.animateBodyHeight = Mummu.AnimationFactory.EmptyNumberCallback;
-        this.upperLegLength = 0.8;
-        this.lowerLegLength = 1;
+        this.upperLegLength = 0.42 * 0.6;
+        this.lowerLegLength = 0.5 * 0.6;
         this.walking = 0;
         this.footIndex = 0;
         this.colors = [
@@ -1622,9 +1635,9 @@ class Dodo extends Creature {
             Dodo.OutlinedMesh("eyeL")
         ];
         this.eyes[0].parent = this.head;
-        this.eyes[0].position.copyFromFloats(0.218532, 0.200658, 0.242955);
+        this.eyes[0].position.copyFromFloats(0.11, 0.1, 0.12).scaleInPlace(0.6);
         this.eyes[1].parent = this.head;
-        this.eyes[1].position.copyFromFloats(-0.218532, 0.200658, 0.242955);
+        this.eyes[1].position.copyFromFloats(-0.11, 0.1, 0.12).scaleInPlace(0.6);
         /*
         this.topEyelids = [
             Dodo.OutlinedMesh("topEyelidR"),
@@ -1860,7 +1873,7 @@ class Dodo extends Creature {
                 let t = performance.now() / 1000;
                 let f = (t - t0) / duration;
                 if (f < 1) {
-                    f = Nabu.Easing.easeInSine(f);
+                    //f = Nabu.Easing.easeInSine(f);
                     BABYLON.Quaternion.SlerpToRef(originQ, targetQ, f, foot.rotationQuaternion);
                     BABYLON.Vector3.LerpToRef(origin, target, f, foot.position);
                     foot.position.y += Math.min(dist, this.stepHeight) * Math.sin(f * Math.PI);
@@ -1877,9 +1890,8 @@ class Dodo extends Creature {
     }
     walk() {
         if (this.walking === 0 && this.isAlive) {
-            console.log("walk");
             let xFactor = this.footIndex === 0 ? 1 : -1;
-            let spread = 0.7 - 0.2 * this.currentSpeed / this.speed;
+            let spread = 0.25;
             let pos = new BABYLON.Vector3(xFactor * spread, 0.15, this.speed * 0.2);
             let up = BABYLON.Vector3.Up();
             BABYLON.Vector3.TransformCoordinatesToRef(pos, this.getWorldMatrix(), pos);
@@ -1918,12 +1930,16 @@ class Dodo extends Creature {
         f += dy / this.stepHeight * 0.4;
         f = Nabu.MinMax(f, 0.2, 0.8);
         this.bodyTargetPos.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
+        Mummu.DrawDebugPoint(this.feet[0].position, 3, BABYLON.Color3.Red());
+        Mummu.DrawDebugPoint(this.feet[1].position, 3, BABYLON.Color3.Green());
         this.bodyTargetPos.addInPlace(this.forward.scale(this.currentSpeed * 0));
         this.bodyTargetPos.y += this.bodyHeight;
+        console.log(this.bodyHeight);
+        Mummu.DrawDebugPoint(this.bodyTargetPos, 3, BABYLON.Color3.Blue());
         let pForce = this.bodyTargetPos.subtract(this.body.position);
         pForce.scaleInPlace(40 * dt);
         this.bodyVelocity.addInPlace(pForce);
-        this.bodyVelocity.scaleInPlace(Nabu.Easing.smoothNSec(1 / dt, 0.5));
+        this.bodyVelocity.scaleInPlace(Nabu.Easing.smoothNSec(1 / dt, 0.25));
         //if (this.bodyVelocity.length() > this.speed * 3) {
         //    this.bodyVelocity.normalize().scaleInPlace(this.speed * 3);
         //} 
@@ -1935,7 +1951,7 @@ class Dodo extends Creature {
         right.normalize();
         this.body.rotationQuaternion = BABYLON.Quaternion.Slerp(this.rotationQuaternion, Mummu.QuaternionFromXYAxis(right, this.up), 0.9);
         this.body.freezeWorldMatrix();
-        let hipR = new BABYLON.Vector3(0.72, 0, -0.34);
+        let hipR = new BABYLON.Vector3(0.25, 0, -0.12);
         BABYLON.Vector3.TransformCoordinatesToRef(hipR, this.body.getWorldMatrix(), hipR);
         let kneeR = hipR.clone().addInPlace(this.feet[0].position).scaleInPlace(0.5);
         kneeR.subtractInPlace(this.forward);
@@ -1950,7 +1966,7 @@ class Dodo extends Creature {
         Mummu.QuaternionFromZYAxisToRef(this.feet[0].position.subtract(kneeR), hipR.subtract(this.feet[0].position), this.lowerLegs[0].rotationQuaternion);
         this.upperLegs[0].position.copyFrom(hipR);
         this.lowerLegs[0].position.copyFrom(kneeR);
-        let hipL = new BABYLON.Vector3(-0.72, 0, -0.34);
+        let hipL = new BABYLON.Vector3(-0.25, 0, -0.12);
         BABYLON.Vector3.TransformCoordinatesToRef(hipL, this.body.getWorldMatrix(), hipL);
         let kneeL = hipL.clone().addInPlace(this.feet[1].position).scaleInPlace(0.5);
         kneeL.subtractInPlace(this.forward);
@@ -1965,9 +1981,12 @@ class Dodo extends Creature {
         Mummu.QuaternionFromZYAxisToRef(this.feet[1].position.subtract(kneeL), hipL.subtract(this.feet[1].position), this.lowerLegs[1].rotationQuaternion);
         this.upperLegs[1].position.copyFrom(hipL);
         this.lowerLegs[1].position.copyFrom(kneeL);
-        let neck = new BABYLON.Vector3(0, 1.4, 1.2);
-        let matrix = BABYLON.Matrix.Compose(BABYLON.Vector3.One(), this.rotationQuaternion, this.body.absolutePosition);
-        BABYLON.Vector3.TransformCoordinatesToRef(neck, matrix, neck);
+        let feetDeltaY = Math.abs(this.feet[0].position.y - this.feet[1].position.y);
+        let neck = new BABYLON.Vector3(0, 0, 0);
+        neck.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
+        neck.addInPlace(this.forward.scale(this.currentSpeed * 0));
+        neck.y += this.bodyHeight + 0.42 - feetDeltaY * 0.5;
+        neck.addInPlace(this.forward.scale(0.36));
         let headForce = neck.subtract(this.head.position);
         headForce.scaleInPlace(100 * dt);
         this.headVelocity.scaleInPlace(Nabu.Easing.smoothNSec(1 / dt, 0.25));
@@ -1983,15 +2002,14 @@ class Dodo extends Creature {
         db.scaleInPlace(2);
         let rComp = this.right.scale(BABYLON.Vector3.Dot(db, this.right));
         db.subtractInPlace(rComp.scale(2));
-        let tailPoints = [new BABYLON.Vector3(0, -0.1, 0.5), new BABYLON.Vector3(0, 0.5, 1.1), this.head.absolutePosition];
+        let tailPoints = [new BABYLON.Vector3(0, -0.0, 0.25), this.head.absolutePosition];
         BABYLON.Vector3.TransformCoordinatesToRef(tailPoints[0], this.body.getWorldMatrix(), tailPoints[0]);
-        BABYLON.Vector3.TransformCoordinatesToRef(tailPoints[1], this.body.getWorldMatrix(), tailPoints[1]);
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward, BABYLON.Vector3.Up());
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward, BABYLON.Vector3.Up());
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(1), BABYLON.Vector3.Up().scale(1));
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(1), BABYLON.Vector3.Up().scale(1));
         let data = Mummu.CreateWireVertexData({
             path: tailPoints,
             radiusFunc: (f) => {
-                return 0.5 - 0.35 * f;
+                return 0.20 - 0.15 * f;
             },
             tesselation: 8,
             pathUps: tailPoints.map(() => { return this.body.up.subtract(this.body.forward); }),
@@ -2169,7 +2187,7 @@ class BrainIdle extends SubBrain {
         }
         this.dodo.currentSpeed *= 0.99;
         BABYLON.Quaternion.SlerpToRef(this.dodo.rotationQuaternion, this._targetQ, 0.01, this.dodo.rotationQuaternion);
-        this.dodo.bodyHeight = this.dodo.bodyHeight * 0.99 + this._targetBodyHeight * 0.01;
+        //this.dodo.bodyHeight = this.dodo.bodyHeight * 0.99 + this._targetBodyHeight * 0.01;
         BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.03, this.dodo.targetLook);
     }
 }
@@ -2181,10 +2199,9 @@ class BrainTravel extends SubBrain {
     }
     update(dt) {
         if (this.destination && this.dodo.lifeState === LifeState.Ok) {
-            console.log("braintravel update");
             let dir = this.destination.subtract(this.dodo.position).normalize();
-            let bh = 1.2 - 0.6 * Math.abs(dir.y);
-            this.dodo.bodyHeight = this.dodo.bodyHeight * 0.99 + bh * 0.01;
+            //let bh = 1.2 - 0.6 * Math.abs(dir.y);
+            //this.dodo.bodyHeight = this.dodo.bodyHeight * 0.99 + bh * 0.01;
             let rY = Mummu.AngleFromToAround(this.dodo.forward, dir, BABYLON.Axis.Y);
             let dRY = Nabu.MinMax(rY, -Math.PI / (4 * this.dodo.stepDuration) * dt, Math.PI / (4 * this.dodo.stepDuration) * dt);
             this.dodo.rotate(BABYLON.Axis.Y, dRY);

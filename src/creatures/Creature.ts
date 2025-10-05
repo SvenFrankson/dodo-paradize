@@ -23,7 +23,7 @@ class Creature extends BABYLON.Mesh {
         return this.hitpoint > 0;
     }
     public stamina: number = 10;
-    public speed: number = 3;
+    public speed: number = 1;
     public currentSpeed: number = 0;
     public bounty: number = 10;
     

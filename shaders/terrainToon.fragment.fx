@@ -19,7 +19,7 @@ out vec4 outColor;
 void main() {
    vec3 color = vec3(1., 1., 1.);
    float sunLightFactor = (dot(vNormalW, lightInvDirW) + 1.) * 0.5;
-   sunLightFactor = round(sunLightFactor * 5.) / 5.;
+   sunLightFactor = round(sunLightFactor * 6.) / 6.;
 
    float diff = vNormalW.y;
    if (diff > 0.9) {
@@ -34,14 +34,16 @@ void main() {
    }
 
    // show grid
-   float dx = vPositionW.x + 0.5 - floor(vPositionW.x + 0.5);
-   float dz = vPositionW.z + 0.5 - floor(vPositionW.z + 0.5);
+   float nrmzdX = vPositionW.x / 0.672;
+   float nrmzdZ = vPositionW.z / 0.672;
+   float dx = nrmzdX + 0.5 - floor(nrmzdX + 0.5);
+   float dz = nrmzdZ + 0.5 - floor(nrmzdZ + 0.5);
 
    if (dx < 0.005 || dx > 0.995) {
-      //color = vec3(0., 0., 0.);
+      color = vec3(0., 0., 0.);
    }
    if (dz < 0.005 || dz > 0.995) {
-      //color = vec3(0., 0., 0.);
+      color = vec3(0., 0., 0.);
    }
 
    outColor = vec4(color * sunLightFactor, 1.);

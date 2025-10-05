@@ -1,3 +1,9 @@
+var BRICK_S: number = 0.336;
+var BRICK_H: number = 0.134;
+
+var TILE_S: number = BRICK_S * 2;
+var TILE_H: number = BRICK_H * 3;
+
 class Chunck extends BABYLON.Mesh {
 
     constructor(public i: number, public j: number, public terrain: Terrain) {
@@ -13,13 +19,16 @@ class Terrain {
     public material: TerrainMaterial;
     public waterMaterial: BABYLON.StandardMaterial;
     public position: BABYLON.Vector3;
-    public chunckL: number = 64;
+    public chunckLength: number = 64;
+    public chunckSize_m: number = this.chunckLength * TILE_S;
     public mapL: number = 512;
 
     constructor(public game: Game) {
         this.chuncks = new Nabu.UniqueList<Chunck>();
 
-        let masterSeed = Nabu.MasterSeed.GetFor("Paulita6");
+        let name = Math.floor(Math.random() * 1000000).toFixed(0);
+        console.log(name);
+        let masterSeed = Nabu.MasterSeed.GetFor("Paulita&Sven");
         let seededMap = Nabu.SeededMap.CreateFromMasterSeed(masterSeed, 4, 512);
         this.mapL = 1024;
         this.generator = new Nabu.TerrainMapGenerator(seededMap, [2048, 512, 128, 64]);
@@ -57,8 +66,8 @@ class Terrain {
     }
 
     public async generateChunck(iChunck: number, jChunck: number): Promise<Chunck> {
-        let IMap = this.worldZero + Math.floor(iChunck * this.chunckL / this.mapL);
-        let JMap = this.worldZero + Math.floor(jChunck * this.chunckL / this.mapL);
+        let IMap = this.worldZero + Math.floor(iChunck * this.chunckLength / this.mapL);
+        let JMap = this.worldZero + Math.floor(jChunck * this.chunckLength / this.mapL);
         this._tmpMaps = [];
 
         this._tmpMaps = [];
@@ -70,27 +79,27 @@ class Terrain {
         }
 
         let chunck = new Chunck(iChunck, jChunck, this);
-        chunck.position.copyFromFloats(iChunck * this.chunckL, 0, jChunck * this.chunckL);
+        chunck.position.copyFromFloats(iChunck * this.chunckSize_m, 0, jChunck * this.chunckSize_m);
         chunck.material = this.material;
 
         let water = new BABYLON.Mesh("water");
-        BABYLON.CreateGroundVertexData({ size: this.chunckL }).applyToMesh(water);
-        water.position.copyFromFloats(this.chunckL * 0.5, - 0.5 / 3, this.chunckL * 0.5);
+        BABYLON.CreateGroundVertexData({ size: this.chunckSize_m }).applyToMesh(water);
+        water.position.copyFromFloats(this.chunckSize_m * 0.5, - 0.5 / 3, this.chunckSize_m * 0.5);
         water.material = this.waterMaterial;
         water.parent = chunck;
 
-        let l = this.chunckL;
+        let l = this.chunckLength;
         let lInc = l + 1;
         let vertexData = new BABYLON.VertexData();
         let positions = [];
         let indices = [];
         let normals = [];
 
-        let iOffset = (iChunck * this.chunckL) % this.mapL;
+        let iOffset = (iChunck * this.chunckLength) % this.mapL;
         if (iOffset < 0) {
             iOffset = this.mapL + iOffset;
         }
-        let jOffset = (jChunck * this.chunckL) % this.mapL;
+        let jOffset = (jChunck * this.chunckLength) % this.mapL;
         if (jOffset < 0) {
             jOffset = this.mapL + jOffset;
         }
@@ -98,7 +107,7 @@ class Terrain {
         for (let j = 0; j <= l; j++) {
             for (let i = 0; i <= l; i++) {
                 let h = this.tmpMapGet(iOffset + i, jOffset + j) - 128;
-                positions.push(i, h / 3, j);
+                positions.push(i * TILE_S, h * TILE_H, j * TILE_S);
             }
         }
 

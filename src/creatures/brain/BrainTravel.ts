@@ -4,10 +4,9 @@ class BrainTravel extends SubBrain {
 
     public update(dt: number): void {
         if (this.destination && this.dodo.lifeState === LifeState.Ok) {
-            console.log("braintravel update");
             let dir = this.destination.subtract(this.dodo.position).normalize();
-            let bh = 1.2 - 0.6 * Math.abs(dir.y);
-            this.dodo.bodyHeight = this.dodo.bodyHeight * 0.99 + bh * 0.01;
+            //let bh = 1.2 - 0.6 * Math.abs(dir.y);
+            //this.dodo.bodyHeight = this.dodo.bodyHeight * 0.99 + bh * 0.01;
 
             let rY = Mummu.AngleFromToAround(this.dodo.forward, dir, BABYLON.Axis.Y);
             let dRY = Nabu.MinMax(rY, - Math.PI / (4 * this.dodo.stepDuration) * dt, Math.PI / (4 * this.dodo.stepDuration) * dt);

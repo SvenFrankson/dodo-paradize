@@ -47,25 +47,25 @@ class TerrainManager {
     public refreshTaskList(): void {
         let position = this.game.camera.globalPosition.clone();
         position.y = 0;
-        let iCenter = Math.floor(position.x / this.terrain.chunckL);
-        let jCenter = Math.floor(position.z / this.terrain.chunckL);
+        let iCenter = Math.floor(position.x / this.terrain.chunckSize_m);
+        let jCenter = Math.floor(position.z / this.terrain.chunckSize_m);
 
         for (let i = iCenter - 4; i <= iCenter + 4; i++) {
             for (let j = jCenter - 4; j <= jCenter + 4; j++) {
-                let cx = (i + 0.5) * this.terrain.chunckL;
-                let cz = (j + 0.5) * this.terrain.chunckL;
+                let cx = (i + 0.5) * this.terrain.chunckSize_m;
+                let cz = (j + 0.5) * this.terrain.chunckSize_m;
                 let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
-                if (d < this.range * this.terrain.chunckL) {
+                if (d < this.range * this.terrain.chunckSize_m) {
                     this.addCreateTask(i, j);
                 }
             }
         }
 
         this.terrain.chuncks.forEach(chunck => {
-            let cx = (chunck.i + 0.5) * this.terrain.chunckL;
-            let cz = (chunck.j + 0.5) * this.terrain.chunckL;
+            let cx = (chunck.i + 0.5) * this.terrain.chunckSize_m;
+            let cz = (chunck.j + 0.5) * this.terrain.chunckSize_m;
             let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
-            if (d > (this.range + 1) * this.terrain.chunckL) {
+            if (d > (this.range + 1) * this.terrain.chunckSize_m) {
                 this.addDisposeTask(chunck.i, chunck.j);
             }
         })
@@ -81,7 +81,7 @@ class TerrainManager {
         this._lock = true;
 
         let position = this.game.camera.globalPosition;
-        if (Math.abs(position.x - this._lastRefreshPosition.x) > this.terrain.chunckL * 0.25 || Math.abs(position.z - this._lastRefreshPosition.z) > this.terrain.chunckL * 0.25) {
+        if (Math.abs(position.x - this._lastRefreshPosition.x) > this.terrain.chunckSize_m * 0.25 || Math.abs(position.z - this._lastRefreshPosition.z) > this.terrain.chunckSize_m * 0.25) {
             this.refreshTaskList();
         }
 

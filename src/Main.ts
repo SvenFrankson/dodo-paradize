@@ -399,12 +399,20 @@ class Game {
         this.defaultToonMaterial = new BABYLON.StandardMaterial("default-toon-material");
         this.defaultToonMaterial.specularColor.copyFromFloats(0, 0, 0);
 
+        BABYLON.MeshBuilder.CreateBox("debug", { width: 0.01, height: 1000, depth: 0.01 });
+
+        let data = BABYLON.CreateBoxVertexData({ width: 4 * BRICK_S, height: 3 * BRICK_H, depth: 2 * BRICK_S });
+        Mummu.TranslateVertexDataInPlace(data, new BABYLON.Vector3(1.5 * BRICK_S, 1.5 * BRICK_H, 0.5 * BRICK_S));
+        let brick = new BABYLON.Mesh("brick");
+        data.applyToMesh(brick);
+        brick.position.copyFromFloats(BRICK_S * 0.5, TILE_H, BRICK_S * 0.5);
+
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
         this.playerDodo = new Dodo("Sven", this);
         await this.playerDodo.instantiate();
         this.playerDodo.unfold();
-        this.playerDodo.setWorldPosition(new BABYLON.Vector3(-3.866651255957095, 6.411329332679692, 52.84466100342614));
+        this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
 
         this.gameLoaded = true;
         I18Nizer.Translate(LOCALE);
