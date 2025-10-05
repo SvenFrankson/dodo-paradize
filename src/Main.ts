@@ -226,6 +226,7 @@ class Game {
     public defaultToonMaterial: BABYLON.StandardMaterial;
     public terrain: Terrain;
     public terrainManager: TerrainManager;
+    public brickManager: BrickManager;
     public playerDodo: Dodo;
 
     constructor(canvasElement: string) {
@@ -401,18 +402,18 @@ class Game {
 
         BABYLON.MeshBuilder.CreateBox("debug", { width: 0.01, height: 1000, depth: 0.01 });
 
-        let data = BABYLON.CreateBoxVertexData({ width: 4 * BRICK_S, height: 3 * BRICK_H, depth: 2 * BRICK_S });
-        Mummu.TranslateVertexDataInPlace(data, new BABYLON.Vector3(1.5 * BRICK_S, 1.5 * BRICK_H, 0.5 * BRICK_S));
-        let brick = new BABYLON.Mesh("brick");
-        data.applyToMesh(brick);
-        brick.position.copyFromFloats(0, TILE_H, 0);
-
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
+        this.brickManager = new BrickManager(this);
+
         this.playerDodo = new Dodo("Sven", this);
         await this.playerDodo.instantiate();
         this.playerDodo.unfold();
         this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
+
+        let brick = new Brick(this.brickManager, Brick.BrickIdToIndex("brick_4x1"), 0);
+        brick.position.copyFromFloats(0, TILE_H, 0);
+        brick.updateMesh();
 
         this.gameLoaded = true;
         I18Nizer.Translate(LOCALE);

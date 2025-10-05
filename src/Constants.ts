@@ -1,0 +1,1 @@
+var BRICKS_PER_CONSTRUCTION: number = 64;

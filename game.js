@@ -172,6 +172,7 @@ class CompletionBar extends HTMLElement {
     }
 }
 customElements.define("completion-bar", CompletionBar);
+var BRICKS_PER_CONSTRUCTION = 64;
 /// <reference path="../lib/nabu/nabu.d.ts"/>
 /// <reference path="../lib/mummu/mummu.d.ts"/>
 /// <reference path="../lib/babylon.d.ts"/>
@@ -518,17 +519,16 @@ class Game {
         this.defaultToonMaterial = new BABYLON.StandardMaterial("default-toon-material");
         this.defaultToonMaterial.specularColor.copyFromFloats(0, 0, 0);
         BABYLON.MeshBuilder.CreateBox("debug", { width: 0.01, height: 1000, depth: 0.01 });
-        let data = BABYLON.CreateBoxVertexData({ width: 4 * BRICK_S, height: 3 * BRICK_H, depth: 2 * BRICK_S });
-        Mummu.TranslateVertexDataInPlace(data, new BABYLON.Vector3(1.5 * BRICK_S, 1.5 * BRICK_H, 0.5 * BRICK_S));
-        let brick = new BABYLON.Mesh("brick");
-        data.applyToMesh(brick);
-        brick.position.copyFromFloats(0, TILE_H, 0);
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
+        this.brickManager = new BrickManager(this);
         this.playerDodo = new Dodo("Sven", this);
         await this.playerDodo.instantiate();
         this.playerDodo.unfold();
         this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
+        let brick = new Brick(this.brickManager, Brick.BrickIdToIndex("brick_4x1"), 0);
+        brick.position.copyFromFloats(0, TILE_H, 0);
+        brick.updateMesh();
         this.gameLoaded = true;
         I18Nizer.Translate(LOCALE);
         if (USE_POKI_SDK) {
@@ -1506,6 +1506,1008 @@ class UserInterfaceInputManager {
                 });
             }
         });
+    }
+}
+class BrickMesh extends BABYLON.Mesh {
+    constructor(brick) {
+        super("brick");
+        this.brick = brick;
+    }
+}
+class Brick extends BABYLON.TransformNode {
+    constructor(brickManager, arg1, colorIndex, parent) {
+        super("brick");
+        this.brickManager = brickManager;
+        this.colorIndex = colorIndex;
+        this.anchored = false;
+        this.rotationQuaternion = BABYLON.Quaternion.Identity();
+        this.index = Brick.BrickIdToIndex(arg1);
+        if (parent) {
+            this.parent = parent;
+        }
+        else {
+            this.brickManager.registerBrick(this);
+        }
+    }
+    get isRoot() {
+        return !(this.parent instanceof Brick);
+    }
+    get root() {
+        if (this.parent instanceof Brick) {
+            return this.parent.root;
+        }
+        return this;
+    }
+    get brickName() {
+        return BRICK_LIST[this.index];
+    }
+    static BrickIdToIndex(brickID) {
+        if (typeof (brickID) === "number") {
+            return brickID;
+        }
+        else {
+            return BRICK_LIST.indexOf(brickID);
+        }
+    }
+    static BrickIdToName(brickID) {
+        if (typeof (brickID) === "string") {
+            return brickID;
+        }
+        else {
+            return BRICK_LIST[brickID];
+        }
+    }
+    setParent(node, preserveScalingSign, updatePivot) {
+        if (node instanceof Brick) {
+            this.anchored = false;
+            this.brickManager.unregisterBrick(this);
+        }
+        else {
+            this.brickManager.registerBrick(this);
+        }
+        return super.setParent(node, preserveScalingSign, updatePivot);
+    }
+    dispose() {
+        if (this.isRoot) {
+            this.brickManager.unregisterBrick(this);
+            if (this.mesh) {
+                this.mesh.dispose();
+            }
+            this.brickManager.saveToLocalStorage();
+        }
+        else {
+            let root = this.root;
+            this.setParent(undefined);
+            root.updateMesh();
+        }
+    }
+    cloneWithChildren() {
+        let clone = new Brick(this.brickManager, this.index, this.colorIndex);
+        let data = this.serialize();
+        clone.deserialize(data);
+        return clone;
+    }
+    posWorldToLocal(pos) {
+        let matrix = this.getWorldMatrix().invert();
+        return BABYLON.Vector3.TransformCoordinates(pos, matrix);
+    }
+    async updateMesh() {
+        if (this != this.root) {
+            if (this.mesh) {
+                this.mesh.dispose();
+                this.mesh = undefined;
+            }
+            this.subMeshInfos = undefined;
+            this.root.updateMesh();
+            return;
+        }
+        this.computeWorldMatrix(true);
+        let vDatas = [];
+        this.subMeshInfos = [];
+        await this.generateMeshVertexData(vDatas, this.subMeshInfos);
+        let data = Brick.MergeVertexDatas(this.subMeshInfos, ...vDatas);
+        Mummu.TranslateVertexDataInPlace(data, this.absolutePosition.scale(-1));
+        Mummu.RotateVertexDataInPlace(data, this.absoluteRotationQuaternion.invert());
+        if (!this.mesh) {
+            this.mesh = new BrickMesh(this);
+            this.mesh.layerMask |= 0x20000000;
+            this.mesh.position = this.position;
+            this.mesh.rotationQuaternion = this.rotationQuaternion;
+            /*
+            let brickMaterial = new BABYLON.StandardMaterial("brick-material");
+            brickMaterial.specularColor.copyFromFloats(0, 0, 0);
+            brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
+            brickMaterial.invertNormalMapX = true;
+            //brickMaterial.diffuseTexture = new BABYLON.Texture("./datas/textures/red-white-squares.png");
+
+            let steelMaterial = new ToonMaterial("steel", this.mesh._scene);
+            steelMaterial.setDiffuse(BABYLON.Color3.FromHexString("#868b8a"));
+            steelMaterial.setSpecularIntensity(1);
+            steelMaterial.setSpecularCount(4);
+            steelMaterial.setSpecularPower(32);
+            steelMaterial.setUseVertexColor(true);
+
+            let logoMaterial = new ToonMaterial("logo", this.mesh._scene);
+            logoMaterial.setDiffuse(BABYLON.Color3.FromHexString("#262b2a"));
+            logoMaterial.setSpecularIntensity(0.5);
+            logoMaterial.setSpecularCount(1);
+            logoMaterial.setSpecularPower(16);
+            logoMaterial.setUseLightFromPOV(true);
+            logoMaterial.setUseFlatSpecular(true);
+            */
+            //this.mesh.material = steelMaterial;
+            this.mesh.computeWorldMatrix(true);
+            this.mesh.refreshBoundingInfo();
+        }
+        data.applyToMesh(this.mesh);
+    }
+    highlight() {
+        if (this != this.root) {
+            return this.root.highlight();
+        }
+        if (this.mesh) {
+            this.mesh.renderOutline = true;
+            this.mesh.outlineColor = new BABYLON.Color3(0, 1, 1);
+            this.mesh.outlineWidth = 0.01;
+        }
+    }
+    unlight() {
+        if (this != this.root) {
+            return this.root.unlight();
+        }
+        if (this.mesh) {
+            this.mesh.renderOutline = false;
+        }
+    }
+    async generateMeshVertexData(vDatas, subMeshInfos, depth = 0) {
+        this.computeWorldMatrix(true);
+        let template = await BrickTemplateManager.Instance.getTemplate(this.index);
+        let vData = Mummu.CloneVertexData(template.vertexData);
+        let colors = [];
+        let color = BABYLON.Color3.FromHexString(BRICK_COLORS[this.colorIndex].hex);
+        for (let i = 0; i < vData.positions.length / 3; i++) {
+            colors.push(color.r, color.g, color.b, 1);
+        }
+        vData.colors = colors;
+        let a = 2 * Math.PI * Math.random();
+        a = 0;
+        let cosa = Math.cos(a);
+        let sina = Math.sin(a);
+        let dU = Math.random();
+        dU = 0;
+        let dV = Math.random();
+        dV = 0;
+        let uvs = vData.uvs;
+        for (let i = 0; i < uvs.length / 2; i++) {
+            let u = uvs[2 * i];
+            let v = uvs[2 * i + 1];
+            uvs[2 * i] = cosa * u - sina * v + dU;
+            uvs[2 * i + 1] = sina * u + cosa * v + dV;
+        }
+        vData.uvs = uvs;
+        Mummu.RotateVertexDataInPlace(vData, this.absoluteRotationQuaternion);
+        Mummu.TranslateVertexDataInPlace(vData, this.absolutePosition);
+        vDatas.push(vData);
+        subMeshInfos.push({ faceId: 0, brick: this });
+        let children = this.getChildTransformNodes(true);
+        for (let i = 0; i < children.length; i++) {
+            let child = children[i];
+            if (child instanceof Brick) {
+                await child.generateMeshVertexData(vDatas, subMeshInfos, depth + 1);
+            }
+        }
+    }
+    getBrickForFaceId(faceId) {
+        for (let i = 0; i < this.subMeshInfos.length; i++) {
+            if (this.subMeshInfos[i].faceId > faceId) {
+                return this.subMeshInfos[i].brick;
+            }
+        }
+    }
+    static MergeVertexDatas(subMeshInfos, ...datas) {
+        let mergedData = new BABYLON.VertexData();
+        let positions = [];
+        let indices = [];
+        let normals = [];
+        let uvs = [];
+        let colors = [];
+        for (let i = 0; i < datas.length; i++) {
+            let offset = positions.length / 3;
+            positions.push(...datas[i].positions);
+            indices.push(...datas[i].indices.map(index => { return index + offset; }));
+            normals.push(...datas[i].normals);
+            if (datas[i].uvs) {
+                uvs.push(...datas[i].uvs);
+            }
+            if (datas[i].colors) {
+                colors.push(...datas[i].colors);
+            }
+            subMeshInfos[i].faceId = indices.length / 3;
+        }
+        mergedData.positions = positions;
+        mergedData.indices = indices;
+        mergedData.normals = normals;
+        if (uvs.length > 0) {
+            mergedData.uvs = uvs;
+        }
+        if (colors.length > 0) {
+            mergedData.colors = colors;
+        }
+        return mergedData;
+    }
+    serialize() {
+        let data = {
+            id: this.index,
+            col: this.colorIndex /*,
+            qx: this.rotationQuaternion.x,
+            qy: this.rotationQuaternion.y,
+            qz: this.rotationQuaternion.z,
+            qw: this.rotationQuaternion.w,*/
+        };
+        if (this.isRoot) {
+            data.x = this.position.x;
+            data.y = this.position.y;
+            data.z = this.position.z;
+        }
+        else {
+            data.p = [];
+            data.p[0] = Math.round(this.position.x / BRICK_S);
+            data.p[1] = Math.round(this.position.y / BRICK_H);
+            data.p[2] = Math.round(this.position.z / BRICK_S);
+        }
+        let dir = BABYLON.Vector3.Forward().applyRotationQuaternion(this.rotationQuaternion);
+        let a = Mummu.AngleFromToAround(BABYLON.Axis.Z, dir, BABYLON.Axis.Y);
+        data.d = Math.round(a / (Math.PI * 0.5));
+        if (this.anchored) {
+            data.anc = this.anchored;
+        }
+        let children = this.getChildTransformNodes(true);
+        if (children.length > 0) {
+            data.c = [];
+        }
+        for (let i = 0; i < children.length; i++) {
+            let child = children[i];
+            if (child instanceof Brick) {
+                data.c[i] = child.serialize();
+            }
+        }
+        return data;
+    }
+    deserialize(data) {
+        this.index = data.id;
+        this.colorIndex = isFinite(data.col) ? data.col : 0;
+        if (data.p) {
+            this.position.copyFromFloats(data.p[0] * BRICK_S, data.p[1] * BRICK_H, data.p[2] * BRICK_S);
+        }
+        else {
+            this.position.copyFromFloats(data.x, data.y, data.z);
+        }
+        console.log(this.position);
+        if (isFinite(data.d)) {
+            BABYLON.Quaternion.RotationAxisToRef(BABYLON.Axis.Y, data.d * Math.PI * 0.5, this.rotationQuaternion);
+        }
+        else {
+            this.rotationQuaternion.copyFromFloats(data.qx, data.qy, data.qz, data.qw);
+        }
+        console.log(this.rotationQuaternion);
+        if (data.anc) {
+            this.anchored = true;
+        }
+        if (data.c) {
+            for (let i = 0; i < data.c.length; i++) {
+                let child = new Brick(this.brickManager, 0, 0, this);
+                child.deserialize(data.c[i]);
+            }
+        }
+    }
+}
+Brick.depthColors = [
+    new BABYLON.Color4(1, 1, 1, 1),
+    new BABYLON.Color4(1, 0, 0, 1),
+    new BABYLON.Color4(0, 1, 0, 1),
+    new BABYLON.Color4(0, 0, 1, 1),
+    new BABYLON.Color4(1, 1, 0, 1),
+    new BABYLON.Color4(0, 1, 1, 1),
+    new BABYLON.Color4(1, 0, 1, 1),
+    new BABYLON.Color4(1, 0.5, 0, 1),
+    new BABYLON.Color4(0, 1, 0.5, 1),
+    new BABYLON.Color4(0.5, 0, 1, 1),
+    new BABYLON.Color4(1, 1, 0.5, 1),
+    new BABYLON.Color4(0.5, 1, 1, 1),
+    new BABYLON.Color4(1, 0.5, 1, 1),
+    new BABYLON.Color4(0.2, 0.2, 0.2, 1)
+];
+var ALLBRICKS = [];
+var BRICK_LIST = [
+    "tile_1x1",
+    "tile_2x1",
+    "tile_3x1",
+    "tile_4x1",
+    "tile_5x1",
+    "tile_6x1",
+    "tile_7x1",
+    "tile_8x1",
+    "tile_9x1",
+    "tile_10x1",
+    "tile_11x1",
+    "tile_12x1",
+    "tile_13x1",
+    "tile_14x1",
+    "tile_15x1",
+    "tile_16x1",
+    "tile_2x2",
+    "tile_3x2",
+    "tile_4x2",
+    "tile_5x2",
+    "tile_6x2",
+    "tile_7x2",
+    "tile_8x2",
+    "tile_9x2",
+    "tile_10x2",
+    "tile_11x2",
+    "tile_12x2",
+    "tile_13x2",
+    "tile_14x2",
+    "tile_15x2",
+    "tile_16x2",
+    "tile_3x3",
+    "tile_4x4",
+    "tile_5x5",
+    "tile_6x6",
+    "tile_7x7",
+    "tile_8x8",
+    "tile_9x9",
+    "tile_10x10",
+    "tile_11x11",
+    "tile_12x12",
+    "tile_13x13",
+    "tile_14x14",
+    "tile_15x15",
+    "tile_16x16",
+    "brick_1x1",
+    "brick_2x1",
+    "brick_3x1",
+    "brick_4x1",
+    "brick_5x1",
+    "brick_6x1",
+    "brick_7x1",
+    "brick_8x1",
+    "brick_9x1",
+    "brick_10x1",
+    "brick_11x1",
+    "brick_12x1",
+    "brick_13x1",
+    "brick_14x1",
+    "brick_15x1",
+    "brick_16x1",
+    "brick-corner-round_1x1",
+    "brick-round_1x1",
+    "brick-round_2x1",
+    "brick-round_3x1",
+    "brick-round_4x1",
+    "brick-round_5x1",
+    "brick-round_6x1",
+    "brick-round_7x1",
+    "brick-round_8x1",
+    "brick-round_9x1",
+    "brick-round_10x1",
+    "brick-round_11x1",
+    "brick-round_12x1",
+    "brick-round_13x1",
+    "brick-round_14x1",
+    "brick-round_15x1",
+    "brick-round_16x1",
+    "tile-corner-curved_2x1",
+    "tile-corner-curved_3x1",
+    "tile-corner-curved_4x1",
+    "tile-corner-curved_5x1",
+    "tile-corner-curved_6x1",
+    "tile-corner-curved_7x1",
+    "tile-corner-curved_8x1",
+    "tile-corner-curved_3x2",
+    "tile-corner-curved_4x2",
+    "tile-corner-curved_5x2",
+    "tile-corner-curved_6x2",
+    "tile-corner-curved_7x2",
+    "tile-corner-curved_8x2",
+    "brick-corner-curved_2x1",
+    "brick-corner-curved_3x1",
+    "brick-corner-curved_4x1",
+    "brick-corner-curved_5x1",
+    "brick-corner-curved_6x1",
+    "brick-corner-curved_7x1",
+    "brick-corner-curved_8x1",
+    "window-frame_2x2",
+    "window-frame_2x3",
+    "window-frame_3x2",
+    "window-frame_3x3",
+    "window-frame_4x2",
+    "window-frame_4x3",
+    "window-frame-corner-curved_3x2",
+    "window-frame-corner-curved_3x3",
+    "window-frame-corner-curved_3x4",
+    "plate-quarter_1x1",
+    "plate-quarter_2x2",
+    "plate-quarter_3x3",
+    "plate-quarter_4x4",
+    "plate-quarter_5x5",
+    "plate-quarter_6x6",
+    "plate-quarter_7x7",
+    "plate-quarter_8x8",
+    "brick-quarter_1x1",
+    "brick-quarter_2x2",
+    "brick-quarter_3x3",
+    "brick-quarter_4x4",
+    "brick-quarter_5x5",
+    "brick-quarter_6x6",
+    "brick-quarter_7x7",
+    "brick-quarter_8x8",
+];
+var BRICK_COLORS = [
+    { name: "White", hex: "#FFFFFF" },
+    { name: "Black", hex: "#05131D" },
+    { name: "Reddish Brown", hex: "#582A12" },
+    { name: "Sand Green", hex: "#A0BCAC" },
+    { name: "Rust", hex: "#B31004" },
+    { name: "Tan", hex: "#E4CD9E" },
+    { name: "Dark Bluish Gray", hex: "#6C6E68" }
+];
+class BrickManager {
+    constructor(game) {
+        this.game = game;
+        this.bricks = new Nabu.UniqueList();
+    }
+    registerBrick(brick) {
+        this.bricks.push(brick);
+        console.log("BrickManager holds " + this.bricks.length + " bricks");
+    }
+    unregisterBrick(brick) {
+        this.bricks.remove(brick);
+        console.log("BrickManager holds " + this.bricks.length + " bricks");
+    }
+    serialize() {
+        let data = {
+            bricks: []
+        };
+        for (let i = 0; i < this.bricks.length; i++) {
+            data.bricks[i] = this.bricks.get(i).serialize();
+        }
+        return data;
+    }
+    deserialize(data) {
+        while (this.bricks.length > 0) {
+            this.bricks.get(0).dispose();
+        }
+        for (let i = 0; i < data.bricks.length; i++) {
+            let brick = new Brick(this, 0, 0);
+            brick.deserialize(data.bricks[i]);
+            brick.updateMesh();
+        }
+    }
+    saveToLocalStorage() {
+        let data = this.serialize();
+        window.localStorage.setItem("brick-manager", JSON.stringify(data));
+    }
+    loadFromLocalStorage() {
+        let dataString = window.localStorage.getItem("brick-manager");
+        if (dataString) {
+            let data = JSON.parse(dataString);
+            if (data) {
+                this.deserialize(data);
+            }
+        }
+    }
+}
+class BrickTemplateManager {
+    constructor(vertexDataLoader) {
+        this.vertexDataLoader = vertexDataLoader;
+        this._templates = [];
+    }
+    static get Instance() {
+        if (!BrickTemplateManager._Instance) {
+            BrickTemplateManager._Instance = new BrickTemplateManager(Game.Instance.vertexDataLoader);
+        }
+        return BrickTemplateManager._Instance;
+    }
+    async getTemplate(index) {
+        if (!this._templates[index]) {
+            this._templates[index] = await this.createTemplate(index);
+        }
+        return this._templates[index];
+    }
+    async createTemplate(index) {
+        let template = new BrickTemplate(index, this);
+        await template.load();
+        return template;
+    }
+}
+class BrickTemplate {
+    constructor(index, brickTemplateManager) {
+        this.index = index;
+        this.brickTemplateManager = brickTemplateManager;
+    }
+    get name() {
+        return BRICK_LIST[this.index];
+    }
+    async load(lod = 0) {
+        //this.vertexData = (await this.brickTemplateManager.vertexDataLoader.get("./datas/meshes/plate_1x1.babylon"))[0];
+        if (this.name.startsWith("brick_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            let w = parseInt(this.name.split("_")[1].split("x")[1]);
+            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 3, w, lod);
+        }
+        else if (this.name.startsWith("plate-corner-cut_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            let w = parseInt(this.name.split("_")[1].split("x")[1]);
+            let cut = 1;
+            if (l >= 4) {
+                cut = 2;
+            }
+            this.vertexData = await BrickVertexDataGenerator.GetStuddedCutBoxVertexData(cut, l, 1, w, lod);
+        }
+        else if (this.name.startsWith("wall_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            let w = parseInt(this.name.split("_")[1].split("x")[1]);
+            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 12, w, lod);
+        }
+        else if (this.name.startsWith("plate_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            let w = parseInt(this.name.split("_")[1].split("x")[1]);
+            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 1, w, lod);
+        }
+        else if (this.name.startsWith("tile_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            let w = parseInt(this.name.split("_")[1].split("x")[1]);
+            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 1, w, lod);
+        }
+        else if (this.name.startsWith("window-frame_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            let h = parseInt(this.name.split("_")[1].split("x")[1]);
+            this.vertexData = await BrickVertexDataGenerator.GetWindowFrameVertexData(l, h, lod);
+        }
+        else if (this.name.startsWith("window-frame-corner-curved_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            let h = parseInt(this.name.split("_")[1].split("x")[1]);
+            this.vertexData = await BrickVertexDataGenerator.GetWindowFrameCornerCurvedVertexData(l, h, lod);
+        }
+        else if (this.name.startsWith("tile-corner-curved_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            let w = parseInt(this.name.split("_")[1].split("x")[1]);
+            this.vertexData = await BrickVertexDataGenerator.GetBoxCornerCurvedVertexData(l, 1, w, lod);
+        }
+        else if (this.name.startsWith("brick-corner-curved_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            let w = parseInt(this.name.split("_")[1].split("x")[1]);
+            this.vertexData = await BrickVertexDataGenerator.GetBoxCornerCurvedVertexData(l, 3, w, lod);
+        }
+        else if (this.name.startsWith("plate-quarter_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            this.vertexData = await BrickVertexDataGenerator.GetBoxQuarterVertexData(l, 1, lod);
+        }
+        else if (this.name.startsWith("brick-quarter_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            this.vertexData = await BrickVertexDataGenerator.GetBoxQuarterVertexData(l, 3, lod);
+        }
+        else if (this.name.startsWith("brick-round_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            this.vertexData = await BrickVertexDataGenerator.GetBrickRoundVertexData(l, lod);
+        }
+        else if (this.name.startsWith("brick-corner-round_1x1")) {
+            this.vertexData = (await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/brick-corner-round_1x1.babylon"))[0];
+            BrickVertexDataGenerator.AddMarginInPlace(this.vertexData);
+        }
+        else if (this.name === "tile-round-quarter_1x1") {
+            this.vertexData = (await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/tile-round-quarter_1x1.babylon"))[0];
+            BrickVertexDataGenerator.AddMarginInPlace(this.vertexData);
+        }
+        else if (this.name === "tile-triangle_2x2") {
+            this.vertexData = (await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/tile-triangle_2x2.babylon"))[0];
+            BrickVertexDataGenerator.AddMarginInPlace(this.vertexData);
+        }
+        else {
+            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(1, 1, 1);
+        }
+    }
+}
+var UV_S = 0.75;
+class BrickVertexDataGenerator {
+    static GetBoxVertexData(length, height, width, lod = 1) {
+        let xMin = -BRICK_S * 0.5;
+        let yMin = 0;
+        let zMin = -BRICK_S * 0.5;
+        let xMax = xMin + width * BRICK_S;
+        let yMax = yMin + height * BRICK_H;
+        let zMax = zMin + length * BRICK_S;
+        let back = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMin, yMin, zMin),
+            p2: new BABYLON.Vector3(xMax, yMin, zMin),
+            p3: new BABYLON.Vector3(xMax, yMax, zMin),
+            p4: new BABYLON.Vector3(xMin, yMax, zMin),
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let right = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMin, zMin),
+            p2: new BABYLON.Vector3(xMax, yMin, zMax),
+            p3: new BABYLON.Vector3(xMax, yMax, zMax),
+            p4: new BABYLON.Vector3(xMax, yMax, zMin),
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let front = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMin, zMax),
+            p2: new BABYLON.Vector3(xMin, yMin, zMax),
+            p3: new BABYLON.Vector3(xMin, yMax, zMax),
+            p4: new BABYLON.Vector3(xMax, yMax, zMax),
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let left = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMin, yMin, zMax),
+            p2: new BABYLON.Vector3(xMin, yMin, zMin),
+            p3: new BABYLON.Vector3(xMin, yMax, zMin),
+            p4: new BABYLON.Vector3(xMin, yMax, zMax),
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let top = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMax, zMin),
+            p2: new BABYLON.Vector3(xMax, yMax, zMax),
+            p3: new BABYLON.Vector3(xMin, yMax, zMax),
+            p4: new BABYLON.Vector3(xMin, yMax, zMin),
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let bottom = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMin, zMin),
+            p2: new BABYLON.Vector3(xMin, yMin, zMin),
+            p3: new BABYLON.Vector3(xMin, yMin, zMax),
+            p4: new BABYLON.Vector3(xMax, yMin, zMax),
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let data = Mummu.MergeVertexDatas(back, right, front, left, top, bottom);
+        BrickVertexDataGenerator.AddMarginInPlace(data);
+        return data;
+    }
+    static async GetBoxCornerCurvedVertexData(length, height, width, lod = 1) {
+        let innerR = (length - width) * BRICK_S;
+        let outterR = length * BRICK_S;
+        let y = height * BRICK_H;
+        let back = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(innerR, 0, 0),
+            p2: new BABYLON.Vector3(outterR, 0, 0),
+            p3: new BABYLON.Vector3(outterR, y, 0),
+            p4: new BABYLON.Vector3(innerR, y, 0),
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let right = Mummu.CreateCylinderSliceVertexData({
+            alphaMin: 0,
+            alphaMax: Math.PI * 0.5,
+            radius: outterR,
+            yMin: 0,
+            yMax: y,
+            tesselation: 5,
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let front = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(0, 0, outterR),
+            p2: new BABYLON.Vector3(0, 0, innerR),
+            p3: new BABYLON.Vector3(0, y, innerR),
+            p4: new BABYLON.Vector3(0, y, outterR),
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let left = Mummu.CreateCylinderSliceVertexData({
+            alphaMin: 0,
+            alphaMax: Math.PI * 0.5,
+            radius: innerR,
+            yMin: 0,
+            yMax: y,
+            sideOrientation: BABYLON.Mesh.BACKSIDE,
+            tesselation: 5,
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let top = Mummu.CreateDiscSliceVertexData({
+            alphaMin: 0,
+            alphaMax: Math.PI * 0.5,
+            innerRadius: innerR,
+            outterRadius: outterR,
+            y: y,
+            tesselation: 5,
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let bottom = Mummu.CreateDiscSliceVertexData({
+            alphaMin: 0,
+            alphaMax: Math.PI * 0.5,
+            innerRadius: innerR,
+            outterRadius: outterR,
+            y: 0,
+            sideOrientation: BABYLON.Mesh.BACKSIDE,
+            tesselation: 5,
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let data = Mummu.MergeVertexDatas(back, right, front, left, top, bottom);
+        Mummu.TranslateVertexDataInPlace(data, new BABYLON.Vector3(-innerR - BRICK_S * 0.5, 0, -BRICK_S * 0.5));
+        BrickVertexDataGenerator.AddMarginInPlace(data);
+        return data;
+    }
+    static async GetBoxQuarterVertexData(length, height, lod = 1) {
+        let radius = length * BRICK_S;
+        let y = height * BRICK_H;
+        let back = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(0, 0, 0),
+            p2: new BABYLON.Vector3(radius, 0, 0),
+            p3: new BABYLON.Vector3(radius, y, 0),
+            p4: new BABYLON.Vector3(0, y, 0),
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let right = Mummu.CreateCylinderSliceVertexData({
+            alphaMin: 0,
+            alphaMax: Math.PI * 0.5,
+            radius: radius,
+            yMin: 0,
+            yMax: y,
+            tesselation: 5,
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let front = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(0, 0, radius),
+            p2: new BABYLON.Vector3(0, 0, 0),
+            p3: new BABYLON.Vector3(0, y, 0),
+            p4: new BABYLON.Vector3(0, y, radius),
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let top = Mummu.CreateDiscVertexData({
+            alphaMin: 0,
+            alphaMax: Math.PI * 0.5,
+            radius: radius,
+            y: y,
+            tesselation: 5,
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let bottom = Mummu.CreateDiscVertexData({
+            alphaMin: 0,
+            alphaMax: Math.PI * 0.5,
+            radius: radius,
+            y: 0,
+            sideOrientation: BABYLON.Mesh.BACKSIDE,
+            tesselation: 5,
+            uvInWorldSpace: true,
+            uvSize: UV_S
+        });
+        let data = Mummu.MergeVertexDatas(back, right, front, top, bottom);
+        Mummu.TranslateVertexDataInPlace(data, new BABYLON.Vector3(-BRICK_S * 0.5, 0, -BRICK_S * 0.5));
+        BrickVertexDataGenerator.AddMarginInPlace(data);
+        return data;
+    }
+    static async GetStuddedCutBoxVertexData(cut, length, height, width, lod = 1) {
+        let datas = await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/plate-corner-cut.babylon");
+        let cutBoxRawData = Mummu.CloneVertexData(datas[0]);
+        let dx = (width - 2) * BRICK_S;
+        let dxCut = (cut - 1) * BRICK_S;
+        let dy = (height - 1) * BRICK_H;
+        let dz = (length - 2) * BRICK_S;
+        let dzCut = (cut - 1) * BRICK_S;
+        let positions = cutBoxRawData.positions;
+        for (let i = 0; i < positions.length / 3; i++) {
+            let x = positions[3 * i];
+            let y = positions[3 * i + 1];
+            let z = positions[3 * i + 2];
+            if (x > BRICK_S) {
+                x += dx;
+            }
+            else if (x > 0) {
+                x += dxCut;
+            }
+            if (y > BRICK_H * 0.5) {
+                y += dy;
+            }
+            if (z > BRICK_S) {
+                z += dz;
+            }
+            else if (z > 0) {
+                z += dzCut;
+            }
+            positions[3 * i] = x;
+            positions[3 * i + 1] = y;
+            positions[3 * i + 2] = z;
+        }
+        cutBoxRawData.positions = positions;
+        let normals = [];
+        BABYLON.VertexData.ComputeNormals(cutBoxRawData.positions, cutBoxRawData.indices, normals);
+        cutBoxRawData.normals = normals;
+        cutBoxRawData.colors = undefined;
+        BrickVertexDataGenerator.AddMarginInPlace(cutBoxRawData);
+        return cutBoxRawData;
+    }
+    static async GetWindowFrameVertexData(length, height, lod = 1) {
+        let datas = await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/window-frame_2x2.babylon");
+        let cutBoxRawData = Mummu.CloneVertexData(datas[0]);
+        let dy = (height - 2) * BRICK_H * 3;
+        let dz = (length - 2) * BRICK_S;
+        let positions = cutBoxRawData.positions;
+        let normals = cutBoxRawData.normals;
+        let uvs = cutBoxRawData.uvs;
+        for (let i = 0; i < positions.length / 3; i++) {
+            let nx = normals[3 * i];
+            let ny = normals[3 * i + 1];
+            let nz = normals[3 * i + 2];
+            let x = positions[3 * i];
+            let y = positions[3 * i + 1];
+            let z = positions[3 * i + 2];
+            let face = 0;
+            if (nx > 0.9) {
+                face = 1;
+            }
+            else if (nx < -0.9) {
+                face = 1;
+            }
+            else if (y < 0.001 && ny < -0.9) {
+                face = 2;
+            }
+            else if (y > 6 * BRICK_H - 0.001 && ny > 0.9) {
+                face = 2;
+            }
+            else if (z < -0.5 * BRICK_S + 0.01 && nz < -0.9) {
+                face = 3;
+            }
+            else if (z > BRICK_S * 1.5 - 0.01 && nz > 0.9) {
+                face = 3;
+            }
+            else {
+                if (y > BRICK_H * 3 && z > BRICK_S * 0.5) {
+                    // do nothing
+                    if (uvs[2 * i] > 1) {
+                        uvs[2 * i] += 2 * dy + 2 * dz;
+                    }
+                }
+                else if (y < BRICK_H * 3 && z > BRICK_S * 0.5) {
+                    uvs[2 * i] += dy;
+                }
+                else if (y < BRICK_H * 3 && z < BRICK_S * 0.5) {
+                    uvs[2 * i] += dy + dz;
+                }
+                else if (y > BRICK_H * 3 && z < BRICK_S * 0.5) {
+                    uvs[2 * i] += 2 * dy + dz;
+                }
+            }
+            if (y > BRICK_H * 3) {
+                y += dy;
+            }
+            if (z > BRICK_S * 0.5) {
+                z += dz;
+            }
+            if (face === 1) {
+                uvs[2 * i] = z;
+                uvs[2 * i + 1] = y;
+            }
+            else if (face === 2) {
+                uvs[2 * i] = z;
+                uvs[2 * i + 1] = x;
+            }
+            else if (face === 3) {
+                uvs[2 * i] = x;
+                uvs[2 * i + 1] = y;
+            }
+            uvs[2 * i] /= UV_S;
+            uvs[2 * i + 1] /= UV_S;
+            positions[3 * i + 1] = y;
+            positions[3 * i + 2] = z;
+        }
+        cutBoxRawData.positions = positions;
+        cutBoxRawData.uvs = uvs;
+        BABYLON.VertexData.ComputeNormals(cutBoxRawData.positions, cutBoxRawData.indices, normals);
+        cutBoxRawData.normals = normals;
+        cutBoxRawData.colors = undefined;
+        BrickVertexDataGenerator.AddMarginInPlace(cutBoxRawData);
+        return cutBoxRawData;
+    }
+    static async GetWindowFrameCornerCurvedVertexData(length, height, lod = 1) {
+        let datas = await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/window-frame-corner_" + length + ".babylon");
+        let index = height - 2;
+        let data = Mummu.CloneVertexData(datas[index]);
+        if (data) {
+            let uvs = data.uvs;
+            for (let i = 0; i < uvs.length; i++) {
+                uvs[i] = uvs[i] / UV_S;
+            }
+            data.uvs = uvs;
+            BrickVertexDataGenerator.AddMarginInPlace(data);
+            return data;
+        }
+        return undefined;
+    }
+    static async GetBrickRoundVertexData(length, lod = 1) {
+        let datas = await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/brick-round_1x1.babylon");
+        let cutBoxRawData = Mummu.CloneVertexData(datas[0]);
+        let dz = (length - 1) * BRICK_S;
+        let positions = cutBoxRawData.positions;
+        let normals = cutBoxRawData.normals;
+        let uvs = cutBoxRawData.uvs;
+        for (let i = 0; i < positions.length / 3; i++) {
+            let nx = normals[3 * i];
+            let ny = normals[3 * i + 1];
+            let nz = normals[3 * i + 2];
+            let x = positions[3 * i];
+            let y = positions[3 * i + 1];
+            let z = positions[3 * i + 2];
+            if (z > 0) {
+                z += dz;
+            }
+            if (ny < -0.9) {
+                uvs[2 * i] = z;
+                uvs[2 * i + 1] = x;
+            }
+            else if (nx < -0.9) {
+                uvs[2 * i] = z;
+                uvs[2 * i + 1] = y;
+            }
+            else if (nz < -0.9 || nz > 0.9) {
+            }
+            else {
+                if (z > 0) {
+                    uvs[2 * i] += dz;
+                }
+            }
+            positions[3 * i + 2] = z;
+        }
+        cutBoxRawData.positions = positions;
+        cutBoxRawData.uvs = uvs;
+        cutBoxRawData.colors = undefined;
+        BrickVertexDataGenerator.AddMarginInPlace(cutBoxRawData);
+        return cutBoxRawData;
+    }
+    static AddMarginInPlace(vertexData, margin = 0.001, cx = 0, cy = BRICK_H * 0.5, cz = 0) {
+        let positions = vertexData.positions;
+        for (let i = 0; i < positions.length / 3; i++) {
+            let x = positions[3 * i];
+            let y = positions[3 * i + 1];
+            let z = positions[3 * i + 2];
+            if (x > cx) {
+                x -= margin;
+            }
+            else {
+                x += margin;
+            }
+            if (y > cy) {
+                y -= margin;
+            }
+            else {
+                y += margin;
+            }
+            if (z > cz) {
+                z -= margin;
+            }
+            else {
+                z += margin;
+            }
+            positions[3 * i] = x;
+            positions[3 * i + 1] = y;
+            positions[3 * i + 2] = z;
+        }
+    }
+}
+class Construction extends BABYLON.Mesh {
+    constructor(i, j, terrain) {
+        super("construction_" + i.toFixed(0) + "_" + j.toFixed(0));
+        this.i = i;
+        this.j = j;
+        this.terrain = terrain;
+        this.length = BRICKS_PER_CONSTRUCTION;
+        this.bricks = [];
+        this.position.copyFromFloats(this.i * this.terrain.chunckSize_m + BRICK_S * 0.5, 0, this.j * this.terrain.chunckSize_m + BRICK_S * 0.5);
+    }
+    async instantiate() {
     }
 }
 var LifeState;
