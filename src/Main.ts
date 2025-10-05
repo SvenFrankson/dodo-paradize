@@ -405,7 +405,7 @@ class Game {
         Mummu.TranslateVertexDataInPlace(data, new BABYLON.Vector3(1.5 * BRICK_S, 1.5 * BRICK_H, 0.5 * BRICK_S));
         let brick = new BABYLON.Mesh("brick");
         data.applyToMesh(brick);
-        brick.position.copyFromFloats(BRICK_S * 0.5, TILE_H, BRICK_S * 0.5);
+        brick.position.copyFromFloats(0, TILE_H, 0);
 
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);

@@ -10,7 +10,7 @@ interface IJoeyProp {
 
 class Dodo extends Creature {
 
-    public stepDuration: number = 0.5;
+    public stepDuration: number = 0.4;
     public colors: BABYLON.Color3[] = [];
     public brain: Brain;
 
@@ -29,7 +29,7 @@ class Dodo extends Creature {
     //public canon: BABYLON.Mesh;
     public stepHeight: number = 0.2;
     public foldedBodyHeight: number = 0.1;
-    public unfoldedBodyHeight: number = 0.3;
+    public unfoldedBodyHeight: number = 0.4;
     public bodyHeight: number = this.foldedBodyHeight;
     public animateWait = Mummu.AnimationFactory.EmptyVoidCallback;
     public animateBodyHeight = Mummu.AnimationFactory.EmptyNumberCallback;
@@ -396,12 +396,12 @@ class Dodo extends Creature {
             }
 
             let foot = this.feet[this.footIndex];
-            if (BABYLON.Vector3.DistanceSquared(foot.position, pos.add(up.scale(0.15))) > 0.05) {
+            if (BABYLON.Vector3.DistanceSquared(foot.position, pos.add(up.scale(0.0))) > 0.05) {
                 this.walking = 1;
                 let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
                 foot.groundPos = pos;
                 foot.groundUp = up;
-                this.animateFoot(foot, pos.add(up.scale(0.15)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
+                this.animateFoot(foot, pos.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
                     this.walking = 0;
                     this.footIndex = (this.footIndex + 1) % 2;
                 });
@@ -424,6 +424,7 @@ class Dodo extends Creature {
 
         let f = 0.5;
         let dy = this.feet[1].position.y - this.feet[0].position.y;
+        this.position.y = Math.min(this.feet[0].position.y, this.feet[1].position.y);
         f += dy / this.stepHeight * 0.4;
         f = Nabu.MinMax(f, 0.2, 0.8);
 
@@ -433,10 +434,11 @@ class Dodo extends Creature {
         this.bodyTargetPos.addInPlace(this.forward.scale(this.currentSpeed * 0));
         this.bodyTargetPos.y += this.bodyHeight;
         console.log(this.bodyHeight);
-        Mummu.DrawDebugPoint(this.bodyTargetPos, 3, BABYLON.Color3.Blue());
+
+        Mummu.DrawDebugPoint(this.position, 3, BABYLON.Color3.Blue());
         
         let pForce = this.bodyTargetPos.subtract(this.body.position);
-        pForce.scaleInPlace(40 * dt);
+        pForce.scaleInPlace(60 * dt);
 
         this.bodyVelocity.addInPlace(pForce);
         this.bodyVelocity.scaleInPlace(Nabu.Easing.smoothNSec(1 / dt, 0.25));
@@ -499,12 +501,12 @@ class Dodo extends Creature {
         let neck = new BABYLON.Vector3(0, 0, 0);        
         neck.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
         neck.addInPlace(this.forward.scale(this.currentSpeed * 0));
-        neck.y += this.bodyHeight + 0.42 - feetDeltaY * 0.5;
-        neck.addInPlace(this.forward.scale(0.36));
+        neck.y += this.bodyHeight + 0.42 - feetDeltaY * 0.25;
+        neck.addInPlace(this.forward.scale(0.4));
 
         let headForce = neck.subtract(this.head.position);
-        headForce.scaleInPlace(100 * dt);
-        this.headVelocity.scaleInPlace(Nabu.Easing.smoothNSec(1 / dt, 0.25));
+        headForce.scaleInPlace(60 * dt);
+        this.headVelocity.scaleInPlace(Nabu.Easing.smoothNSec(1 / dt, 0.3));
         this.headVelocity.addInPlace(headForce);
 
         this.head.position.addInPlace(this.headVelocity.scale(dt));
@@ -521,11 +523,11 @@ class Dodo extends Creature {
         let rComp = this.right.scale(BABYLON.Vector3.Dot(db, this.right));
         db.subtractInPlace(rComp.scale(2));
 
-        let tailPoints = [new BABYLON.Vector3(0, -0.0, 0.25), this.head.absolutePosition];
+        let tailPoints = [new BABYLON.Vector3(0, 0.0, 0.21), this.head.absolutePosition];
         BABYLON.Vector3.TransformCoordinatesToRef(tailPoints[0], this.body.getWorldMatrix(), tailPoints[0]);
 
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(1), BABYLON.Vector3.Up().scale(1));
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(1), BABYLON.Vector3.Up().scale(1));
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(2), BABYLON.Vector3.Up().scale(2));
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(2), BABYLON.Vector3.Up().scale(2));
 
         let data = Mummu.CreateWireVertexData({
             path: tailPoints,

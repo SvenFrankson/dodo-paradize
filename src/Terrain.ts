@@ -8,6 +8,7 @@ class Chunck extends BABYLON.Mesh {
 
     constructor(public i: number, public j: number, public terrain: Terrain) {
         super("chunck_" + i.toFixed(0) + "_" + j.toFixed(0));
+        this.position.copyFromFloats(this.i * this.terrain.chunckSize_m + BRICK_S * 0.5, 0, this.j * this.terrain.chunckSize_m + BRICK_S * 0.5);
     }
 }
 
@@ -26,8 +27,6 @@ class Terrain {
     constructor(public game: Game) {
         this.chuncks = new Nabu.UniqueList<Chunck>();
 
-        let name = Math.floor(Math.random() * 1000000).toFixed(0);
-        console.log(name);
         let masterSeed = Nabu.MasterSeed.GetFor("Paulita&Sven");
         let seededMap = Nabu.SeededMap.CreateFromMasterSeed(masterSeed, 4, 512);
         this.mapL = 1024;
@@ -79,7 +78,6 @@ class Terrain {
         }
 
         let chunck = new Chunck(iChunck, jChunck, this);
-        chunck.position.copyFromFloats(iChunck * this.chunckSize_m, 0, jChunck * this.chunckSize_m);
         chunck.material = this.material;
 
         let water = new BABYLON.Mesh("water");

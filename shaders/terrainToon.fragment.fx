@@ -34,15 +34,23 @@ void main() {
    }
 
    // show grid
-   float nrmzdX = vPositionW.x / 0.672;
-   float nrmzdZ = vPositionW.z / 0.672;
-   float dx = nrmzdX + 0.5 - floor(nrmzdX + 0.5);
-   float dz = nrmzdZ + 0.5 - floor(nrmzdZ + 0.5);
+   float nrmzdX = vPositionL.x / 0.672;
+   float nrmzdZ = vPositionL.z / 0.672;
 
-   if (dx < 0.005 || dx > 0.995) {
+   float dx = nrmzdX - floor(nrmzdX);
+   float dz = nrmzdZ - floor(nrmzdZ);
+
+   if ((dx < 0.02 || dx > 0.98) && (dz < 0.02 || dz > 0.98)) {
       color = vec3(0., 0., 0.);
    }
-   if (dz < 0.005 || dz > 0.995) {
+
+   dx = nrmzdX + 0.5 - floor(nrmzdX + 0.5);
+   dz = nrmzdZ + 0.5 - floor(nrmzdZ + 0.5);
+
+   if (dx < 0.01 || dx > 0.99) {
+      color = vec3(0., 0., 0.);
+   }
+   if (dz < 0.01 || dz > 0.99) {
       color = vec3(0., 0., 0.);
    }
 
