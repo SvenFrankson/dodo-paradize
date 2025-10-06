@@ -6,10 +6,13 @@ class BrainPlayer extends SubBrain {
     private _targetLook: BABYLON.Vector3 = BABYLON.Vector3.Zero();
 
     private _pointerDown: boolean = false;
+    private _pointerSmoothness: number = 0.5;
     private _moveXAxisInput: number = 0;
     private _moveYAxisInput: number = 0;
     private _rotateXAxisInput: number = 0;
     private _rotateYAxisInput: number = 0;
+    private _smoothedRotateXAxisInput: number = 0;
+    private _smoothedRotateYAxisInput: number = 0;
 
     public initialize(): void {
         this.game.canvas.addEventListener("keydown", (ev: KeyboardEvent) => {
@@ -50,18 +53,37 @@ class BrainPlayer extends SubBrain {
         })
         this.game.canvas.addEventListener("pointermove", (ev: PointerEvent) => {
             if (this._pointerDown) {
-                this._rotateXAxisInput = ev.movementY / 100;
-                this._rotateYAxisInput = ev.movementX / 100;
+                this._rotateXAxisInput = ev.movementY / 200;
+                this._rotateYAxisInput = ev.movementX / 200;
             }
         })
     }
 
     public update(dt: number): void {
+        if (Math.random() < 0.01) {
+            this._targetLook.copyFrom(this.dodo.position);
+            this._targetLook.addInPlace(this.dodo.forward.scale(20));
+            this._targetLook.x += Math.random() * 10 - 5;
+            this._targetLook.y += Math.random() * 10 - 5;
+            this._targetLook.z += Math.random() * 10 - 5;
+        }
+        BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.03, this.dodo.targetLook);
+
         let dir = this.dodo.forward.scale(this._moveYAxisInput).add(this.dodo.right.scale(this._moveXAxisInput));
         if (dir.lengthSquared() > 0) {
             this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
+            let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+            this.dodo.currentSpeed = this.dodo.currentSpeed * fSpeed + this.dodo.speed * (1 - fSpeed);
         }
-        this.game.camera.verticalAngle += this._rotateXAxisInput;
-        this.dodo.rotate(BABYLON.Axis.Y, this._rotateYAxisInput);
+        else {
+            let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+            this.dodo.currentSpeed = this.dodo.currentSpeed * fSpeed;
+        }
+
+        this._smoothedRotateXAxisInput = this._smoothedRotateXAxisInput * this._pointerSmoothness + this._rotateXAxisInput * (1 - this._pointerSmoothness);
+        this._smoothedRotateYAxisInput = this._smoothedRotateYAxisInput * this._pointerSmoothness + this._rotateYAxisInput * (1 - this._pointerSmoothness);
+
+        this.game.camera.verticalAngle += this._smoothedRotateXAxisInput;
+        this.dodo.rotate(BABYLON.Axis.Y, this._smoothedRotateYAxisInput);
     }
 }

@@ -18,7 +18,7 @@ class BrainIdle extends SubBrain {
 
         if (Math.random() < 0.003) {
             this._targetLook.copyFrom(this.dodo.position);
-            this._targetLook.addInPlace(this.dodo.forward.scale(10));
+            this._targetLook.addInPlace(this.dodo.forward.scale(20));
             this._targetLook.x += Math.random() * 10 - 5;
             this._targetLook.y += Math.random() * 10 - 5;
             this._targetLook.z += Math.random() * 10 - 5;

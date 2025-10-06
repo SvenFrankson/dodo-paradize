@@ -228,6 +228,7 @@ class Game {
     public terrainManager: TerrainManager;
     public brickManager: BrickManager;
     public playerDodo: Dodo;
+    public npcDodos: Dodo[];
 
     constructor(canvasElement: string) {
         Game.Instance = this;
@@ -406,6 +407,20 @@ class Game {
         this.brickManager = new BrickManager(this);
 
         this.playerDodo = new Dodo("Sven", this);
+        this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
+        this.playerDodo.brain.initialize();
+
+        this.npcDodos = [];
+        for (let n = 0; n < 10; n++) {
+            let dodo = new Dodo("Bob", this);
+            await dodo.instantiate();
+            dodo.unfold();
+            dodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));
+            dodo.brain = new Brain(dodo, BrainMode.Idle, BrainMode.Travel);
+            dodo.brain.initialize();
+            this.npcDodos[n] = dodo;
+        }
+
         this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();
         this.playerDodo.unfold();
@@ -481,6 +496,9 @@ class Game {
             this.globalTimer += rawDT;
             this.terrainManager.update();
             this.playerDodo.update(rawDT);
+            this.npcDodos.forEach(dodo => {
+                dodo.update(rawDT);
+            })
             this.camera.onUpdate(rawDT);
 
             let camPos = this.camera.position.clone();

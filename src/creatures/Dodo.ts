@@ -10,7 +10,7 @@ interface IDodoProp {
 
 class Dodo extends Creature {
 
-    public stepDuration: number = 0.4;
+    public stepDuration: number = 0.2;
     public colors: BABYLON.Color3[] = [];
     public brain: Brain;
 
@@ -72,9 +72,6 @@ class Dodo extends Creature {
                 this.colors[0] = prop.color;
             }
         }
-
-        this.brain = new Brain(this, BrainMode.Player);
-        this.brain.initialize();
 
         this.rotationQuaternion = BABYLON.Quaternion.Identity();
         this.body = Dodo.OutlinedMesh("body");
@@ -383,7 +380,7 @@ class Dodo extends Creature {
         if (this.walking === 0 && this.isAlive) {
             let xFactor = this.footIndex === 0 ? 1 : - 1;
             let spread = 0.25;
-            let pos = new BABYLON.Vector3(xFactor * spread, 0.15, this.speed * 0.2);
+            let pos = new BABYLON.Vector3(xFactor * spread, 0.15, this.currentSpeed * 0.5);
             let up = BABYLON.Vector3.Up();
             BABYLON.Vector3.TransformCoordinatesToRef(pos, this.getWorldMatrix(), pos);
 
@@ -397,7 +394,7 @@ class Dodo extends Creature {
             }
 
             let foot = this.feet[this.footIndex];
-            if (BABYLON.Vector3.DistanceSquared(foot.position, pos.add(up.scale(0.0))) > 0.05) {
+            if (BABYLON.Vector3.DistanceSquared(foot.position, pos.add(up.scale(0.0))) > 0.01) {
                 this.walking = 1;
                 let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
                 foot.groundPos = pos;
@@ -418,8 +415,9 @@ class Dodo extends Creature {
     }
 
     public update(dt: number) {
-
-        this.brain.update(dt);
+        if (this.brain) {
+            this.brain.update(dt);
+        }
 
         this.walk();
 
@@ -430,12 +428,12 @@ class Dodo extends Creature {
         f = Nabu.MinMax(f, 0.2, 0.8);
 
         this.bodyTargetPos.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
-        Mummu.DrawDebugPoint(this.feet[0].position, 3, BABYLON.Color3.Red());
-        Mummu.DrawDebugPoint(this.feet[1].position, 3, BABYLON.Color3.Green());
+        //Mummu.DrawDebugPoint(this.feet[0].position, 3, BABYLON.Color3.Red());
+        //Mummu.DrawDebugPoint(this.feet[1].position, 3, BABYLON.Color3.Green());
         this.bodyTargetPos.addInPlace(this.forward.scale(this.currentSpeed * 0));
         this.bodyTargetPos.y += this.bodyHeight;
 
-        Mummu.DrawDebugPoint(this.position, 3, BABYLON.Color3.Blue());
+        //Mummu.DrawDebugPoint(this.position, 3, BABYLON.Color3.Blue());
         
         let pForce = this.bodyTargetPos.subtract(this.body.position);
         pForce.scaleInPlace(60 * dt);

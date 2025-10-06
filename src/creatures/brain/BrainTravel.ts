@@ -29,7 +29,7 @@ class BrainTravel extends SubBrain {
             this.dodo.currentSpeed = this.dodo.currentSpeed * 0.99 + speed * 0.01;
 
             BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this.destination.add(new BABYLON.Vector3(0, 1, 0)), 0.005, this.dodo.targetLook);
-            Mummu.DrawDebugPoint(this.dodo.targetLook, 5, BABYLON.Color3.Red());
+            //Mummu.DrawDebugPoint(this.dodo.targetLook, 5, BABYLON.Color3.Red());
 
             let distToNext = BABYLON.Vector3.Distance(this.dodo.position, this.destination);
             if (distToNext < 2) {

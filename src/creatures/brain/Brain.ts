@@ -44,10 +44,10 @@ class Brain {
         console.log("mode " + this.mode);
         if (this.mode === BrainMode.Idle) {
             if (Math.random() < 0.005) {
-                let destination = this.dodo.body.position.clone();
+                let destination = BABYLON.Vector3.Zero();
                 destination.y += 100;
-                destination.x += -50 + 100 * Math.random();
-                destination.z += -50 + 100 * Math.random();
+                destination.x += -100 + 200 * Math.random();
+                destination.z += -100 + 200 * Math.random();
                 let ray = new BABYLON.Ray(destination, new BABYLON.Vector3(0, -1, 0));
                 let pick = this.dodo.game.scene.pickWithRay(ray, (mesh => {
                     return mesh.name.startsWith("chunck");

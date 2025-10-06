@@ -522,6 +522,18 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
         this.playerDodo = new Dodo("Sven", this);
+        this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
+        this.playerDodo.brain.initialize();
+        this.npcDodos = [];
+        for (let n = 0; n < 10; n++) {
+            let dodo = new Dodo("Bob", this);
+            await dodo.instantiate();
+            dodo.unfold();
+            dodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));
+            dodo.brain = new Brain(dodo, BrainMode.Idle, BrainMode.Travel);
+            dodo.brain.initialize();
+            this.npcDodos[n] = dodo;
+        }
         this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();
         this.playerDodo.unfold();
@@ -569,6 +581,9 @@ class Game {
             this.globalTimer += rawDT;
             this.terrainManager.update();
             this.playerDodo.update(rawDT);
+            this.npcDodos.forEach(dodo => {
+                dodo.update(rawDT);
+            });
             this.camera.onUpdate(rawDT);
             let camPos = this.camera.position.clone();
             let camRotation = this.camera.rotation.clone();
@@ -913,8 +928,9 @@ class PlayerCamera extends BABYLON.FreeCamera {
         super("player-camera", BABYLON.Vector3.Zero());
         this.game = game;
         this._verticalAngle = 0;
-        this.pivotHeight = 2;
+        this.pivotHeight = 1;
         this.pivotRecoil = 4;
+        this.playerPosY = 0;
     }
     get verticalAngle() {
         return this._verticalAngle;
@@ -926,11 +942,20 @@ class PlayerCamera extends BABYLON.FreeCamera {
         if (this.player) {
             let target = this.player.forward.scale(-this.pivotRecoil);
             Mummu.RotateInPlace(target, this.player.right, this.verticalAngle);
+            let targetLook = target.clone().scaleInPlace(-5);
+            let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 1);
+            this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
             target.y += this.pivotHeight;
-            target.addInPlace(this.player.position);
-            this.position.scaleInPlace(0.99).addInPlace(target.scale(0.01));
-            this.rotation.x = this.verticalAngle;
-            this.rotation.y = -Mummu.AngleFromToAround(this.player.forward, BABYLON.Axis.Z, BABYLON.Axis.Y);
+            target.x += this.player.position.x;
+            target.y += this.playerPosY;
+            target.z += this.player.position.z;
+            targetLook.y += this.pivotHeight;
+            targetLook.x += this.player.position.x;
+            targetLook.y += this.player.position.y;
+            targetLook.z += this.player.position.z;
+            this.position.copyFrom(target);
+            let dir = targetLook.subtract(this.position);
+            this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
         }
     }
 }
@@ -2551,7 +2576,7 @@ class Creature extends BABYLON.Mesh {
         this._lifeState = LifeState.Folded;
         this.hitpoint = 1;
         this.stamina = 10;
-        this.speed = 1;
+        this.speed = 2;
         this.currentSpeed = 0;
         this.bounty = 10;
     }
@@ -2613,7 +2638,7 @@ class CreatureFactory {
 class Dodo extends Creature {
     constructor(name, game, prop) {
         super(name, game);
-        this.stepDuration = 0.4;
+        this.stepDuration = 0.2;
         this.colors = [];
         this.targetLook = BABYLON.Vector3.Zero();
         this.bodyTargetPos = BABYLON.Vector3.Zero();
@@ -2652,8 +2677,6 @@ class Dodo extends Creature {
                 this.colors[0] = prop.color;
             }
         }
-        this.brain = new Brain(this, BrainMode.Player);
-        this.brain.initialize();
         this.rotationQuaternion = BABYLON.Quaternion.Identity();
         this.body = Dodo.OutlinedMesh("body");
         this.head = Dodo.OutlinedMesh("head");
@@ -2920,7 +2943,7 @@ class Dodo extends Creature {
         if (this.walking === 0 && this.isAlive) {
             let xFactor = this.footIndex === 0 ? 1 : -1;
             let spread = 0.25;
-            let pos = new BABYLON.Vector3(xFactor * spread, 0.15, this.speed * 0.2);
+            let pos = new BABYLON.Vector3(xFactor * spread, 0.15, this.currentSpeed * 0.5);
             let up = BABYLON.Vector3.Up();
             BABYLON.Vector3.TransformCoordinatesToRef(pos, this.getWorldMatrix(), pos);
             let ray = new BABYLON.Ray(pos.add(new BABYLON.Vector3(0, 1, 0)), new BABYLON.Vector3(0, -1, 0));
@@ -2932,7 +2955,7 @@ class Dodo extends Creature {
                 up = pick.getNormal(true, false);
             }
             let foot = this.feet[this.footIndex];
-            if (BABYLON.Vector3.DistanceSquared(foot.position, pos.add(up.scale(0.0))) > 0.05) {
+            if (BABYLON.Vector3.DistanceSquared(foot.position, pos.add(up.scale(0.0))) > 0.01) {
                 this.walking = 1;
                 let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
                 foot.groundPos = pos;
@@ -2951,7 +2974,9 @@ class Dodo extends Creature {
         return Math.abs(from.x - to.x) + Math.abs(from.z - to.z);
     }
     update(dt) {
-        this.brain.update(dt);
+        if (this.brain) {
+            this.brain.update(dt);
+        }
         this.walk();
         let f = 0.5;
         let dy = this.feet[1].position.y - this.feet[0].position.y;
@@ -2959,11 +2984,11 @@ class Dodo extends Creature {
         f += dy / this.stepHeight * 0.4;
         f = Nabu.MinMax(f, 0.2, 0.8);
         this.bodyTargetPos.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
-        Mummu.DrawDebugPoint(this.feet[0].position, 3, BABYLON.Color3.Red());
-        Mummu.DrawDebugPoint(this.feet[1].position, 3, BABYLON.Color3.Green());
+        //Mummu.DrawDebugPoint(this.feet[0].position, 3, BABYLON.Color3.Red());
+        //Mummu.DrawDebugPoint(this.feet[1].position, 3, BABYLON.Color3.Green());
         this.bodyTargetPos.addInPlace(this.forward.scale(this.currentSpeed * 0));
         this.bodyTargetPos.y += this.bodyHeight;
-        Mummu.DrawDebugPoint(this.position, 3, BABYLON.Color3.Blue());
+        //Mummu.DrawDebugPoint(this.position, 3, BABYLON.Color3.Blue());
         let pForce = this.bodyTargetPos.subtract(this.body.position);
         pForce.scaleInPlace(60 * dt);
         this.bodyVelocity.addInPlace(pForce);
@@ -3171,10 +3196,10 @@ class Brain {
         console.log("mode " + this.mode);
         if (this.mode === BrainMode.Idle) {
             if (Math.random() < 0.005) {
-                let destination = this.dodo.body.position.clone();
+                let destination = BABYLON.Vector3.Zero();
                 destination.y += 100;
-                destination.x += -50 + 100 * Math.random();
-                destination.z += -50 + 100 * Math.random();
+                destination.x += -100 + 200 * Math.random();
+                destination.z += -100 + 200 * Math.random();
                 let ray = new BABYLON.Ray(destination, new BABYLON.Vector3(0, -1, 0));
                 let pick = this.dodo.game.scene.pickWithRay(ray, (mesh => {
                     return mesh.name.startsWith("chunck");
@@ -3234,7 +3259,7 @@ class BrainIdle extends SubBrain {
         }
         if (Math.random() < 0.003) {
             this._targetLook.copyFrom(this.dodo.position);
-            this._targetLook.addInPlace(this.dodo.forward.scale(10));
+            this._targetLook.addInPlace(this.dodo.forward.scale(20));
             this._targetLook.x += Math.random() * 10 - 5;
             this._targetLook.y += Math.random() * 10 - 5;
             this._targetLook.z += Math.random() * 10 - 5;
@@ -3252,10 +3277,13 @@ class BrainPlayer extends SubBrain {
         this._targetQ = BABYLON.Quaternion.Identity();
         this._targetLook = BABYLON.Vector3.Zero();
         this._pointerDown = false;
+        this._pointerSmoothness = 0.5;
         this._moveXAxisInput = 0;
         this._moveYAxisInput = 0;
         this._rotateXAxisInput = 0;
         this._rotateYAxisInput = 0;
+        this._smoothedRotateXAxisInput = 0;
+        this._smoothedRotateYAxisInput = 0;
     }
     initialize() {
         this.game.canvas.addEventListener("keydown", (ev) => {
@@ -3296,18 +3324,34 @@ class BrainPlayer extends SubBrain {
         });
         this.game.canvas.addEventListener("pointermove", (ev) => {
             if (this._pointerDown) {
-                this._rotateXAxisInput = ev.movementY / 100;
-                this._rotateYAxisInput = ev.movementX / 100;
+                this._rotateXAxisInput = ev.movementY / 200;
+                this._rotateYAxisInput = ev.movementX / 200;
             }
         });
     }
     update(dt) {
+        if (Math.random() < 0.01) {
+            this._targetLook.copyFrom(this.dodo.position);
+            this._targetLook.addInPlace(this.dodo.forward.scale(20));
+            this._targetLook.x += Math.random() * 10 - 5;
+            this._targetLook.y += Math.random() * 10 - 5;
+            this._targetLook.z += Math.random() * 10 - 5;
+        }
+        BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.03, this.dodo.targetLook);
         let dir = this.dodo.forward.scale(this._moveYAxisInput).add(this.dodo.right.scale(this._moveXAxisInput));
         if (dir.lengthSquared() > 0) {
             this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
+            let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+            this.dodo.currentSpeed = this.dodo.currentSpeed * fSpeed + this.dodo.speed * (1 - fSpeed);
         }
-        this.game.camera.verticalAngle += this._rotateXAxisInput;
-        this.dodo.rotate(BABYLON.Axis.Y, this._rotateYAxisInput);
+        else {
+            let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+            this.dodo.currentSpeed = this.dodo.currentSpeed * fSpeed;
+        }
+        this._smoothedRotateXAxisInput = this._smoothedRotateXAxisInput * this._pointerSmoothness + this._rotateXAxisInput * (1 - this._pointerSmoothness);
+        this._smoothedRotateYAxisInput = this._smoothedRotateYAxisInput * this._pointerSmoothness + this._rotateYAxisInput * (1 - this._pointerSmoothness);
+        this.game.camera.verticalAngle += this._smoothedRotateXAxisInput;
+        this.dodo.rotate(BABYLON.Axis.Y, this._smoothedRotateYAxisInput);
     }
 }
 class BrainTravel extends SubBrain {
@@ -3338,7 +3382,7 @@ class BrainTravel extends SubBrain {
             this.dodo.position.addInPlace(dir.scale(speed * dt));
             this.dodo.currentSpeed = this.dodo.currentSpeed * 0.99 + speed * 0.01;
             BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this.destination.add(new BABYLON.Vector3(0, 1, 0)), 0.005, this.dodo.targetLook);
-            Mummu.DrawDebugPoint(this.dodo.targetLook, 5, BABYLON.Color3.Red());
+            //Mummu.DrawDebugPoint(this.dodo.targetLook, 5, BABYLON.Color3.Red());
             let distToNext = BABYLON.Vector3.Distance(this.dodo.position, this.destination);
             if (distToNext < 2) {
                 if (this.onReach) {
