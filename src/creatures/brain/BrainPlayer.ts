@@ -48,26 +48,24 @@ class BrainPlayer extends SubBrain {
         })
         this.game.canvas.addEventListener("pointerup", (ev: PointerEvent) => {
             this._pointerDown = false;
-            this._rotateXAxisInput = 0;
-            this._rotateYAxisInput = 0;
         })
         this.game.canvas.addEventListener("pointermove", (ev: PointerEvent) => {
             if (this._pointerDown) {
-                this._rotateXAxisInput = ev.movementY / 200;
-                this._rotateYAxisInput = ev.movementX / 200;
+                this._rotateXAxisInput += ev.movementY / 200;
+                this._rotateYAxisInput += ev.movementX / 200;
             }
         })
     }
 
     public update(dt: number): void {
-        if (Math.random() < 0.01) {
+        if (Math.random() < 0.05) {
             this._targetLook.copyFrom(this.dodo.position);
             this._targetLook.addInPlace(this.dodo.forward.scale(20));
             this._targetLook.x += Math.random() * 10 - 5;
             this._targetLook.y += Math.random() * 10 - 5;
             this._targetLook.z += Math.random() * 10 - 5;
         }
-        BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.03, this.dodo.targetLook);
+        BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.1, this.dodo.targetLook);
 
         let dir = this.dodo.forward.scale(this._moveYAxisInput).add(this.dodo.right.scale(this._moveXAxisInput));
         if (dir.lengthSquared() > 0) {
@@ -82,6 +80,8 @@ class BrainPlayer extends SubBrain {
 
         this._smoothedRotateXAxisInput = this._smoothedRotateXAxisInput * this._pointerSmoothness + this._rotateXAxisInput * (1 - this._pointerSmoothness);
         this._smoothedRotateYAxisInput = this._smoothedRotateYAxisInput * this._pointerSmoothness + this._rotateYAxisInput * (1 - this._pointerSmoothness);
+        this._rotateXAxisInput = 0;
+        this._rotateYAxisInput = 0;
 
         this.game.camera.verticalAngle += this._smoothedRotateXAxisInput;
         this.dodo.rotate(BABYLON.Axis.Y, this._smoothedRotateYAxisInput);

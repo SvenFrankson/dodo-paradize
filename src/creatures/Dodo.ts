@@ -29,7 +29,7 @@ class Dodo extends Creature {
     //public canon: BABYLON.Mesh;
     public stepHeight: number = 0.2;
     public foldedBodyHeight: number = 0.1;
-    public unfoldedBodyHeight: number = 0.4;
+    public unfoldedBodyHeight: number = 0.6;
     public bodyHeight: number = this.foldedBodyHeight;
     public animateWait = Mummu.AnimationFactory.EmptyVoidCallback;
     public animateBodyHeight = Mummu.AnimationFactory.EmptyNumberCallback;
