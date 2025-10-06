@@ -412,7 +412,10 @@ class Game {
 
         this.npcDodos = [];
         for (let n = 0; n < 10; n++) {
-            let dodo = new Dodo("Bob", this);
+            let dodo = new Dodo("Bob", this, {
+                speed: 1.5 + Math.random(),
+                stepDuration: 0.2 + 0.2 * Math.random()
+            });
             await dodo.instantiate();
             dodo.unfold();
             dodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));

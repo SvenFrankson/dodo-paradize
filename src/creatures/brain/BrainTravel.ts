@@ -26,7 +26,8 @@ class BrainTravel extends SubBrain {
             let speed = speedFactor * this.dodo.speed;
 
             this.dodo.position.addInPlace(dir.scale(speed * dt));
-            this.dodo.currentSpeed = this.dodo.currentSpeed * 0.99 + speed * 0.01;
+            let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.5);
+            BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, dir.scale(speed), 1 - fSpeed, this.dodo.animatedSpeed);
 
             BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this.destination.add(new BABYLON.Vector3(0, 1, 0)), 0.005, this.dodo.targetLook);
             //Mummu.DrawDebugPoint(this.dodo.targetLook, 5, BABYLON.Color3.Red());
@@ -40,7 +41,8 @@ class BrainTravel extends SubBrain {
             }
         }
         else {
-            this.dodo.currentSpeed *= 0.99;
+            let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+            this.dodo.animatedSpeed.scaleInPlace(fSpeed);
         }
     }
 

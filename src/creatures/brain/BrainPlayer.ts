@@ -72,12 +72,12 @@ class BrainPlayer extends SubBrain {
         let dir = this.dodo.forward.scale(this._moveYAxisInput).add(this.dodo.right.scale(this._moveXAxisInput));
         if (dir.lengthSquared() > 0) {
             this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
-            let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.3);
-            this.dodo.currentSpeed = this.dodo.currentSpeed * fSpeed + this.dodo.speed * (1 - fSpeed);
+            let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.5);
+            BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, dir.scale(this.dodo.speed), 1 - fSpeed, this.dodo.animatedSpeed);
         }
         else {
             let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
-            this.dodo.currentSpeed = this.dodo.currentSpeed * fSpeed;
+            this.dodo.animatedSpeed.scaleInPlace(fSpeed);
         }
 
         this._smoothedRotateXAxisInput = this._smoothedRotateXAxisInput * this._pointerSmoothness + this._rotateXAxisInput * (1 - this._pointerSmoothness);

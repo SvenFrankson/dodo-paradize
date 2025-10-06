@@ -380,26 +380,27 @@ class Dodo extends Creature {
         if (this.walking === 0 && this.isAlive) {
             let xFactor = this.footIndex === 0 ? 1 : - 1;
             let spread = 0.25;
-            let pos = new BABYLON.Vector3(xFactor * spread, 0.15, this.currentSpeed * 0.5);
+            let origin = new BABYLON.Vector3(xFactor * spread, 1, 0);
             let up = BABYLON.Vector3.Up();
-            BABYLON.Vector3.TransformCoordinatesToRef(pos, this.getWorldMatrix(), pos);
+            BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
+            origin.addInPlace(this.animatedSpeed.scale(0.4));
 
-            let ray = new BABYLON.Ray(pos.add(new BABYLON.Vector3(0, 1, 0)), new BABYLON.Vector3(0, -1, 0));
+            let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0));
             let pick = this._scene.pickWithRay(ray, (mesh => {
                 return mesh.name.startsWith("chunck");
             }));
             if (pick.hit) {
-                pos = pick.pickedPoint;
+                origin = pick.pickedPoint;
                 up = pick.getNormal(true, false);
             }
 
             let foot = this.feet[this.footIndex];
-            if (BABYLON.Vector3.DistanceSquared(foot.position, pos.add(up.scale(0.0))) > 0.01) {
+            if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
                 this.walking = 1;
                 let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
-                foot.groundPos = pos;
+                foot.groundPos = origin;
                 foot.groundUp = up;
-                this.animateFoot(foot, pos.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
+                this.animateFoot(foot, origin.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
                     this.walking = 0;
                     this.footIndex = (this.footIndex + 1) % 2;
                 });
@@ -428,12 +429,11 @@ class Dodo extends Creature {
         f = Nabu.MinMax(f, 0.2, 0.8);
 
         this.bodyTargetPos.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
-        //Mummu.DrawDebugPoint(this.feet[0].position, 3, BABYLON.Color3.Red());
-        //Mummu.DrawDebugPoint(this.feet[1].position, 3, BABYLON.Color3.Green());
-        this.bodyTargetPos.addInPlace(this.forward.scale(this.currentSpeed * 0));
+        Mummu.DrawDebugPoint(this.feet[0].position, 2, BABYLON.Color3.Red());
+        Mummu.DrawDebugPoint(this.feet[1].position, 2, BABYLON.Color3.Green());
         this.bodyTargetPos.y += this.bodyHeight;
 
-        //Mummu.DrawDebugPoint(this.position, 3, BABYLON.Color3.Blue());
+        Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
         
         let pForce = this.bodyTargetPos.subtract(this.body.position);
         pForce.scaleInPlace(60 * dt);
@@ -498,7 +498,6 @@ class Dodo extends Creature {
         let feetDeltaY = Math.abs(this.feet[0].position.y - this.feet[1].position.y);
         let neck = new BABYLON.Vector3(0, 0, 0);        
         neck.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
-        neck.addInPlace(this.forward.scale(this.currentSpeed * 0));
         neck.y += this.bodyHeight + 0.42 - feetDeltaY * 0.25;
         neck.addInPlace(this.forward.scale(0.4));
 

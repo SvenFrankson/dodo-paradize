@@ -24,7 +24,8 @@ class BrainIdle extends SubBrain {
             this._targetLook.z += Math.random() * 10 - 5;
         }
         
-        this.dodo.currentSpeed *= 0.99;
+        let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+        this.dodo.animatedSpeed.scaleInPlace(fSpeed);
         BABYLON.Quaternion.SlerpToRef(this.dodo.rotationQuaternion, this._targetQ, 0.01, this.dodo.rotationQuaternion);
         //this.dodo.bodyHeight = this.dodo.bodyHeight * 0.99 + this._targetBodyHeight * 0.01;
         BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.03, this.dodo.targetLook);

@@ -24,7 +24,7 @@ class Creature extends BABYLON.Mesh {
     }
     public stamina: number = 10;
     public speed: number = 2;
-    public currentSpeed: number = 0;
+    public animatedSpeed: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public bounty: number = 10;
     
 
