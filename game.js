@@ -3339,7 +3339,9 @@ class BrainPlayer extends SubBrain {
             this._targetLook.z += Math.random() * 10 - 5;
         }
         BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.1, this.dodo.targetLook);
-        let dir = this.dodo.forward.scale(this._moveYAxisInput).add(this.dodo.right.scale(this._moveXAxisInput));
+        let moveInput = new BABYLON.Vector2(this._moveXAxisInput, this._moveYAxisInput).normalize();
+        moveInput.x *= 0.5;
+        let dir = this.dodo.right.scale(moveInput.x).add(this.dodo.forward.scale(moveInput.y));
         if (dir.lengthSquared() > 0) {
             this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
             let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.5);
