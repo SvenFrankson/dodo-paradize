@@ -207,7 +207,7 @@ class Game {
     public performanceWatcher: PerformanceWatcher;
     public analytics: Analytics;
 
-    public camera: BABYLON.FreeCamera;
+    public camera: PlayerCamera;
 
     public light: BABYLON.HemisphericLight;
     public spotlight: BABYLON.SpotLight;
@@ -295,8 +295,7 @@ class Game {
         skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
         this.skybox.material = skyboxMaterial;
 
-        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 128, 0));
-        this.camera.attachControl();
+        this.camera = new PlayerCamera(this);
 
         if (window.localStorage.getItem("camera-position")) {
             let positionItem = JSON.parse(window.localStorage.getItem("camera-position"));
@@ -407,6 +406,7 @@ class Game {
         this.brickManager = new BrickManager(this);
 
         this.playerDodo = new Dodo("Sven", this);
+        this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();
         this.playerDodo.unfold();
         this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
@@ -481,6 +481,7 @@ class Game {
             this.globalTimer += rawDT;
             this.terrainManager.update();
             this.playerDodo.update(rawDT);
+            this.camera.onUpdate(rawDT);
 
             let camPos = this.camera.position.clone();
             let camRotation = this.camera.rotation.clone();

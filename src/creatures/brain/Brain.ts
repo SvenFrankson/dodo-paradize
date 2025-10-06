@@ -1,6 +1,7 @@
 enum BrainMode {
     Idle,
-    Travel
+    Travel,
+    Player
 }
 
 class Brain {
@@ -8,24 +9,47 @@ class Brain {
     public mode: BrainMode = BrainMode.Idle;
     public subBrains: SubBrain[] = [];
 
-    public get terrain(): Terrain {
-        return this.joey.game.terrain;
+    public get game(): Game {
+        return this.dodo.game;
     }
 
-    constructor(public joey: Dodo) {
-        this.subBrains[BrainMode.Idle] = new BrainIdle(this);
-        this.subBrains[BrainMode.Travel] = new BrainTravel(this);
+    public get terrain(): Terrain {
+        return this.game.terrain;
+    }
+
+    constructor(public dodo: Dodo, ...subBrains: BrainMode[]) {
+        for (let n = 0; n < subBrains.length; n++) {
+            let mode = subBrains[n];
+            if (mode === BrainMode.Idle) {
+                this.subBrains[BrainMode.Idle] = new BrainIdle(this);
+            }
+            else if (mode === BrainMode.Travel) {
+                this.subBrains[BrainMode.Travel] = new BrainTravel(this);
+            }
+            else if (mode === BrainMode.Player) {
+                this.subBrains[BrainMode.Player] = new BrainPlayer(this);
+            }
+        }
+
+        this.mode = subBrains[0];
+    }
+
+    public initialize(): void {
+        this.subBrains.forEach(subBrain => {
+            subBrain.initialize();
+        });
     }
 
     public update(dt: number): void {
+        console.log("mode " + this.mode);
         if (this.mode === BrainMode.Idle) {
             if (Math.random() < 0.005) {
-                let destination = this.joey.body.position.clone();
+                let destination = this.dodo.body.position.clone();
                 destination.y += 100;
                 destination.x += -50 + 100 * Math.random();
                 destination.z += -50 + 100 * Math.random();
                 let ray = new BABYLON.Ray(destination, new BABYLON.Vector3(0, -1, 0));
-                let pick = this.joey.game.scene.pickWithRay(ray, (mesh => {
+                let pick = this.dodo.game.scene.pickWithRay(ray, (mesh => {
                     return mesh.name.startsWith("chunck");
                 }));
                 if (pick.hit) {

@@ -1,6 +1,6 @@
 /// <reference path="Creature.ts"/>
 
-interface IJoeyProp {
+interface IDodoProp {
     speed?: number;
     stepDuration?: number;
     color?: BABYLON.Color3;
@@ -49,7 +49,7 @@ class Dodo extends Creature {
         return mesh;
     }
 
-    constructor(name: string, game: Game, prop?: IJoeyProp) {
+    constructor(name: string, game: Game, prop?: IDodoProp) {
         super(name, game);
 
         this.colors = [
@@ -73,7 +73,8 @@ class Dodo extends Creature {
             }
         }
 
-        this.brain = new Brain(this);
+        this.brain = new Brain(this, BrainMode.Player);
+        this.brain.initialize();
 
         this.rotationQuaternion = BABYLON.Quaternion.Identity();
         this.body = Dodo.OutlinedMesh("body");
@@ -433,7 +434,6 @@ class Dodo extends Creature {
         Mummu.DrawDebugPoint(this.feet[1].position, 3, BABYLON.Color3.Green());
         this.bodyTargetPos.addInPlace(this.forward.scale(this.currentSpeed * 0));
         this.bodyTargetPos.y += this.bodyHeight;
-        console.log(this.bodyHeight);
 
         Mummu.DrawDebugPoint(this.position, 3, BABYLON.Color3.Blue());
         

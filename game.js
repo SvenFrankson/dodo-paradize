@@ -435,8 +435,7 @@ class Game {
         skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
         skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
         this.skybox.material = skyboxMaterial;
-        this.camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 128, 0));
-        this.camera.attachControl();
+        this.camera = new PlayerCamera(this);
         if (window.localStorage.getItem("camera-position")) {
             let positionItem = JSON.parse(window.localStorage.getItem("camera-position"));
             let position = new BABYLON.Vector3(positionItem.x, positionItem.y, positionItem.z);
@@ -523,6 +522,7 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
         this.playerDodo = new Dodo("Sven", this);
+        this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();
         this.playerDodo.unfold();
         this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
@@ -569,6 +569,7 @@ class Game {
             this.globalTimer += rawDT;
             this.terrainManager.update();
             this.playerDodo.update(rawDT);
+            this.camera.onUpdate(rawDT);
             let camPos = this.camera.position.clone();
             let camRotation = this.camera.rotation.clone();
             if (HasLocalStorage) {
@@ -905,6 +906,32 @@ class PerformanceWatcher {
             dynamicTexture.update();
         };
         setInterval(update, 100);
+    }
+}
+class PlayerCamera extends BABYLON.FreeCamera {
+    constructor(game) {
+        super("player-camera", BABYLON.Vector3.Zero());
+        this.game = game;
+        this._verticalAngle = 0;
+        this.pivotHeight = 2;
+        this.pivotRecoil = 4;
+    }
+    get verticalAngle() {
+        return this._verticalAngle;
+    }
+    set verticalAngle(v) {
+        this._verticalAngle = Nabu.MinMax(v, -Math.PI / 2, Math.PI / 2);
+    }
+    onUpdate(dt) {
+        if (this.player) {
+            let target = this.player.forward.scale(-this.pivotRecoil);
+            Mummu.RotateInPlace(target, this.player.right, this.verticalAngle);
+            target.y += this.pivotHeight;
+            target.addInPlace(this.player.position);
+            this.position.scaleInPlace(0.99).addInPlace(target.scale(0.01));
+            this.rotation.x = this.verticalAngle;
+            this.rotation.y = -Mummu.AngleFromToAround(this.player.forward, BABYLON.Axis.Z, BABYLON.Axis.Y);
+        }
     }
 }
 class MySound {
@@ -2625,7 +2652,8 @@ class Dodo extends Creature {
                 this.colors[0] = prop.color;
             }
         }
-        this.brain = new Brain(this);
+        this.brain = new Brain(this, BrainMode.Player);
+        this.brain.initialize();
         this.rotationQuaternion = BABYLON.Quaternion.Identity();
         this.body = Dodo.OutlinedMesh("body");
         this.head = Dodo.OutlinedMesh("head");
@@ -2935,7 +2963,6 @@ class Dodo extends Creature {
         Mummu.DrawDebugPoint(this.feet[1].position, 3, BABYLON.Color3.Green());
         this.bodyTargetPos.addInPlace(this.forward.scale(this.currentSpeed * 0));
         this.bodyTargetPos.y += this.bodyHeight;
-        console.log(this.bodyHeight);
         Mummu.DrawDebugPoint(this.position, 3, BABYLON.Color3.Blue());
         let pForce = this.bodyTargetPos.subtract(this.body.position);
         pForce.scaleInPlace(60 * dt);
@@ -3108,27 +3135,48 @@ var BrainMode;
 (function (BrainMode) {
     BrainMode[BrainMode["Idle"] = 0] = "Idle";
     BrainMode[BrainMode["Travel"] = 1] = "Travel";
+    BrainMode[BrainMode["Player"] = 2] = "Player";
 })(BrainMode || (BrainMode = {}));
 class Brain {
-    constructor(joey) {
-        this.joey = joey;
+    constructor(dodo, ...subBrains) {
+        this.dodo = dodo;
         this.mode = BrainMode.Idle;
         this.subBrains = [];
-        this.subBrains[BrainMode.Idle] = new BrainIdle(this);
-        this.subBrains[BrainMode.Travel] = new BrainTravel(this);
+        for (let n = 0; n < subBrains.length; n++) {
+            let mode = subBrains[n];
+            if (mode === BrainMode.Idle) {
+                this.subBrains[BrainMode.Idle] = new BrainIdle(this);
+            }
+            else if (mode === BrainMode.Travel) {
+                this.subBrains[BrainMode.Travel] = new BrainTravel(this);
+            }
+            else if (mode === BrainMode.Player) {
+                this.subBrains[BrainMode.Player] = new BrainPlayer(this);
+            }
+        }
+        this.mode = subBrains[0];
+    }
+    get game() {
+        return this.dodo.game;
     }
     get terrain() {
-        return this.joey.game.terrain;
+        return this.game.terrain;
+    }
+    initialize() {
+        this.subBrains.forEach(subBrain => {
+            subBrain.initialize();
+        });
     }
     update(dt) {
+        console.log("mode " + this.mode);
         if (this.mode === BrainMode.Idle) {
             if (Math.random() < 0.005) {
-                let destination = this.joey.body.position.clone();
+                let destination = this.dodo.body.position.clone();
                 destination.y += 100;
                 destination.x += -50 + 100 * Math.random();
                 destination.z += -50 + 100 * Math.random();
                 let ray = new BABYLON.Ray(destination, new BABYLON.Vector3(0, -1, 0));
-                let pick = this.joey.game.scene.pickWithRay(ray, (mesh => {
+                let pick = this.dodo.game.scene.pickWithRay(ray, (mesh => {
                     return mesh.name.startsWith("chunck");
                 }));
                 if (pick.hit) {
@@ -3155,10 +3203,15 @@ class SubBrain {
         this.brain = brain;
     }
     get dodo() {
-        return this.brain.joey;
+        return this.brain.dodo;
+    }
+    get game() {
+        return this.dodo.game;
     }
     get terrain() {
-        return this.brain.terrain;
+        return this.game.terrain;
+    }
+    initialize() {
     }
     update(dt) {
     }
@@ -3190,6 +3243,71 @@ class BrainIdle extends SubBrain {
         BABYLON.Quaternion.SlerpToRef(this.dodo.rotationQuaternion, this._targetQ, 0.01, this.dodo.rotationQuaternion);
         //this.dodo.bodyHeight = this.dodo.bodyHeight * 0.99 + this._targetBodyHeight * 0.01;
         BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.03, this.dodo.targetLook);
+    }
+}
+/// <reference path="SubBrain.ts"/>
+class BrainPlayer extends SubBrain {
+    constructor() {
+        super(...arguments);
+        this._targetQ = BABYLON.Quaternion.Identity();
+        this._targetLook = BABYLON.Vector3.Zero();
+        this._pointerDown = false;
+        this._moveXAxisInput = 0;
+        this._moveYAxisInput = 0;
+        this._rotateXAxisInput = 0;
+        this._rotateYAxisInput = 0;
+    }
+    initialize() {
+        this.game.canvas.addEventListener("keydown", (ev) => {
+            if (ev.code === "KeyW") {
+                this._moveYAxisInput = 1;
+            }
+            else if (ev.code === "KeyS") {
+                this._moveYAxisInput = -1;
+            }
+            if (ev.code === "KeyA") {
+                this._moveXAxisInput = -1;
+            }
+            else if (ev.code === "KeyD") {
+                this._moveXAxisInput = 1;
+            }
+        });
+        this.game.canvas.addEventListener("keyup", (ev) => {
+            if (ev.code === "KeyW") {
+                this._moveYAxisInput = 0;
+            }
+            else if (ev.code === "KeyS") {
+                this._moveYAxisInput = 0;
+            }
+            if (ev.code === "KeyA") {
+                this._moveXAxisInput = 0;
+            }
+            else if (ev.code === "KeyD") {
+                this._moveXAxisInput = 0;
+            }
+        });
+        this.game.canvas.addEventListener("pointerdown", (ev) => {
+            this._pointerDown = true;
+        });
+        this.game.canvas.addEventListener("pointerup", (ev) => {
+            this._pointerDown = false;
+            this._rotateXAxisInput = 0;
+            this._rotateYAxisInput = 0;
+        });
+        this.game.canvas.addEventListener("pointermove", (ev) => {
+            if (this._pointerDown) {
+                this._rotateXAxisInput = ev.movementY / 100;
+                this._rotateYAxisInput = ev.movementX / 100;
+            }
+        });
+    }
+    update(dt) {
+        let dir = this.dodo.forward.scale(this._moveYAxisInput).add(this.dodo.right.scale(this._moveXAxisInput));
+        if (dir.lengthSquared() > 0) {
+            this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
+        }
+        this.game.camera.verticalAngle += this._rotateXAxisInput;
+        this.dodo.rotate(BABYLON.Axis.Y, this._rotateYAxisInput);
     }
 }
 class BrainTravel extends SubBrain {
