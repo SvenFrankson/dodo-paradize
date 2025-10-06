@@ -2957,20 +2957,20 @@ class Dodo extends Creature {
             if (pick.hit) {
                 origin = pick.pickedPoint;
                 up = pick.getNormal(true, false);
-            }
-            let foot = this.feet[this.footIndex];
-            if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
-                this.walking = 1;
-                let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
-                foot.groundPos = origin;
-                foot.groundUp = up;
-                this.animateFoot(foot, origin.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
-                    this.walking = 0;
+                let foot = this.feet[this.footIndex];
+                if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
+                    this.walking = 1;
+                    let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
+                    foot.groundPos = origin;
+                    foot.groundUp = up;
+                    this.animateFoot(foot, origin.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
+                        this.walking = 0;
+                        this.footIndex = (this.footIndex + 1) % 2;
+                    });
+                }
+                else {
                     this.footIndex = (this.footIndex + 1) % 2;
-                });
-            }
-            else {
-                this.footIndex = (this.footIndex + 1) % 2;
+                }
             }
         }
     }
