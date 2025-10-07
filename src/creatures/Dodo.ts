@@ -380,10 +380,13 @@ class Dodo extends Creature {
         if (this.walking === 0 && this.isAlive) {
             let xFactor = this.footIndex === 0 ? 1 : - 1;
             let spread = 0.25;
+            let animatedSpeedForward = BABYLON.Vector3.Dot(this.animatedSpeed, this.forward);
+            let animatedSpeedRight = BABYLON.Vector3.Dot(this.animatedSpeed, this.right);
+            spread += 0.15 * Math.abs(animatedSpeedRight) / (0.5 * this.speed)
             let origin = new BABYLON.Vector3(xFactor * spread, 1, 0);
             let up = BABYLON.Vector3.Up();
             BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
-            origin.addInPlace(this.animatedSpeed.scale(0.4));
+            origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.4)).addInPlace(this.right.scale(animatedSpeedRight * 0.4));
 
             let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0));
             let pick = this._scene.pickWithRay(ray, (mesh => {

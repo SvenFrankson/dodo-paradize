@@ -525,7 +525,7 @@ class Game {
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.npcDodos = [];
-        for (let n = 0; n < 10; n++) {
+        for (let n = 0; n < 2; n++) {
             let dodo = new Dodo("Bob", this, {
                 speed: 1.5 + Math.random(),
                 stepDuration: 0.2 + 0.2 * Math.random()
@@ -1189,7 +1189,7 @@ class Terrain {
 class TerrainManager {
     constructor(terrain) {
         this.terrain = terrain;
-        this.range = 5;
+        this.range = 3;
         this.createTasks = [];
         this.disposeTasks = [];
         this._lastRefreshPosition = new BABYLON.Vector3(Infinity, 0, Infinity);
@@ -2946,10 +2946,13 @@ class Dodo extends Creature {
         if (this.walking === 0 && this.isAlive) {
             let xFactor = this.footIndex === 0 ? 1 : -1;
             let spread = 0.25;
+            let animatedSpeedForward = BABYLON.Vector3.Dot(this.animatedSpeed, this.forward);
+            let animatedSpeedRight = BABYLON.Vector3.Dot(this.animatedSpeed, this.right);
+            spread += 0.15 * Math.abs(animatedSpeedRight) / (0.5 * this.speed);
             let origin = new BABYLON.Vector3(xFactor * spread, 1, 0);
             let up = BABYLON.Vector3.Up();
             BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
-            origin.addInPlace(this.animatedSpeed.scale(0.4));
+            origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.4)).addInPlace(this.right.scale(animatedSpeedRight * 0.4));
             let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0));
             let pick = this._scene.pickWithRay(ray, (mesh => {
                 return mesh.name.startsWith("chunck");
@@ -3195,7 +3198,6 @@ class Brain {
         });
     }
     update(dt) {
-        console.log("mode " + this.mode);
         if (this.mode === BrainMode.Idle) {
             if (Math.random() < 0.005) {
                 let destination = BABYLON.Vector3.Zero();
@@ -3280,6 +3282,7 @@ class BrainPlayer extends SubBrain {
         this._targetQ = BABYLON.Quaternion.Identity();
         this._targetLook = BABYLON.Vector3.Zero();
         this._pointerDown = false;
+        this._leftTouchInputDown = false;
         this._pointerSmoothness = 0.5;
         this._moveXAxisInput = 0;
         this._moveYAxisInput = 0;
@@ -3327,6 +3330,63 @@ class BrainPlayer extends SubBrain {
             if (this._pointerDown) {
                 this._rotateXAxisInput += ev.movementY / 200;
                 this._rotateYAxisInput += ev.movementX / 200;
+            }
+        });
+        let touchMoveInput = document.querySelector("#touch-input-move");
+        let touchMoveInputUp = touchMoveInput.querySelector(".touch-joystick-up");
+        let touchMoveInputRight = touchMoveInput.querySelector(".touch-joystick-right");
+        let touchMoveInputBottom = touchMoveInput.querySelector(".touch-joystick-bottom");
+        let touchMoveInputLeft = touchMoveInput.querySelector(".touch-joystick-left");
+        let setXYColor = (x, y) => {
+            let up = 0.2;
+            if (y > 0) {
+                up = 0.2 + 0.8 * y;
+            }
+            touchMoveInputUp.setAttribute("opacity", up.toFixed(2));
+            let right = 0.2;
+            if (x > 0) {
+                right = 0.2 + 0.8 * x;
+            }
+            touchMoveInputRight.setAttribute("opacity", right.toFixed(2));
+            let bottom = 0.2;
+            if (y < 0) {
+                bottom = 0.2 + 0.8 * Math.abs(y);
+            }
+            touchMoveInputBottom.setAttribute("opacity", bottom.toFixed(2));
+            let left = 0.2;
+            if (x < 0) {
+                left = 0.2 + 0.8 * Math.abs(x);
+            }
+            touchMoveInputLeft.setAttribute("opacity", left.toFixed(2));
+        };
+        touchMoveInput.addEventListener("pointerdown", (ev) => {
+            this._leftTouchInputDown = true;
+            let rect = touchMoveInput.getBoundingClientRect();
+            let x = ev.clientX - rect.left;
+            let y = ev.clientY - rect.top;
+            let s = rect.width;
+            this._moveXAxisInput = (x / s - 0.5) * 2;
+            this._moveYAxisInput = -((y / s - 0.5) * 2);
+            setXYColor(this._moveXAxisInput, this._moveYAxisInput);
+            console.log(rect);
+            ev.preventDefault();
+        });
+        touchMoveInput.addEventListener("pointerup", (ev) => {
+            this._leftTouchInputDown = false;
+            this._moveXAxisInput = 0;
+            this._moveYAxisInput = 0;
+            setXYColor(this._moveXAxisInput, this._moveYAxisInput);
+            ev.preventDefault();
+        });
+        touchMoveInput.addEventListener("pointermove", (ev) => {
+            if (this._leftTouchInputDown) {
+                let rect = touchMoveInput.getBoundingClientRect();
+                let x = ev.clientX - rect.left;
+                let y = ev.clientY - rect.top;
+                let s = rect.width;
+                this._moveXAxisInput = (x / s - 0.5) * 2;
+                this._moveYAxisInput = -((y / s - 0.5) * 2);
+                setXYColor(this._moveXAxisInput, this._moveYAxisInput);
             }
         });
     }

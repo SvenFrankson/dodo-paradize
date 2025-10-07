@@ -411,7 +411,7 @@ class Game {
         this.playerDodo.brain.initialize();
 
         this.npcDodos = [];
-        for (let n = 0; n < 10; n++) {
+        for (let n = 0; n < 2; n++) {
             let dodo = new Dodo("Bob", this, {
                 speed: 1.5 + Math.random(),
                 stepDuration: 0.2 + 0.2 * Math.random()

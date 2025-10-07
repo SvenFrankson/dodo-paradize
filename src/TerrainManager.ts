@@ -9,7 +9,7 @@ class TerrainManager {
         return this.terrain.game;
     }
 
-    public range: number = 5;
+    public range: number = 3;
     public createTasks: IJ[] = [];
     public disposeTasks: IJ[] = [];
 

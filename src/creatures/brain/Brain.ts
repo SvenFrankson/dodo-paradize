@@ -41,7 +41,6 @@ class Brain {
     }
 
     public update(dt: number): void {
-        console.log("mode " + this.mode);
         if (this.mode === BrainMode.Idle) {
             if (Math.random() < 0.005) {
                 let destination = BABYLON.Vector3.Zero();

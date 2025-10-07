@@ -6,6 +6,7 @@ class BrainPlayer extends SubBrain {
     private _targetLook: BABYLON.Vector3 = BABYLON.Vector3.Zero();
 
     private _pointerDown: boolean = false;
+    private _leftTouchInputDown: boolean = false;
     private _pointerSmoothness: number = 0.5;
     private _moveXAxisInput: number = 0;
     private _moveYAxisInput: number = 0;
@@ -55,6 +56,69 @@ class BrainPlayer extends SubBrain {
                 this._rotateYAxisInput += ev.movementX / 200;
             }
         })
+        
+        let touchMoveInput = document.querySelector("#touch-input-move") as HTMLDivElement;
+        let touchMoveInputUp = touchMoveInput.querySelector(".touch-joystick-up");
+        let touchMoveInputRight = touchMoveInput.querySelector(".touch-joystick-right");
+        let touchMoveInputBottom = touchMoveInput.querySelector(".touch-joystick-bottom");
+        let touchMoveInputLeft = touchMoveInput.querySelector(".touch-joystick-left");
+
+        let setXYColor = (x, y) => {
+            let up = 0.2;
+            if (y > 0) {
+                up = 0.2 + 0.8 * y; 
+            }
+            touchMoveInputUp.setAttribute("opacity", up.toFixed(2));
+
+            let right = 0.2;
+            if (x > 0) {
+                right = 0.2 + 0.8 * x; 
+            }
+            touchMoveInputRight.setAttribute("opacity", right.toFixed(2));
+            
+            let bottom = 0.2;
+            if (y < 0) {
+                bottom = 0.2 + 0.8 * Math.abs(y); 
+            }
+            touchMoveInputBottom.setAttribute("opacity", bottom.toFixed(2));
+            
+            let left = 0.2;
+            if (x < 0) {
+                left = 0.2 + 0.8 * Math.abs(x); 
+            }
+            touchMoveInputLeft.setAttribute("opacity", left.toFixed(2));
+        }
+
+        touchMoveInput.addEventListener("pointerdown", (ev: PointerEvent) => {
+            this._leftTouchInputDown = true;
+            let rect = touchMoveInput.getBoundingClientRect();
+            let x = ev.clientX - rect.left;
+            let y = ev.clientY - rect.top;
+            let s = rect.width;
+            this._moveXAxisInput = (x / s - 0.5) * 2;
+            this._moveYAxisInput = - ((y / s - 0.5) * 2);
+            setXYColor(this._moveXAxisInput, this._moveYAxisInput);
+            console.log(rect);
+            ev.preventDefault();
+        });
+        touchMoveInput.addEventListener("pointerup", (ev: PointerEvent) => {
+            this._leftTouchInputDown = false;
+            this._moveXAxisInput = 0;
+            this._moveYAxisInput = 0;
+            setXYColor(this._moveXAxisInput, this._moveYAxisInput);
+            ev.preventDefault();
+        });
+        touchMoveInput.addEventListener("pointermove", (ev: PointerEvent) => {
+            if (this._leftTouchInputDown) {
+                let rect = touchMoveInput.getBoundingClientRect();
+                let x = ev.clientX - rect.left;
+                let y = ev.clientY - rect.top;
+                let s = rect.width;
+                this._moveXAxisInput = (x / s - 0.5) * 2;
+                this._moveYAxisInput = - ((y / s - 0.5) * 2);
+                setXYColor(this._moveXAxisInput, this._moveYAxisInput);
+            }
+        });
     }
 
     public update(dt: number): void {
