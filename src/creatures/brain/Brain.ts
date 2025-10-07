@@ -1,7 +1,8 @@
 enum BrainMode {
     Idle,
     Travel,
-    Player
+    Player,
+    Network
 }
 
 class Brain {
@@ -28,6 +29,9 @@ class Brain {
             }
             else if (mode === BrainMode.Player) {
                 this.subBrains[BrainMode.Player] = new BrainPlayer(this);
+            }
+            else if (mode === BrainMode.Network) {
+                this.subBrains[BrainMode.Network] = new BrainNetwork(this);
             }
         }
 

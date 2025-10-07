@@ -116,6 +116,8 @@ function firstPlayerInteraction(): void {
         document.body.classList.add("mobile");
     }
     PlayerHasInteracted = true;
+
+    Game.Instance.networkManager.initialize();
 }
 
 let onFirstPlayerInteractionTouch = (ev: Event) => {
@@ -224,6 +226,7 @@ class Game {
     public gameLoaded: boolean = false;
 
     public defaultToonMaterial: BABYLON.StandardMaterial;
+    public networkManager: NetworkManager;
     public terrain: Terrain;
     public terrainManager: TerrainManager;
     public brickManager: BrickManager;
@@ -402,6 +405,8 @@ class Game {
 
         BABYLON.MeshBuilder.CreateBox("debug", { width: 0.01, height: 1000, depth: 0.01 });
 
+        this.networkManager = new NetworkManager(this);
+
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
@@ -411,7 +416,7 @@ class Game {
         this.playerDodo.brain.initialize();
 
         this.npcDodos = [];
-        for (let n = 0; n < 2; n++) {
+        for (let n = 0; n < 1; n++) {
             let dodo = new Dodo("Bob", this, {
                 speed: 1.5 + Math.random(),
                 stepDuration: 0.2 + 0.2 * Math.random()
@@ -419,7 +424,7 @@ class Game {
             await dodo.instantiate();
             dodo.unfold();
             dodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));
-            dodo.brain = new Brain(dodo, BrainMode.Idle, BrainMode.Travel);
+            dodo.brain = new Brain(dodo, BrainMode.Network);
             dodo.brain.initialize();
             this.npcDodos[n] = dodo;
         }

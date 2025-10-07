@@ -129,7 +129,7 @@ function loadStep() {
 }
 
 async function doLoad() {
-    let stepsCount = 9;
+    let stepsCount = 10;
     if (USE_POKI_SDK) {
         stepsCount++;
     }
@@ -160,6 +160,9 @@ async function doLoad() {
         await loadScript("https://sdk.crazygames.com/crazygames-sdk-v3.js");
         setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP++);
     }
+
+    await loadScript("https://unpkg.com/peerjs@1.3.2/dist/peerjs.min.js");
+    setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP++);
 
     await loadScript("./lib/babylon.js");
     setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP++);

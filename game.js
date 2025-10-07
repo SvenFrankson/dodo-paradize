@@ -280,6 +280,7 @@ function firstPlayerInteraction() {
         document.body.classList.add("mobile");
     }
     PlayerHasInteracted = true;
+    Game.Instance.networkManager.initialize();
 }
 let onFirstPlayerInteractionTouch = (ev) => {
     if (!Game.Instance.gameLoaded) {
@@ -518,6 +519,7 @@ class Game {
         this.defaultToonMaterial = new BABYLON.StandardMaterial("default-toon-material");
         this.defaultToonMaterial.specularColor.copyFromFloats(0, 0, 0);
         BABYLON.MeshBuilder.CreateBox("debug", { width: 0.01, height: 1000, depth: 0.01 });
+        this.networkManager = new NetworkManager(this);
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
@@ -525,7 +527,7 @@ class Game {
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.npcDodos = [];
-        for (let n = 0; n < 2; n++) {
+        for (let n = 0; n < 1; n++) {
             let dodo = new Dodo("Bob", this, {
                 speed: 1.5 + Math.random(),
                 stepDuration: 0.2 + 0.2 * Math.random()
@@ -533,7 +535,7 @@ class Game {
             await dodo.instantiate();
             dodo.unfold();
             dodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));
-            dodo.brain = new Brain(dodo, BrainMode.Idle, BrainMode.Travel);
+            dodo.brain = new Brain(dodo, BrainMode.Network);
             dodo.brain.initialize();
             this.npcDodos[n] = dodo;
         }
@@ -731,6 +733,72 @@ requestAnimationFrame(async () => {
         createAndInit();
     }
 });
+/// <reference path="../lib/peerjs.d.ts"/>
+class NetworkManager {
+    constructor(game) {
+        this.game = game;
+        this.debugConnected = false;
+        this.debugLastPos = BABYLON.Vector3.Zero();
+        this.debugLastR = 0;
+        console.log("Create NetworkManager");
+    }
+    initialize() {
+        console.log("Initialize NetworkManager");
+        let id = 640;
+        let otherId = 641;
+        if (IsMobile === 1) {
+            id = 641;
+            otherId = 640;
+        }
+        this.peer = new Peer(id.toFixed(0));
+        this.peer.on("open", this.onPeerOpen.bind(this));
+        this.peer.on("connection", this.onPeerConnection.bind(this));
+        let debugTryToConnect = () => {
+            if (this.debugConnected) {
+                return;
+            }
+            console.log("debugTryToConnect");
+            this.connectToPlayer(otherId.toFixed(0));
+            setTimeout(debugTryToConnect, 3000);
+        };
+        debugTryToConnect();
+    }
+    onPeerOpen(id) {
+        console.log("Open peer connection, my ID is");
+        console.log(id);
+    }
+    connectToPlayer(playerId) {
+        console.log("Connecting to player of ID'" + playerId + "'");
+        let conn = this.peer.connect(playerId);
+        conn.on("open", () => {
+            this.onPeerConnection(conn);
+        });
+    }
+    onPeerConnection(conn) {
+        console.log("Incoming connection, other ID is '" + conn.peer + "'");
+        this.debugConnected = true;
+        setInterval(() => {
+            conn.send(JSON.stringify({
+                x: this.game.playerDodo.position.x,
+                y: this.game.playerDodo.position.y,
+                z: this.game.playerDodo.position.z,
+                r: Mummu.AngleFromToAround(BABYLON.Axis.Z, this.game.playerDodo.forward, BABYLON.Axis.Y)
+            }));
+        }, 100);
+        conn.on('data', (data) => {
+            this.onConnData(data, conn);
+        });
+    }
+    onConnData(data, conn) {
+        console.log("Data received from other ID '" + conn.peer + "'");
+        console.log(data);
+        let p = JSON.parse(data);
+        this.debugLastPos.x = p.x;
+        this.debugLastPos.y = p.y;
+        this.debugLastPos.z = p.z;
+        this.debugLastR = p.r;
+    }
+}
 class NumValueInput extends HTMLElement {
     constructor() {
         super(...arguments);
@@ -1510,6 +1578,16 @@ class TouchJoystick extends HTMLElement {
         this._bottomPath = this.querySelector(".touch-joystick-bottom");
         this._leftPath = this.querySelector(".touch-joystick-left");
         this.addEventListener("pointerdown", (ev) => {
+            this._touchInputDown = true;
+            let rect = this.getBoundingClientRect();
+            let x = ev.clientX - rect.left;
+            let y = ev.clientY - rect.top;
+            let s = rect.width;
+            this.setX((x / s - 0.5) * 2);
+            this.setY(-((y / s - 0.5) * 2));
+            ev.preventDefault();
+        });
+        this.addEventListener("pointerenter", (ev) => {
             this._touchInputDown = true;
             let rect = this.getBoundingClientRect();
             let x = ev.clientX - rect.left;
@@ -3256,6 +3334,7 @@ var BrainMode;
     BrainMode[BrainMode["Idle"] = 0] = "Idle";
     BrainMode[BrainMode["Travel"] = 1] = "Travel";
     BrainMode[BrainMode["Player"] = 2] = "Player";
+    BrainMode[BrainMode["Network"] = 3] = "Network";
 })(BrainMode || (BrainMode = {}));
 class Brain {
     constructor(dodo, ...subBrains) {
@@ -3272,6 +3351,9 @@ class Brain {
             }
             else if (mode === BrainMode.Player) {
                 this.subBrains[BrainMode.Player] = new BrainPlayer(this);
+            }
+            else if (mode === BrainMode.Network) {
+                this.subBrains[BrainMode.Network] = new BrainNetwork(this);
             }
         }
         this.mode = subBrains[0];
@@ -3365,6 +3447,20 @@ class BrainIdle extends SubBrain {
         BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.03, this.dodo.targetLook);
     }
 }
+class BrainNetwork extends SubBrain {
+    constructor() {
+        super(...arguments);
+        this.onReach = () => { };
+        this.onCantFindPath = () => { };
+    }
+    update(dt) {
+        let network = this.game.networkManager;
+        let pos = network.debugLastPos;
+        BABYLON.Vector3.LerpToRef(this.dodo.position, pos, 0.1, this.dodo.position);
+        let z = Mummu.Rotate(BABYLON.Axis.Z, BABYLON.Axis.Y, network.debugLastR);
+        this.dodo.rotationQuaternion = Mummu.QuaternionFromZYAxis(z, BABYLON.Axis.Y);
+    }
+}
 /// <reference path="SubBrain.ts"/>
 class BrainPlayer extends SubBrain {
     constructor() {
@@ -3436,9 +3532,12 @@ class BrainPlayer extends SubBrain {
             this._targetLook.z += Math.random() * 10 - 5;
         }
         BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.1, this.dodo.targetLook);
-        let moveInput = new BABYLON.Vector2(this._moveXAxisInput, this._moveYAxisInput).normalize();
-        moveInput.x *= 0.5;
-        let dir = this.dodo.right.scale(moveInput.x).add(this.dodo.forward.scale(moveInput.y));
+        let moveInput = new BABYLON.Vector2(this._moveXAxisInput, this._moveYAxisInput);
+        let inputForce = moveInput.length();
+        if (inputForce > 1) {
+            moveInput.normalize();
+        }
+        let dir = this.dodo.right.scale(moveInput.x * 0.5).add(this.dodo.forward.scale(moveInput.y));
         if (dir.lengthSquared() > 0) {
             this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
             let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.5);

@@ -44,6 +44,18 @@ class TouchJoystick extends HTMLElement {
             ev.preventDefault();
         });
 
+        this.addEventListener("pointerenter", (ev: PointerEvent) => {
+            this._touchInputDown = true;
+            let rect = this.getBoundingClientRect();
+            let x = ev.clientX - rect.left;
+            let y = ev.clientY - rect.top;
+            let s = rect.width;
+            this.setX((x / s - 0.5) * 2);
+            this.setY(- ((y / s - 0.5) * 2));
+            
+            ev.preventDefault();
+        });
+
         this.addEventListener("pointerup", (ev: PointerEvent) => {
             this._touchInputDown = false;
             this.setX(0);
