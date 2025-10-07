@@ -10,6 +10,7 @@ interface IDodoProp {
 
 class Dodo extends Creature {
 
+    public dodoId: string = "";
     public stepDuration: number = 0.2;
     public colors: BABYLON.Color3[] = [];
     public brain: Brain;
@@ -51,6 +52,8 @@ class Dodo extends Creature {
 
     constructor(name: string, game: Game, prop?: IDodoProp) {
         super(name, game);
+
+        this.dodoId = name;
 
         this.colors = [
             new BABYLON.Color3(Math.random(), Math.random(), Math.random()),

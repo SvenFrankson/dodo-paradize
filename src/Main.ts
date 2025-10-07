@@ -118,6 +118,15 @@ function firstPlayerInteraction(): void {
     PlayerHasInteracted = true;
 
     Game.Instance.networkManager.initialize();
+
+    if (IsMobile === 1) {
+        Game.Instance.playerDodo.dodoId = "MobileBoy";
+        Game.Instance.npcDodos[0].dodoId = "DesktopBoy";
+    }
+    else {
+        Game.Instance.playerDodo.dodoId = "DesktopBoy";
+        Game.Instance.npcDodos[0].dodoId = "MobileBoy";
+    }
 }
 
 let onFirstPlayerInteractionTouch = (ev: Event) => {
@@ -411,13 +420,13 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
 
-        this.playerDodo = new Dodo("Sven", this);
+        this.playerDodo = new Dodo("Player", this);
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
 
         this.npcDodos = [];
         for (let n = 0; n < 1; n++) {
-            let dodo = new Dodo("Bob", this, {
+            let dodo = new Dodo("Other", this, {
                 speed: 1.5 + Math.random(),
                 stepDuration: 0.2 + 0.2 * Math.random()
             });

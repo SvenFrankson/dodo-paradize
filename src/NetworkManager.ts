@@ -5,8 +5,8 @@ class NetworkManager {
     private peer: Peer;
 
     private debugConnected: boolean = false;
-    public debugLastPos: BABYLON.Vector3 = BABYLON.Vector3.Zero();
-    public debugLastR: number = 0;
+
+    public receivedData: Map<string, IBrainNetworkData[]> = new Map<string, IBrainNetworkData[]>();
 
     constructor(public game: Game) {
         console.log("Create NetworkManager");
@@ -53,6 +53,7 @@ class NetworkManager {
         this.debugConnected = true;
         setInterval(() => {
             conn.send(JSON.stringify({
+                dodoId: this.game.playerDodo.dodoId,
                 x: this.game.playerDodo.position.x,
                 y: this.game.playerDodo.position.y,
                 z: this.game.playerDodo.position.z,
@@ -70,10 +71,28 @@ class NetworkManager {
     public onConnData(data: any, conn: Peer.DataConnection): void {
         console.log("Data received from other ID '" + conn.peer + "'");
         console.log(data);
-        let p = JSON.parse(data);
-        this.debugLastPos.x = p.x;
-        this.debugLastPos.y = p.y;
-        this.debugLastPos.z = p.z;
-        this.debugLastR = p.r;
+        let p = JSON.parse(data) as IBrainNetworkData;
+
+        let brainNetworkData: IBrainNetworkData = {
+            dodoId: p.dodoId,
+            x: p.x,
+            y: p.y,
+            z: p.z,
+            r: p.r,
+            timestamp: performance.now()
+        }
+        
+        let dataArray = this.receivedData.get(brainNetworkData.dodoId);
+        if (!dataArray) {
+            dataArray = [];
+            this.receivedData.set(brainNetworkData.dodoId, dataArray);
+        }
+
+        dataArray.push(brainNetworkData);
+
+        dataArray.sort((d1, d2) => { return d2.timestamp - d1.timestamp; });
+        while (dataArray.length > 10) {
+            dataArray.pop();
+        }
     }
 }

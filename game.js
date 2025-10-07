@@ -281,6 +281,14 @@ function firstPlayerInteraction() {
     }
     PlayerHasInteracted = true;
     Game.Instance.networkManager.initialize();
+    if (IsMobile === 1) {
+        Game.Instance.playerDodo.dodoId = "MobileBoy";
+        Game.Instance.npcDodos[0].dodoId = "DesktopBoy";
+    }
+    else {
+        Game.Instance.playerDodo.dodoId = "DesktopBoy";
+        Game.Instance.npcDodos[0].dodoId = "MobileBoy";
+    }
 }
 let onFirstPlayerInteractionTouch = (ev) => {
     if (!Game.Instance.gameLoaded) {
@@ -523,12 +531,12 @@ class Game {
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
-        this.playerDodo = new Dodo("Sven", this);
+        this.playerDodo = new Dodo("Player", this);
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.npcDodos = [];
         for (let n = 0; n < 1; n++) {
-            let dodo = new Dodo("Bob", this, {
+            let dodo = new Dodo("Other", this, {
                 speed: 1.5 + Math.random(),
                 stepDuration: 0.2 + 0.2 * Math.random()
             });
@@ -738,8 +746,7 @@ class NetworkManager {
     constructor(game) {
         this.game = game;
         this.debugConnected = false;
-        this.debugLastPos = BABYLON.Vector3.Zero();
-        this.debugLastR = 0;
+        this.receivedData = new Map();
         console.log("Create NetworkManager");
     }
     initialize() {
@@ -779,6 +786,7 @@ class NetworkManager {
         this.debugConnected = true;
         setInterval(() => {
             conn.send(JSON.stringify({
+                dodoId: this.game.playerDodo.dodoId,
                 x: this.game.playerDodo.position.x,
                 y: this.game.playerDodo.position.y,
                 z: this.game.playerDodo.position.z,
@@ -793,10 +801,24 @@ class NetworkManager {
         console.log("Data received from other ID '" + conn.peer + "'");
         console.log(data);
         let p = JSON.parse(data);
-        this.debugLastPos.x = p.x;
-        this.debugLastPos.y = p.y;
-        this.debugLastPos.z = p.z;
-        this.debugLastR = p.r;
+        let brainNetworkData = {
+            dodoId: p.dodoId,
+            x: p.x,
+            y: p.y,
+            z: p.z,
+            r: p.r,
+            timestamp: performance.now()
+        };
+        let dataArray = this.receivedData.get(brainNetworkData.dodoId);
+        if (!dataArray) {
+            dataArray = [];
+            this.receivedData.set(brainNetworkData.dodoId, dataArray);
+        }
+        dataArray.push(brainNetworkData);
+        dataArray.sort((d1, d2) => { return d2.timestamp - d1.timestamp; });
+        while (dataArray.length > 10) {
+            dataArray.pop();
+        }
     }
 }
 class NumValueInput extends HTMLElement {
@@ -2809,6 +2831,7 @@ class CreatureFactory {
 class Dodo extends Creature {
     constructor(name, game, prop) {
         super(name, game);
+        this.dodoId = "";
         this.stepDuration = 0.2;
         this.colors = [];
         this.targetLook = BABYLON.Vector3.Zero();
@@ -2829,6 +2852,7 @@ class Dodo extends Creature {
         this.lowerLegLength = 0.48;
         this.walking = 0;
         this.footIndex = 0;
+        this.dodoId = name;
         this.colors = [
             new BABYLON.Color3(Math.random(), Math.random(), Math.random()),
             new BABYLON.Color3(Math.random(), Math.random(), Math.random()),
@@ -3455,10 +3479,17 @@ class BrainNetwork extends SubBrain {
     }
     update(dt) {
         let network = this.game.networkManager;
-        let pos = network.debugLastPos;
-        BABYLON.Vector3.LerpToRef(this.dodo.position, pos, 0.1, this.dodo.position);
-        let z = Mummu.Rotate(BABYLON.Axis.Z, BABYLON.Axis.Y, network.debugLastR);
-        this.dodo.rotationQuaternion = Mummu.QuaternionFromZYAxis(z, BABYLON.Axis.Y);
+        let dataArray = network.receivedData.get(this.dodo.dodoId);
+        if (dataArray) {
+            let data = dataArray[0];
+            if (data) {
+                console.log(data);
+                let pos = new BABYLON.Vector3(data.x, data.y, data.z);
+                BABYLON.Vector3.LerpToRef(this.dodo.position, pos, 0.1, this.dodo.position);
+                let z = Mummu.Rotate(BABYLON.Axis.Z, BABYLON.Axis.Y, data.r);
+                this.dodo.rotationQuaternion = Mummu.QuaternionFromZYAxis(z, BABYLON.Axis.Y);
+            }
+        }
     }
 }
 /// <reference path="SubBrain.ts"/>
