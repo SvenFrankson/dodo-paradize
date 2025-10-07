@@ -1482,6 +1482,96 @@ class ToonSoundManager {
     }
 }
 */ 
+class TouchJoystick extends HTMLElement {
+    constructor() {
+        super(...arguments);
+        this._x = 0;
+        this._y = 0;
+        this.onJoystickChange = (x, y) => {
+        };
+    }
+    get x() {
+        return this._x;
+    }
+    get y() {
+        return this._y;
+    }
+    connectedCallback() {
+        this.innerHTML = `
+            <svg viewBox="0 0 210 210">
+				<path class="touch-joystick-up" fill="white" d="M 177.45744,29.007337 C 136.89421,-9.6690832 73.105713,-9.6692443 32.54229,29.006971 l 31.836133,31.836133 c 22.96201,-21.123357 58.281247,-21.123357 81.243257,0 z"></path>
+				<path class="touch-joystick-right" fill="white" d="M 177.45744,29.007337 C 136.89421,-9.6690832 73.105713,-9.6692443 32.54229,29.006971 l 31.836133,31.836133 c 22.96201,-21.123357 58.281247,-21.123357 81.243257,0 z" transform="rotate(90 105 105)"></path>
+				<path class="touch-joystick-bottom" fill="white" d="M 177.45744,29.007337 C 136.89421,-9.6690832 73.105713,-9.6692443 32.54229,29.006971 l 31.836133,31.836133 c 22.96201,-21.123357 58.281247,-21.123357 81.243257,0 z" transform="rotate(180 105 105)"></path>
+				<path class="touch-joystick-left" fill="white" d="M 177.45744,29.007337 C 136.89421,-9.6690832 73.105713,-9.6692443 32.54229,29.006971 l 31.836133,31.836133 c 22.96201,-21.123357 58.281247,-21.123357 81.243257,0 z" transform="rotate(270 105 105)"></path>
+			</svg>
+        `;
+        this._upPath = this.querySelector(".touch-joystick-up");
+        this._rightPath = this.querySelector(".touch-joystick-right");
+        this._bottomPath = this.querySelector(".touch-joystick-bottom");
+        this._leftPath = this.querySelector(".touch-joystick-left");
+        this.addEventListener("pointerdown", (ev) => {
+            this._touchInputDown = true;
+            let rect = this.getBoundingClientRect();
+            let x = ev.clientX - rect.left;
+            let y = ev.clientY - rect.top;
+            let s = rect.width;
+            this.setX((x / s - 0.5) * 2);
+            this.setY(-((y / s - 0.5) * 2));
+            ev.preventDefault();
+        });
+        this.addEventListener("pointerup", (ev) => {
+            this._touchInputDown = false;
+            this.setX(0);
+            this.setY(0);
+            ev.preventDefault();
+        });
+        this.addEventListener("pointerleave", (ev) => {
+            this._touchInputDown = false;
+            this.setX(0);
+            this.setY(0);
+            ev.preventDefault();
+        });
+        this.addEventListener("pointermove", (ev) => {
+            if (this._touchInputDown) {
+                let rect = this.getBoundingClientRect();
+                let x = ev.clientX - rect.left;
+                let y = ev.clientY - rect.top;
+                let s = rect.width;
+                this.setX((x / s - 0.5) * 2);
+                this.setY(-((y / s - 0.5) * 2));
+            }
+        });
+    }
+    setX(x) {
+        this._x = x;
+        let rightOpacity = 0.2;
+        if (x > 0) {
+            rightOpacity = 0.2 + 0.8 * x;
+        }
+        this._rightPath.setAttribute("opacity", rightOpacity.toFixed(2));
+        let leftOpacity = 0.2;
+        if (x < 0) {
+            leftOpacity = 0.2 + 0.8 * Math.abs(x);
+        }
+        this._leftPath.setAttribute("opacity", leftOpacity.toFixed(2));
+        this.onJoystickChange(this.x, this.y);
+    }
+    setY(y) {
+        this._y = y;
+        let topOpacity = 0.2;
+        if (y > 0) {
+            topOpacity = 0.2 + 0.8 * y;
+        }
+        this._upPath.setAttribute("opacity", topOpacity.toFixed(2));
+        let bottomOpacity = 0.2;
+        if (y < 0) {
+            bottomOpacity = 0.2 + 0.8 * Math.abs(y);
+        }
+        this._bottomPath.setAttribute("opacity", bottomOpacity.toFixed(2));
+        this.onJoystickChange(this.x, this.y);
+    }
+}
+customElements.define("touch-joystick", TouchJoystick);
 class UserInterfaceInputManager {
     constructor(game) {
         this.game = game;
@@ -3282,7 +3372,6 @@ class BrainPlayer extends SubBrain {
         this._targetQ = BABYLON.Quaternion.Identity();
         this._targetLook = BABYLON.Vector3.Zero();
         this._pointerDown = false;
-        this._leftTouchInputDown = false;
         this._pointerSmoothness = 0.5;
         this._moveXAxisInput = 0;
         this._moveYAxisInput = 0;
@@ -3332,63 +3421,11 @@ class BrainPlayer extends SubBrain {
                 this._rotateYAxisInput += ev.movementX / 200;
             }
         });
-        let touchMoveInput = document.querySelector("#touch-input-move");
-        let touchMoveInputUp = touchMoveInput.querySelector(".touch-joystick-up");
-        let touchMoveInputRight = touchMoveInput.querySelector(".touch-joystick-right");
-        let touchMoveInputBottom = touchMoveInput.querySelector(".touch-joystick-bottom");
-        let touchMoveInputLeft = touchMoveInput.querySelector(".touch-joystick-left");
-        let setXYColor = (x, y) => {
-            let up = 0.2;
-            if (y > 0) {
-                up = 0.2 + 0.8 * y;
-            }
-            touchMoveInputUp.setAttribute("opacity", up.toFixed(2));
-            let right = 0.2;
-            if (x > 0) {
-                right = 0.2 + 0.8 * x;
-            }
-            touchMoveInputRight.setAttribute("opacity", right.toFixed(2));
-            let bottom = 0.2;
-            if (y < 0) {
-                bottom = 0.2 + 0.8 * Math.abs(y);
-            }
-            touchMoveInputBottom.setAttribute("opacity", bottom.toFixed(2));
-            let left = 0.2;
-            if (x < 0) {
-                left = 0.2 + 0.8 * Math.abs(x);
-            }
-            touchMoveInputLeft.setAttribute("opacity", left.toFixed(2));
+        this._touchInputLeft = document.querySelector("#touch-input-move");
+        this._touchInputLeft.onJoystickChange = (x, y) => {
+            this._moveXAxisInput = x;
+            this._moveYAxisInput = y;
         };
-        touchMoveInput.addEventListener("pointerdown", (ev) => {
-            this._leftTouchInputDown = true;
-            let rect = touchMoveInput.getBoundingClientRect();
-            let x = ev.clientX - rect.left;
-            let y = ev.clientY - rect.top;
-            let s = rect.width;
-            this._moveXAxisInput = (x / s - 0.5) * 2;
-            this._moveYAxisInput = -((y / s - 0.5) * 2);
-            setXYColor(this._moveXAxisInput, this._moveYAxisInput);
-            console.log(rect);
-            ev.preventDefault();
-        });
-        touchMoveInput.addEventListener("pointerup", (ev) => {
-            this._leftTouchInputDown = false;
-            this._moveXAxisInput = 0;
-            this._moveYAxisInput = 0;
-            setXYColor(this._moveXAxisInput, this._moveYAxisInput);
-            ev.preventDefault();
-        });
-        touchMoveInput.addEventListener("pointermove", (ev) => {
-            if (this._leftTouchInputDown) {
-                let rect = touchMoveInput.getBoundingClientRect();
-                let x = ev.clientX - rect.left;
-                let y = ev.clientY - rect.top;
-                let s = rect.width;
-                this._moveXAxisInput = (x / s - 0.5) * 2;
-                this._moveYAxisInput = -((y / s - 0.5) * 2);
-                setXYColor(this._moveXAxisInput, this._moveYAxisInput);
-            }
-        });
     }
     update(dt) {
         if (Math.random() < 0.05) {
