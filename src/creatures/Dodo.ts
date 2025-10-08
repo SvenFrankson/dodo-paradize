@@ -3,16 +3,47 @@
 interface IDodoProp {
     speed?: number;
     stepDuration?: number;
-    color?: BABYLON.Color3;
     bounty?: number;
     hasWings?: boolean;
+    style?: string;
 }
+
+interface IStyleNetworkData {
+    style: string;
+}
+
+function IsStyleNetworkData(v: any): boolean {
+    if (v.style) {
+        return true;
+    }
+    return false;
+}
+
+var DodoColors = [
+    BABYLON.Color3.FromHexString("#17171c"),
+    BABYLON.Color3.FromHexString("#282a30"),
+    BABYLON.Color3.FromHexString("#49363a"),
+    BABYLON.Color3.FromHexString("#404735"),
+    BABYLON.Color3.FromHexString("#3b536a"),
+    BABYLON.Color3.FromHexString("#9b3535"),
+    BABYLON.Color3.FromHexString("#92583f"),
+    BABYLON.Color3.FromHexString("#21927e"),
+    BABYLON.Color3.FromHexString("#a16a41"),
+    BABYLON.Color3.FromHexString("#7e7b71"),
+    BABYLON.Color3.FromHexString("#71a14e"),
+    BABYLON.Color3.FromHexString("#be8d68"),
+    BABYLON.Color3.FromHexString("#7abbb9"),
+    BABYLON.Color3.FromHexString("#d9bd66"),
+    BABYLON.Color3.FromHexString("#e8c6a1"),
+    BABYLON.Color3.FromHexString("#dcd6cf")
+];
 
 class Dodo extends Creature {
 
     public peerId: string = "";
     public stepDuration: number = 0.2;
     public colors: BABYLON.Color3[] = [];
+    public style: string;
     public brain: Brain;
 
     public targetLook: BABYLON.Vector3 = BABYLON.Vector3.Zero();
@@ -56,11 +87,7 @@ class Dodo extends Creature {
         this.name = "Dodo_" + Math.floor(Math.random() * 10000).toFixed(0);
         this.peerId = name;
 
-        this.colors = [
-            new BABYLON.Color3(Math.random(), Math.random(), Math.random()),
-            new BABYLON.Color3(Math.random(), Math.random(), Math.random()),
-            new BABYLON.Color3(Math.random(), Math.random(), Math.random())
-        ];
+        this.colors = [];
 
         if (prop) {
             if (isFinite(prop.speed)) {
@@ -72,9 +99,17 @@ class Dodo extends Creature {
             if (isFinite(prop.bounty)) {
                 this.bounty = prop.bounty;
             }
-            if (prop.color) {
-                this.colors[0] = prop.color;
+            if (prop.style) {
+                this.setStyle(prop.style);
             }
+        }
+
+        if (this.colors.length === 0) {
+            let c1 = Math.floor(Math.random() * 16);
+            let c2 = Math.floor(Math.random() * 16);
+            let c3 = Math.floor(Math.random() * 16);
+            let style = c1.toString(16).padStart(2, "0") + c2.toString(16).padStart(2, "0") + c3.toString(16).padStart(2, "0");
+            this.setStyle(style);
         }
 
         this.rotationQuaternion = BABYLON.Quaternion.Identity();
@@ -166,8 +201,19 @@ class Dodo extends Creature {
         */
     }
 
-    public async instantiate(): Promise<void> {
+    public setStyle(style: string): void {
+        this.style = style;
+        this.colors[0] = DodoColors[parseInt(style.substring(0, 2), 16)];
+        this.colors[1] = DodoColors[parseInt(style.substring(2, 4), 16)];
+        this.colors[2] = DodoColors[parseInt(style.substring(4, 6), 16)];
 
+        if (this._instantiated) {
+            this.instantiate();
+        }
+    }
+
+    private _instantiated: boolean = false;
+    public async instantiate(): Promise<void> {
         this.material = this.game.defaultToonMaterial;
 
         this.body.material = this.material;
@@ -243,12 +289,7 @@ class Dodo extends Creature {
         dir.parent = this;
         dir.material = material;
         */
-
-        this.hitpoint = this.stamina;
-
-        setInterval(() => {
-            this.eyeBlink();
-        }, 5000);
+       this._instantiated = true;
     }
 
     public dispose(): void {

@@ -6,6 +6,7 @@ class NetworkManager {
 
     private debugConnected: boolean = false;
 
+    public otherPlayers: any[] = [];
     public receivedData: Map<string, IBrainNetworkData[]> = new Map<string, IBrainNetworkData[]>();
 
     constructor(public game: Game) {
@@ -28,6 +29,7 @@ class NetworkManager {
         let connectPlayerData = {
             peerId: id,
             displayName: this.game.playerDodo.name,
+            style: this.game.playerDodo.style,
             posX: 0,
             posY: 0,
             posZ: 0
@@ -63,6 +65,7 @@ class NetworkManager {
             let responseJSON = JSON.parse(responseText);
             console.log(responseJSON);
 
+            this.otherPlayers = responseJSON.players;
             for (let n = 0; n < responseJSON.players.length; n++) {
                 let otherPlayer = responseJSON.players[n];
                 if (otherPlayer.peerId != this.game.playerDodo.peerId) {
@@ -90,10 +93,24 @@ class NetworkManager {
         this.debugConnected = true;
         let existingDodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
         if (!existingDodo) {
-            existingDodo = await this.createDodo("Unkown", conn.peer);
+            let playerDesc = this.otherPlayers.find(p => { return p.peerId === conn.peer; });
+            let style = "000000";
+            if (playerDesc) {
+                style = playerDesc.style;
+            }
+            existingDodo = await this.createDodo("Unkown", conn.peer, style);
             this.game.networkDodos.push(existingDodo);
         }
 
+        conn.on(
+            'data',
+            (data) => {
+                this.onConnData(data, conn);
+            }
+        );
+
+        conn.send(JSON.stringify({ style: this.game.playerDodo.style }));
+        
         setInterval(() => {
             conn.send(JSON.stringify({
                 dodoId: this.game.playerDodo.peerId,
@@ -103,46 +120,49 @@ class NetworkManager {
                 r: Mummu.AngleFromToAround(BABYLON.Axis.Z, this.game.playerDodo.forward, BABYLON.Axis.Y)
             }));
         }, 100);
-        conn.on(
-            'data',
-            (data) => {
-                this.onConnData(data, conn);
-            }
-        );
     }
 
     public onConnData(data: any, conn: Peer.DataConnection): void {
         console.log("Data received from other ID '" + conn.peer + "'");
         console.log(data);
-        let p = JSON.parse(data) as IBrainNetworkData;
+        let p = JSON.parse(data);
 
-        let brainNetworkData: IBrainNetworkData = {
-            dodoId: p.dodoId,
-            x: p.x,
-            y: p.y,
-            z: p.z,
-            r: p.r,
-            timestamp: performance.now()
+        if (p.style) {
+            let dodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
+            if (dodo) {
+                dodo.setStyle(p.style);
+            }
         }
+        else if (IsBrainNetworkData(p)) {
+            let brainNetworkData: IBrainNetworkData = {
+                dodoId: p.dodoId,
+                x: p.x,
+                y: p.y,
+                z: p.z,
+                r: p.r,
+                timestamp: performance.now()
+            }
         
-        let dataArray = this.receivedData.get(brainNetworkData.dodoId);
-        if (!dataArray) {
-            dataArray = [];
-            this.receivedData.set(brainNetworkData.dodoId, dataArray);
-        }
+            let dataArray = this.receivedData.get(brainNetworkData.dodoId);
+            if (!dataArray) {
+                dataArray = [];
+                this.receivedData.set(brainNetworkData.dodoId, dataArray);
+            }
 
-        dataArray.push(brainNetworkData);
+            dataArray.push(brainNetworkData);
 
-        dataArray.sort((d1, d2) => { return d2.timestamp - d1.timestamp; });
-        while (dataArray.length > 10) {
-            dataArray.pop();
+            dataArray.sort((d1, d2) => { return d2.timestamp - d1.timestamp; });
+            while (dataArray.length > 10) {
+                dataArray.pop();
+            }
         }
     }
 
-    public async createDodo(name: string, peerId: string): Promise<Dodo> {
+    public async createDodo(name: string, peerId: string, style: string): Promise<Dodo> {
         let dodo = new Dodo(name, this.game, {
             speed: 1.5 + Math.random(),
-            stepDuration: 0.2 + 0.2 * Math.random()
+            stepDuration: 0.2 + 0.2 * Math.random(),
+            style: style
         });
         dodo.peerId = peerId;
         await dodo.instantiate();

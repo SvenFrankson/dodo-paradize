@@ -4,6 +4,7 @@ namespace src;
 class ConnectPlayerData {
     public $peerId;
     public $displayName;
+    public $style;
     public $posX;
     public $posY;
     public $posZ;
@@ -59,6 +60,7 @@ class ConnectPlayerController {
             $conn = mysqli_connect($servername, $username, $nopassword, $database);
             $connectPlayerData->peerId = $conn->real_escape_string($connectPlayerData->peerId);
             $connectPlayerData->displayName = $conn->real_escape_string($connectPlayerData->displayName);
+            $connectPlayerData->style = $conn->real_escape_string($connectPlayerData->style);
     
             $response['status_code_header'] = 'HTTP/1.1 200 OK';
             if (!$conn) {
@@ -76,7 +78,7 @@ class ConnectPlayerController {
                 //$row = $result->fetch_row();
                 //$duplicateCount = $row[0];
 
-                $sql = "INSERT INTO dodo_players (display_name, peer_id, pos_x, pos_y, pos_z, creation_date) VALUES ('$connectPlayerData->displayName', '$connectPlayerData->peerId', $connectPlayerData->posX, $connectPlayerData->posY, $connectPlayerData->posZ, $creation)";
+                $sql = "INSERT INTO dodo_players (display_name, peer_id, style, pos_x, pos_y, pos_z, creation_date) VALUES ('$connectPlayerData->displayName', '$connectPlayerData->peerId', '$connectPlayerData->style', $connectPlayerData->posX, $connectPlayerData->posY, $connectPlayerData->posZ, $creation)";
 
                 if ($conn->query($sql) === TRUE) {
                     $response['body'] = mysqli_insert_id($conn);

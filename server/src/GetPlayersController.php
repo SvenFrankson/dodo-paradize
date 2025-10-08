@@ -4,6 +4,7 @@ namespace src;
 class PlayerData {
     public $peerId;
     public $displayName;
+    public $style;
     public $gameId;
     public $posX;
     public $posY;
@@ -77,9 +78,10 @@ class GetPlayersController {
         $datas = new PlayersData();
         $i = 0;
         while ($row = $result->fetch_assoc()) {
-            $playerData = new ConnectPlayerData();
+            $playerData = new PlayerData();
             $playerData->peerId = $row["peer_id"];
             $playerData->displayName = $row["display_name"];
+            $playerData->style = $row["style"];
             $playerData->gameId = intval($row["game_id"]);
             $playerData->posX = intval($row["pos_x"]);
             $playerData->posY = intval($row["pos_y"]);

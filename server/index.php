@@ -42,6 +42,9 @@ if (isset($uri[2]) && $uri[2] == 'connect_player') {
     if (isset($rawData->{'displayName'})) {
         $connectPlayerData->displayName = $rawData->{'displayName'};
     }
+    if (isset($rawData->{'style'})) {
+        $connectPlayerData->style = $rawData->{'style'};
+    }
     if (is_numeric($rawData->{'posX'})) {
         $connectPlayerData->posX = $rawData->{'posX'};
     }

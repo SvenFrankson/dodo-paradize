@@ -431,9 +431,9 @@ class Game {
         this.playerDodo.unfold();
         this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
 
-        let brick = new Brick(this.brickManager, Brick.BrickIdToIndex("brick_4x1"), 0);
-        brick.position.copyFromFloats(0, TILE_H, 0);
-        brick.updateMesh();
+        //let brick = new Brick(this.brickManager, Brick.BrickIdToIndex("brick_4x1"), 0);
+        //brick.position.copyFromFloats(0, TILE_H, 0);
+        //brick.updateMesh();
 
         this.gameLoaded = true;
         I18Nizer.Translate(LOCALE);

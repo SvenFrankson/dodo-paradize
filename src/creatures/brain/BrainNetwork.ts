@@ -7,6 +7,21 @@ interface IBrainNetworkData {
     timestamp?: number;
 }
 
+function IsBrainNetworkData(v: any): boolean {
+    if (v.dodoId) {
+        if (isFinite(v.x)) {
+            if (isFinite(v.y)) {
+                if (isFinite(v.z)) {
+                    if (isFinite(v.r)) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
 class BrainNetwork extends SubBrain {
 
     public destination: BABYLON.Vector3;
@@ -18,10 +33,12 @@ class BrainNetwork extends SubBrain {
             let data = dataArray[0];
             if (data) {
                 console.log(data);
+                let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
                 let pos = new BABYLON.Vector3(data.x, data.y, data.z);
-                BABYLON.Vector3.LerpToRef(this.dodo.position, pos, 0.1, this.dodo.position);
+                BABYLON.Vector3.LerpToRef(this.dodo.position, pos, 1 - fSpeed, this.dodo.position);
                 let z = Mummu.Rotate(BABYLON.Axis.Z, BABYLON.Axis.Y, data.r);
-                this.dodo.rotationQuaternion = Mummu.QuaternionFromZYAxis(z, BABYLON.Axis.Y);
+                let q = Mummu.QuaternionFromZYAxis(z, BABYLON.Axis.Y);
+                BABYLON.Quaternion.SlerpToRef(this.dodo.rotationQuaternion, q, 1 - fSpeed, this.dodo.rotationQuaternion);
             }
         }
     }
