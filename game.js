@@ -749,14 +749,32 @@ class NetworkManager {
         this.receivedData = new Map();
         console.log("Create NetworkManager");
     }
-    initialize() {
-        console.log("Initialize NetworkManager");
+    async initialize() {
         let id = 640;
         let otherId = 641;
         if (IsMobile === 1) {
             id = 641;
             otherId = 640;
         }
+        let connectPlayerData = {
+            peerId: id.toFixed(0),
+            displayName: this.game.playerDodo.name,
+            posX: 0,
+            posY: 0,
+            posZ: 0
+        };
+        let dataString = JSON.stringify(connectPlayerData);
+        const response = await fetch(SHARE_SERVICE_PATH + "connect_player", {
+            method: "POST",
+            mode: "cors",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: dataString,
+        });
+        let responseText = await response.text();
+        console.log(responseText);
+        console.log("Initialize NetworkManager");
         this.peer = new Peer(id.toFixed(0));
         this.peer.on("open", this.onPeerOpen.bind(this));
         this.peer.on("connection", this.onPeerConnection.bind(this));
@@ -2852,6 +2870,7 @@ class Dodo extends Creature {
         this.lowerLegLength = 0.48;
         this.walking = 0;
         this.footIndex = 0;
+        this.name = "Dodo_" + Math.floor(Math.random() * 10000).toFixed(0);
         this.dodoId = name;
         this.colors = [
             new BABYLON.Color3(Math.random(), Math.random(), Math.random()),

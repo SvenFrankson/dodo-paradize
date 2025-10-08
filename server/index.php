@@ -1,0 +1,63 @@
+<?php
+include 'src/ConnectPlayerController.php';
+include './Config.php';
+use src\ConnectPlayerData;
+use src\ConnectPlayerController;
+
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,DELETE");
+header("Access-Control-Max-Age: 3600");
+header("Access-Control-Allow-Headers: Origin, Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$uri = explode( '/', $uri );
+
+$password = null;
+foreach (getallheaders() as $name => $value) {
+    if ($name == "Authorization") {
+        $auth_array = explode(" ", $value);
+        $un_pw = explode(":", base64_decode($auth_array[1]));
+        $un = $un_pw[0];
+        $password = $un_pw[1];
+    }
+}
+
+$requestMethod = $_SERVER["REQUEST_METHOD"];
+
+if ($requestMethod === "POST" && isset($uri[2]) && $uri[2] == 'machine') {
+    $uri[2] = 'publish_machine';
+}
+
+// everything else results in a 404 Not Found
+if (isset($uri[2]) && $uri[2] == 'connect_player') {
+    $rawData = json_decode(file_get_contents('php://input'));
+    $connectPlayerData = new ConnectPlayerData();
+    
+    if (isset($rawData->{'peerId'})) {
+        $connectPlayerData->peerId = $rawData->{'peerId'};
+    }
+    if (isset($rawData->{'displayName'})) {
+        $connectPlayerData->displayName = $rawData->{'displayName'};
+    }
+    if (is_numeric($rawData->{'posX'})) {
+        $connectPlayerData->posX = $rawData->{'posX'};
+    }
+    if (is_numeric($rawData->{'posY'})) {
+        $connectPlayerData->posY = $rawData->{'posY'};
+    }
+    if (is_numeric($rawData->{'posZ'})) {
+        $connectPlayerData->posZ = $rawData->{'posZ'};
+    }
+    if (isset($rawData->{'token'})) {
+        $connectPlayerData->token = $rawData->{'token'};
+    }
+
+    $controller = new ConnectPlayerController($requestMethod, $connectPlayerData, $password);
+    $controller->processRequest();
+}
+else {
+    header("HTTP/1.1 404 Not Found");
+}
+
+

@@ -12,14 +12,35 @@ class NetworkManager {
         console.log("Create NetworkManager");
     }
 
-    public initialize(): void {
-        console.log("Initialize NetworkManager");
+    public async initialize(): Promise<void> {
         let id = 640;
         let otherId = 641;
         if (IsMobile === 1) {
             id = 641;
             otherId = 640;
         }
+
+        let connectPlayerData = {
+            peerId: id.toFixed(0),
+            displayName: this.game.playerDodo.name,
+            posX: 0,
+            posY: 0,
+            posZ: 0
+        }
+        let dataString = JSON.stringify(connectPlayerData);
+        const response = await fetch(SHARE_SERVICE_PATH + "connect_player", {
+            method: "POST",
+            mode: "cors",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: dataString,
+        });
+        let responseText = await response.text();
+        console.log(responseText);
+
+        console.log("Initialize NetworkManager");
+
         this.peer = new Peer(id.toFixed(0));
         this.peer.on("open", this.onPeerOpen.bind(this));
         this.peer.on("connection", this.onPeerConnection.bind(this))

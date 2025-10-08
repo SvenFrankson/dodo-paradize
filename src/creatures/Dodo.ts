@@ -53,6 +53,7 @@ class Dodo extends Creature {
     constructor(name: string, game: Game, prop?: IDodoProp) {
         super(name, game);
 
+        this.name = "Dodo_" + Math.floor(Math.random() * 10000).toFixed(0);
         this.dodoId = name;
 
         this.colors = [

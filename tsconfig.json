@@ -8,7 +8,8 @@
     },
     "exclude": [
         "lib",
-        "*.d.ts"
+        "*.d.ts",
+        "server"
     ],
     "compileOnSave": true,
     "buildOnSave": true
