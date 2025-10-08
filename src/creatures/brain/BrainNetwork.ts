@@ -4,6 +4,9 @@ interface IBrainNetworkData {
     y: number;
     z: number;
     r: number;
+    tx: number;
+    ty: number;
+    tz: number;
     timestamp?: number;
 }
 
@@ -12,8 +15,14 @@ function IsBrainNetworkData(v: any): boolean {
         if (isFinite(v.x)) {
             if (isFinite(v.y)) {
                 if (isFinite(v.z)) {
-                    if (isFinite(v.r)) {
-                        return true;
+                    if (isFinite(v.tx)) {
+                        if (isFinite(v.ty)) {
+                            if (isFinite(v.tz)) {
+                                if (isFinite(v.r)) {
+                                    return true;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -32,13 +41,16 @@ class BrainNetwork extends SubBrain {
         if (dataArray) {
             let data = dataArray[0];
             if (data) {
-                console.log(data);
-                let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+                let f = Nabu.Easing.smoothNSec(1 / dt, 0.1);
                 let pos = new BABYLON.Vector3(data.x, data.y, data.z);
-                BABYLON.Vector3.LerpToRef(this.dodo.position, pos, 1 - fSpeed, this.dodo.position);
+                BABYLON.Vector3.LerpToRef(this.dodo.position, pos, 1 - f, this.dodo.position);
+
+                let targetLook = new BABYLON.Vector3(data.tx, data.ty, data.tz);
+                BABYLON.Vector3.LerpToRef(this.dodo.targetLook, targetLook, 1 - f, this.dodo.targetLook);
+
                 let z = Mummu.Rotate(BABYLON.Axis.Z, BABYLON.Axis.Y, data.r);
                 let q = Mummu.QuaternionFromZYAxis(z, BABYLON.Axis.Y);
-                BABYLON.Quaternion.SlerpToRef(this.dodo.rotationQuaternion, q, 1 - fSpeed, this.dodo.rotationQuaternion);
+                BABYLON.Quaternion.SlerpToRef(this.dodo.rotationQuaternion, q, 1 - f, this.dodo.rotationQuaternion);
             }
         }
     }

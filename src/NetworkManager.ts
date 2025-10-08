@@ -6,7 +6,7 @@ class NetworkManager {
 
     private debugConnected: boolean = false;
 
-    public otherPlayers: any[] = [];
+    public serverPlayersList: any[] = [];
     public receivedData: Map<string, IBrainNetworkData[]> = new Map<string, IBrainNetworkData[]>();
 
     constructor(public game: Game) {
@@ -65,7 +65,7 @@ class NetworkManager {
             let responseJSON = JSON.parse(responseText);
             console.log(responseJSON);
 
-            this.otherPlayers = responseJSON.players;
+            this.serverPlayersList = responseJSON.players;
             for (let n = 0; n < responseJSON.players.length; n++) {
                 let otherPlayer = responseJSON.players[n];
                 if (otherPlayer.peerId != this.game.playerDodo.peerId) {
@@ -93,7 +93,7 @@ class NetworkManager {
         this.debugConnected = true;
         let existingDodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
         if (!existingDodo) {
-            let playerDesc = this.otherPlayers.find(p => { return p.peerId === conn.peer; });
+            let playerDesc = this.serverPlayersList.find(p => { return p.peerId === conn.peer; });
             let style = "000000";
             if (playerDesc) {
                 style = playerDesc.style;
@@ -117,31 +117,26 @@ class NetworkManager {
                 x: this.game.playerDodo.position.x,
                 y: this.game.playerDodo.position.y,
                 z: this.game.playerDodo.position.z,
+                tx: this.game.playerDodo.targetLook.x,
+                ty: this.game.playerDodo.targetLook.y,
+                tz: this.game.playerDodo.targetLook.z,
                 r: Mummu.AngleFromToAround(BABYLON.Axis.Z, this.game.playerDodo.forward, BABYLON.Axis.Y)
             }));
         }, 100);
     }
 
-    public onConnData(data: any, conn: Peer.DataConnection): void {
-        console.log("Data received from other ID '" + conn.peer + "'");
-        console.log(data);
-        let p = JSON.parse(data);
+    public onConnData(dataString: any, conn: Peer.DataConnection): void {
+        let data = JSON.parse(dataString);
 
-        if (p.style) {
+        if (IsStyleNetworkData(data)) {
             let dodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
             if (dodo) {
-                dodo.setStyle(p.style);
+                dodo.setStyle(data.style);
             }
         }
-        else if (IsBrainNetworkData(p)) {
-            let brainNetworkData: IBrainNetworkData = {
-                dodoId: p.dodoId,
-                x: p.x,
-                y: p.y,
-                z: p.z,
-                r: p.r,
-                timestamp: performance.now()
-            }
+        else if (IsBrainNetworkData(data)) {
+            let brainNetworkData = data as IBrainNetworkData;
+            brainNetworkData.timestamp = performance.now();
         
             let dataArray = this.receivedData.get(brainNetworkData.dodoId);
             if (!dataArray) {
@@ -150,7 +145,6 @@ class NetworkManager {
             }
 
             dataArray.push(brainNetworkData);
-
             dataArray.sort((d1, d2) => { return d2.timestamp - d1.timestamp; });
             while (dataArray.length > 10) {
                 dataArray.pop();

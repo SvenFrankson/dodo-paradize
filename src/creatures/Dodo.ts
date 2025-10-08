@@ -477,11 +477,11 @@ class Dodo extends Creature {
         f = Nabu.MinMax(f, 0.2, 0.8);
 
         this.bodyTargetPos.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
-        Mummu.DrawDebugPoint(this.feet[0].position, 2, BABYLON.Color3.Red());
-        Mummu.DrawDebugPoint(this.feet[1].position, 2, BABYLON.Color3.Green());
+        //Mummu.DrawDebugPoint(this.feet[0].position, 2, BABYLON.Color3.Red());
+        //Mummu.DrawDebugPoint(this.feet[1].position, 2, BABYLON.Color3.Green());
         this.bodyTargetPos.y += this.bodyHeight;
 
-        Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
+        //Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
         
         let pForce = this.bodyTargetPos.subtract(this.body.position);
         pForce.scaleInPlace(60 * dt);

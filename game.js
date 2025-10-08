@@ -736,7 +736,7 @@ class NetworkManager {
     constructor(game) {
         this.game = game;
         this.debugConnected = false;
-        this.otherPlayers = [];
+        this.serverPlayersList = [];
         this.receivedData = new Map();
         ScreenLoger.Log("Create NetworkManager");
     }
@@ -786,7 +786,7 @@ class NetworkManager {
             console.log(responseText);
             let responseJSON = JSON.parse(responseText);
             console.log(responseJSON);
-            this.otherPlayers = responseJSON.players;
+            this.serverPlayersList = responseJSON.players;
             for (let n = 0; n < responseJSON.players.length; n++) {
                 let otherPlayer = responseJSON.players[n];
                 if (otherPlayer.peerId != this.game.playerDodo.peerId) {
@@ -812,7 +812,7 @@ class NetworkManager {
         this.debugConnected = true;
         let existingDodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
         if (!existingDodo) {
-            let playerDesc = this.otherPlayers.find(p => { return p.peerId === conn.peer; });
+            let playerDesc = this.serverPlayersList.find(p => { return p.peerId === conn.peer; });
             let style = "000000";
             if (playerDesc) {
                 style = playerDesc.style;
@@ -830,29 +830,24 @@ class NetworkManager {
                 x: this.game.playerDodo.position.x,
                 y: this.game.playerDodo.position.y,
                 z: this.game.playerDodo.position.z,
+                tx: this.game.playerDodo.targetLook.x,
+                ty: this.game.playerDodo.targetLook.y,
+                tz: this.game.playerDodo.targetLook.z,
                 r: Mummu.AngleFromToAround(BABYLON.Axis.Z, this.game.playerDodo.forward, BABYLON.Axis.Y)
             }));
         }, 100);
     }
-    onConnData(data, conn) {
-        console.log("Data received from other ID '" + conn.peer + "'");
-        console.log(data);
-        let p = JSON.parse(data);
-        if (p.style) {
+    onConnData(dataString, conn) {
+        let data = JSON.parse(dataString);
+        if (IsStyleNetworkData(data)) {
             let dodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
             if (dodo) {
-                dodo.setStyle(p.style);
+                dodo.setStyle(data.style);
             }
         }
-        else if (IsBrainNetworkData(p)) {
-            let brainNetworkData = {
-                dodoId: p.dodoId,
-                x: p.x,
-                y: p.y,
-                z: p.z,
-                r: p.r,
-                timestamp: performance.now()
-            };
+        else if (IsBrainNetworkData(data)) {
+            let brainNetworkData = data;
+            brainNetworkData.timestamp = performance.now();
             let dataArray = this.receivedData.get(brainNetworkData.dodoId);
             if (!dataArray) {
                 dataArray = [];
@@ -3273,10 +3268,10 @@ class Dodo extends Creature {
         f += dy / this.stepHeight * 0.4;
         f = Nabu.MinMax(f, 0.2, 0.8);
         this.bodyTargetPos.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
-        Mummu.DrawDebugPoint(this.feet[0].position, 2, BABYLON.Color3.Red());
-        Mummu.DrawDebugPoint(this.feet[1].position, 2, BABYLON.Color3.Green());
+        //Mummu.DrawDebugPoint(this.feet[0].position, 2, BABYLON.Color3.Red());
+        //Mummu.DrawDebugPoint(this.feet[1].position, 2, BABYLON.Color3.Green());
         this.bodyTargetPos.y += this.bodyHeight;
-        Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
+        //Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
         let pForce = this.bodyTargetPos.subtract(this.body.position);
         pForce.scaleInPlace(60 * dt);
         this.bodyVelocity.addInPlace(pForce);
@@ -3566,8 +3561,14 @@ function IsBrainNetworkData(v) {
         if (isFinite(v.x)) {
             if (isFinite(v.y)) {
                 if (isFinite(v.z)) {
-                    if (isFinite(v.r)) {
-                        return true;
+                    if (isFinite(v.tx)) {
+                        if (isFinite(v.ty)) {
+                            if (isFinite(v.tz)) {
+                                if (isFinite(v.r)) {
+                                    return true;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -3587,13 +3588,14 @@ class BrainNetwork extends SubBrain {
         if (dataArray) {
             let data = dataArray[0];
             if (data) {
-                console.log(data);
-                let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+                let f = Nabu.Easing.smoothNSec(1 / dt, 0.1);
                 let pos = new BABYLON.Vector3(data.x, data.y, data.z);
-                BABYLON.Vector3.LerpToRef(this.dodo.position, pos, 1 - fSpeed, this.dodo.position);
+                BABYLON.Vector3.LerpToRef(this.dodo.position, pos, 1 - f, this.dodo.position);
+                let targetLook = new BABYLON.Vector3(data.tx, data.ty, data.tz);
+                BABYLON.Vector3.LerpToRef(this.dodo.targetLook, targetLook, 1 - f, this.dodo.targetLook);
                 let z = Mummu.Rotate(BABYLON.Axis.Z, BABYLON.Axis.Y, data.r);
                 let q = Mummu.QuaternionFromZYAxis(z, BABYLON.Axis.Y);
-                BABYLON.Quaternion.SlerpToRef(this.dodo.rotationQuaternion, q, 1 - fSpeed, this.dodo.rotationQuaternion);
+                BABYLON.Quaternion.SlerpToRef(this.dodo.rotationQuaternion, q, 1 - f, this.dodo.rotationQuaternion);
             }
         }
     }
