@@ -85,9 +85,9 @@ function StorageSetItem(key: string, value: string): void {
     }
 }
 
-var SHARE_SERVICE_PATH: string = "https://dodo.tiaratum.com/index.php/";
+var SHARE_SERVICE_PATH: string = "https://dodopolis.tiaratum.com/index.php/";
 if (location.host.startsWith("127.0.0.1")) {
-    SHARE_SERVICE_PATH = "http://localhost/index.php/";
+    //SHARE_SERVICE_PATH = "http://localhost/index.php/";
 }
 
 async function WaitPlayerInteraction(): Promise<void> {
@@ -425,6 +425,19 @@ class Game {
 
         this.networkDodos = [];
         this.npcDodos = [];
+
+        for (let n = 0; n < 4; n++) {
+            let npcDodo = new Dodo("Test", this, {
+                speed: 1.5 + Math.random(),
+                stepDuration: 0.2 + 0.2 * Math.random()
+            });
+            await npcDodo.instantiate();
+            npcDodo.unfold();
+            npcDodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));
+            npcDodo.brain = new Brain(npcDodo, BrainMode.Network);
+            npcDodo.brain.initialize();
+            this.npcDodos.push(npcDodo);
+        }
 
         this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();

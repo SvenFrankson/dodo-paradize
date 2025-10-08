@@ -14,10 +14,10 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
 	processing begun of mesh:  0-body
 		processing begun of material:  Green
-		num positions      :  171
-		num normals        :  171
+		num positions      :  130
+		num normals        :  130
 		num tangents       :  0
-		num uvs            :  342
+		num uvs            :  260
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  192
@@ -33,10 +33,10 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num triangles      :  64
 	processing begun of mesh:  2-lower-leg
 		processing begun of material:  Red
-		num positions      :  42
-		num normals        :  42
+		num positions      :  43
+		num normals        :  43
 		num tangents       :  0
-		num uvs            :  84
+		num uvs            :  86
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  32
@@ -45,28 +45,40 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		processing begun of material:  Red
 		registered as also a user of material:  Red
 		processing begun of multimaterial:  dodo.Multimaterial#0
-		num positions      :  104
-		num normals        :  104
+		num positions      :  205
+		num normals        :  205
 		num tangents       :  0
-		num uvs            :  208
+		num uvs            :  410
 		num uvs2           :  0
 		num colors         :  0
-		num triangles      :  76
+		num triangles      :  220
 	processing begun of mesh:  4-eye
 		processing begun of material:  White
-		num positions      :  98
-		num normals        :  98
+		num positions      :  196
+		num normals        :  196
 		num tangents       :  0
-		num uvs            :  196
+		num uvs            :  392
 		num uvs2           :  0
 		num colors         :  0
-		num triangles      :  120
+		num triangles      :  240
+	processing begun of node:  Empty
+	processing begun of node:  Empty.001
+	processing begun of mesh:  Cube
+		WARNING: No materials have been assigned: 
+		num positions      :  29
+		num normals        :  29
+		num tangents       :  0
+		num uvs            :  58
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  12
 ========= Writing of JSON file started =========
 	writing mesh:  0-body
 	writing mesh:  1-upper-leg
 	writing mesh:  2-lower-leg
 	writing mesh:  3-head
 	writing mesh:  4-eye
+	writing mesh:  Cube
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.0347 secs
+elapsed time:  0 min, 0.0473 secs

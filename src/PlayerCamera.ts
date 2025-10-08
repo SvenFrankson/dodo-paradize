@@ -8,7 +8,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
     public set verticalAngle(v: number) {
         this._verticalAngle = Nabu.MinMax(v, - Math.PI / 2, Math.PI / 2);
     }
-    public pivotHeight: number = 1;
+    public pivotHeight: number = 2;
     public pivotRecoil: number = 4;
     public playerPosY: number = 0;
 

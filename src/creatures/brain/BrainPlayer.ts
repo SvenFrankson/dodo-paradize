@@ -65,14 +65,7 @@ class BrainPlayer extends SubBrain {
     }
 
     public update(dt: number): void {
-        if (Math.random() < 0.05) {
-            this._targetLook.copyFrom(this.dodo.position);
-            this._targetLook.addInPlace(this.dodo.forward.scale(20));
-            this._targetLook.x += Math.random() * 10 - 5;
-            this._targetLook.y += Math.random() * 10 - 5;
-            this._targetLook.z += Math.random() * 10 - 5;
-        }
-        BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.1, this.dodo.targetLook);
+        
 
         let moveInput = new BABYLON.Vector2(this._moveXAxisInput, this._moveYAxisInput);
         let inputForce = moveInput.length();
@@ -97,5 +90,21 @@ class BrainPlayer extends SubBrain {
 
         this.game.camera.verticalAngle += this._smoothedRotateXAxisInput;
         this.dodo.rotate(BABYLON.Axis.Y, this._smoothedRotateYAxisInput);
+
+        let aimRay = this.game.camera.getForwardRay(50);
+        let pick = this.game.scene.pickWithRay(aimRay, (mesh) => {
+            return mesh instanceof DodoCollider;
+        });
+
+        let f = 1;
+        if (pick.hit && pick.pickedMesh instanceof DodoCollider) {
+            this._targetLook.copyFrom(pick.pickedMesh.dodo.head.absolutePosition);
+            f = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+        }
+        else {
+            this._targetLook.copyFrom(aimRay.direction).scaleInPlace(50).addInPlace(aimRay.origin);
+            f = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+        }
+        BABYLON.Vector3.LerpToRef(this.dodo.targetLook, this._targetLook, 1 - f, this.dodo.targetLook);
     }
 }

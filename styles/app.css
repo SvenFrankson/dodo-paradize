@@ -91,6 +91,14 @@ a:active {
     position: relative;
 }
 
+#center-pointer {
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    left: calc(50vw - 10px);
+    top: calc(50vh - 10px);
+}
+
 #screen-loger-container {
   display: block;
   position: fixed;

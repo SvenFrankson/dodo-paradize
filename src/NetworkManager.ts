@@ -120,7 +120,7 @@ class NetworkManager {
                 tx: this.game.playerDodo.targetLook.x,
                 ty: this.game.playerDodo.targetLook.y,
                 tz: this.game.playerDodo.targetLook.z,
-                r: Mummu.AngleFromToAround(BABYLON.Axis.Z, this.game.playerDodo.forward, BABYLON.Axis.Y)
+                r: this.game.playerDodo.r
             }));
         }, 100);
     }

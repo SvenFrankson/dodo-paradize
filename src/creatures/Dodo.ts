@@ -38,6 +38,13 @@ var DodoColors = [
     BABYLON.Color3.FromHexString("#dcd6cf")
 ];
 
+class DodoCollider extends BABYLON.Mesh {
+
+    constructor(public dodo: Dodo) {
+        super("dodo-collider");
+    }
+}
+
 class Dodo extends Creature {
 
     public peerId: string = "";
@@ -45,6 +52,8 @@ class Dodo extends Creature {
     public colors: BABYLON.Color3[] = [];
     public style: string;
     public brain: Brain;
+
+    public dodoCollider: DodoCollider;
 
     public targetLook: BABYLON.Vector3 = BABYLON.Vector3.Zero();
 
@@ -61,7 +70,7 @@ class Dodo extends Creature {
     //public canon: BABYLON.Mesh;
     public stepHeight: number = 0.2;
     public foldedBodyHeight: number = 0.1;
-    public unfoldedBodyHeight: number = 0.6;
+    public unfoldedBodyHeight: number = 0.3;
     public bodyHeight: number = this.foldedBodyHeight;
     public animateWait = Mummu.AnimationFactory.EmptyVoidCallback;
     public animateBodyHeight = Mummu.AnimationFactory.EmptyNumberCallback;
@@ -69,8 +78,9 @@ class Dodo extends Creature {
     //public animateTopEyeLids = [Mummu.AnimationFactory.EmptyNumberCallback];
     //public animateBottomEyeLids = [Mummu.AnimationFactory.EmptyNumberCallback];
     public feet: DodoFoot[];
-    public upperLegLength: number = 0.27;
-    public lowerLegLength: number = 0.48;
+    public hipPos: BABYLON.Vector3 = new BABYLON.Vector3(.20792, -0.13091, 0);
+    public upperLegLength: number = 0.217;
+    public lowerLegLength: number = 0.224;
     public upperLegs: BABYLON.Mesh[];
     public lowerLegs: BABYLON.Mesh[];
     public static OutlinedMesh(name: string): BABYLON.Mesh {
@@ -79,6 +89,18 @@ class Dodo extends Creature {
         //mesh.outlineColor.copyFromFloats(0, 0, 0);
         //mesh.outlineWidth = 0.03;
         return mesh;
+    }
+
+    private _tmpForwardAxis: BABYLON.Vector3 = BABYLON.Vector3.Forward();
+    public get r(): number {
+        return Mummu.AngleFromToAround(BABYLON.Axis.Z, this.forward, BABYLON.Axis.Y);
+    }
+    public set r(v: number) {
+        Mummu.RotateToRef(BABYLON.Axis.Z, BABYLON.Axis.Y, v, this._tmpForwardAxis);
+        Mummu.QuaternionFromZYAxisToRef(this._tmpForwardAxis, BABYLON.Axis.Y, this.rotationQuaternion);
+    }
+    public get bodyR(): number {
+        return Mummu.AngleFromToAround(BABYLON.Axis.Z, this.body.forward, BABYLON.Axis.Y);
     }
 
     constructor(name: string, game: Game, prop?: IDodoProp) {
@@ -123,9 +145,14 @@ class Dodo extends Creature {
             Dodo.OutlinedMesh("eyeL")
         ];
         this.eyes[0].parent = this.head;
-        this.eyes[0].position.copyFromFloats(0.11, 0.1, 0.12).scaleInPlace(0.6);
+        this.eyes[0].position.copyFromFloats(0.09299, 0.125989, 0.076938);
         this.eyes[1].parent = this.head;
-        this.eyes[1].position.copyFromFloats(-0.11, 0.1, 0.12).scaleInPlace(0.6);
+        this.eyes[1].position.copyFromFloats(-0.09299, 0.125989, 0.076938);
+
+        this.dodoCollider = new DodoCollider(this);
+        this.dodoCollider.parent = this.body;
+        BABYLON.CreateBoxVertexData({ width: 0.8, height: 1, depth: 1 }).applyToMesh(this.dodoCollider);
+        this.dodoCollider.visibility = 0;
 
         /*
         this.topEyelids = [
@@ -423,37 +450,50 @@ class Dodo extends Creature {
     public footIndex: number = 0;
     public walk(): void {
         if (this.walking === 0 && this.isAlive) {
-            let xFactor = this.footIndex === 0 ? 1 : - 1;
-            let spread = 0.25;
-            let animatedSpeedForward = BABYLON.Vector3.Dot(this.animatedSpeed, this.forward);
-            let animatedSpeedRight = BABYLON.Vector3.Dot(this.animatedSpeed, this.right);
-            spread += 0.15 * Math.abs(animatedSpeedRight) / (0.5 * this.speed)
-            let origin = new BABYLON.Vector3(xFactor * spread, 1, 0);
-            let up = BABYLON.Vector3.Up();
-            BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
-            origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.4)).addInPlace(this.right.scale(animatedSpeedRight * 0.4));
-
-            let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0));
-            let pick = this._scene.pickWithRay(ray, (mesh => {
-                return mesh.name.startsWith("chunck");
-            }));
-            if (pick.hit) {
-                origin = pick.pickedPoint;
-                up = pick.getNormal(true, false);
-
-                let foot = this.feet[this.footIndex];
-                if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
-                    this.walking = 1;
-                    let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
-                    foot.groundPos = origin;
-                    foot.groundUp = up;
-                    this.animateFoot(foot, origin.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
-                        this.walking = 0;
-                        this.footIndex = (this.footIndex + 1) % 2;
-                    });
+            let deltaPos = this.position.subtract(this.body.position);
+            deltaPos.y = 0;
+            let doWalk = false;
+            if (deltaPos.length() > 0.02) {
+                doWalk = true;
+            }
+            else {
+                if (Math.abs(this.r - this.bodyR) > Math.PI / 8) {
+                    doWalk = true;
                 }
-                else {
-                    this.footIndex = (this.footIndex + 1) % 2;
+            }
+            if (doWalk) {
+                let xFactor = this.footIndex === 0 ? 1 : - 1;
+                let spread = 0.2;
+                let animatedSpeedForward = BABYLON.Vector3.Dot(this.animatedSpeed, this.forward);
+                let animatedSpeedRight = BABYLON.Vector3.Dot(this.animatedSpeed, this.right);
+                spread += 0.15 * Math.abs(animatedSpeedRight) / (0.5 * this.speed)
+                let origin = new BABYLON.Vector3(xFactor * spread, 1, 0);
+                let up = BABYLON.Vector3.Up();
+                BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
+                origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.4)).addInPlace(this.right.scale(animatedSpeedRight * 0.4));
+
+                let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0));
+                let pick = this._scene.pickWithRay(ray, (mesh => {
+                    return mesh.name.startsWith("chunck");
+                }));
+                if (pick.hit) {
+                    origin = pick.pickedPoint;
+                    up = pick.getNormal(true, false);
+
+                    let foot = this.feet[this.footIndex];
+                    if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
+                        this.walking = 1;
+                        let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
+                        foot.groundPos = origin;
+                        foot.groundUp = up;
+                        this.animateFoot(foot, origin.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
+                            this.walking = 0;
+                            this.footIndex = (this.footIndex + 1) % 2;
+                        });
+                    }
+                    else {
+                        this.footIndex = (this.footIndex + 1) % 2;
+                    }
                 }
             }
         }
@@ -497,13 +537,13 @@ class Dodo extends Creature {
 
         let right = this.feet[0].position.subtract(this.feet[1].position);
         right.normalize();
-        right.addInPlace(this.right.scale(3));
+        right.addInPlace(this.right.scale(3 * this.animatedSpeed.length() / this.speed));
         right.normalize();
-        this.body.rotationQuaternion = BABYLON.Quaternion.Slerp(this.rotationQuaternion, Mummu.QuaternionFromXYAxis(right, this.up), 0.9);
+        this.body.rotationQuaternion = BABYLON.Quaternion.Slerp(this.rotationQuaternion, Mummu.QuaternionFromXYAxis(right, this.up), 0.95);
 
         this.body.freezeWorldMatrix();
 
-        let hipR = new BABYLON.Vector3(0.25, 0, -0.12);
+        let hipR = this.hipPos.clone();
         BABYLON.Vector3.TransformCoordinatesToRef(hipR, this.body.getWorldMatrix(), hipR);
 
         let kneeR = hipR.clone().addInPlace(this.feet[0].position).scaleInPlace(0.5);
@@ -523,7 +563,8 @@ class Dodo extends Creature {
         this.upperLegs[0].position.copyFrom(hipR);
         this.lowerLegs[0].position.copyFrom(kneeR);
 
-        let hipL = new BABYLON.Vector3(- 0.25, 0, -0.12);
+        let hipL = this.hipPos.clone();
+        hipL.x = - hipL.x;
         BABYLON.Vector3.TransformCoordinatesToRef(hipL, this.body.getWorldMatrix(), hipL);
 
         let kneeL = hipL.clone().addInPlace(this.feet[1].position).scaleInPlace(0.5);
@@ -546,8 +587,8 @@ class Dodo extends Creature {
         let feetDeltaY = Math.abs(this.feet[0].position.y - this.feet[1].position.y);
         let neck = new BABYLON.Vector3(0, 0, 0);        
         neck.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
-        neck.y += this.bodyHeight + 0.42 - feetDeltaY * 0.25;
-        neck.addInPlace(this.forward.scale(0.4));
+        neck.y += this.bodyHeight + 0.51793 - feetDeltaY * 0.25;
+        neck.addInPlace(this.body.forward.scale(0.37652));
 
         let headForce = neck.subtract(this.head.position);
         headForce.scaleInPlace(60 * dt);
@@ -560,24 +601,23 @@ class Dodo extends Creature {
         if (this.targetLook) {
             forward.copyFrom(this.targetLook).subtractInPlace(this.head.position).normalize();
         }
-        let q = Mummu.QuaternionFromZYAxis(forward, this.up);
-        BABYLON.Quaternion.SlerpToRef(this.head.rotationQuaternion, BABYLON.Quaternion.Slerp(this.body.rotationQuaternion, q, 0.5), 0.01, this.head.rotationQuaternion);
+        this.head.rotationQuaternion = Mummu.QuaternionFromZYAxis(forward, this.up);
 
         let db = this.head.absolutePosition.add(this.head.forward.scale(0.5)).subtract(this.bodyTargetPos);
         db.scaleInPlace(2);
         let rComp = this.right.scale(BABYLON.Vector3.Dot(db, this.right));
         db.subtractInPlace(rComp.scale(2));
 
-        let tailPoints = [new BABYLON.Vector3(0, 0.0, 0.21), this.head.absolutePosition];
+        let tailPoints = [new BABYLON.Vector3(0, 0.050484, 0.165269), this.head.absolutePosition];
         BABYLON.Vector3.TransformCoordinatesToRef(tailPoints[0], this.body.getWorldMatrix(), tailPoints[0]);
 
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(2), BABYLON.Vector3.Up().scale(2));
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(2), BABYLON.Vector3.Up().scale(2));
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(3), BABYLON.Vector3.Up().scale(2));
+        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(3), BABYLON.Vector3.Up().scale(2));
 
         let data = Mummu.CreateWireVertexData({
             path: tailPoints,
             radiusFunc: (f) => {
-                return 0.20 - 0.15 * f;
+                return 0.18 - 0.15 * f;
             },
             tesselation: 8,
             pathUps: tailPoints.map(() => { return this.body.up.subtract(this.body.forward); }),
