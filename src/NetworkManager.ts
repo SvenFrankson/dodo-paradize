@@ -9,56 +9,72 @@ class NetworkManager {
     public receivedData: Map<string, IBrainNetworkData[]> = new Map<string, IBrainNetworkData[]>();
 
     constructor(public game: Game) {
-        console.log("Create NetworkManager");
+        ScreenLoger.Log("Create NetworkManager");
     }
 
     public async initialize(): Promise<void> {
-        let id = 640;
-        let otherId = 641;
-        if (IsMobile === 1) {
-            id = 641;
-            otherId = 640;
-        }
+        ScreenLoger.Log("Initialize NetworkManager");
+
+        this.peer = new Peer();
+        this.peer.on("open", this.onPeerOpen.bind(this));
+        this.peer.on("connection", this.onPeerConnection.bind(this))
+    }
+
+    public async onPeerOpen(id: string): Promise<void> {
+        ScreenLoger.Log("Open peer connection, my ID is");
+        ScreenLoger.Log(id);
+        this.game.playerDodo.peerId = id;
 
         let connectPlayerData = {
-            peerId: id.toFixed(0),
+            peerId: id,
             displayName: this.game.playerDodo.name,
             posX: 0,
             posY: 0,
             posZ: 0
         }
+
         let dataString = JSON.stringify(connectPlayerData);
-        const response = await fetch(SHARE_SERVICE_PATH + "connect_player", {
-            method: "POST",
-            mode: "cors",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: dataString,
-        });
-        let responseText = await response.text();
-        console.log(responseText);
-
-        console.log("Initialize NetworkManager");
-
-        this.peer = new Peer(id.toFixed(0));
-        this.peer.on("open", this.onPeerOpen.bind(this));
-        this.peer.on("connection", this.onPeerConnection.bind(this))
-
-        let debugTryToConnect = () => {
-            if (this.debugConnected) {
-                return;
-            }
-            console.log("debugTryToConnect");
-            this.connectToPlayer(otherId.toFixed(0));
-            setTimeout(debugTryToConnect, 3000);
+        try {
+            const response = await fetch(SHARE_SERVICE_PATH + "connect_player", {
+                method: "POST",
+                mode: "cors",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: dataString,
+            });
+            let responseText = await response.text();
+            console.log(responseText);
+            ScreenLoger.Log(responseText);
         }
-        debugTryToConnect();
-    }
+        catch(e) {
+            console.error(e);
+            ScreenLoger.Log("connect_player error");
+            ScreenLoger.Log(e);
+        }
 
-    public onPeerOpen(id: string): void {
-        console.log("Open peer connection, my ID is");
-        console.log(id);
+        try {
+            const responseExistingPlayers = await fetch(SHARE_SERVICE_PATH + "get_players", {
+                method: "GET",
+                mode: "cors"
+            });
+            let responseText = await responseExistingPlayers.text();
+            console.log(responseText);
+            let responseJSON = JSON.parse(responseText);
+            console.log(responseJSON);
+
+            for (let n = 0; n < responseJSON.players.length; n++) {
+                let otherPlayer = responseJSON.players[n];
+                if (otherPlayer.peerId != this.game.playerDodo.peerId) {
+                    this.connectToPlayer(otherPlayer.peerId);
+                }
+            }
+        }
+        catch (e) {
+            console.error(e);
+            ScreenLoger.Log("get_players error");
+            ScreenLoger.Log(e);
+        }
     }
 
     public connectToPlayer(playerId: string): void {
@@ -69,12 +85,18 @@ class NetworkManager {
         });
     }
 
-    public onPeerConnection(conn: Peer.DataConnection): void {
+    public async onPeerConnection(conn: Peer.DataConnection): Promise<void> {
         console.log("Incoming connection, other ID is '" + conn.peer + "'");
         this.debugConnected = true;
+        let existingDodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
+        if (!existingDodo) {
+            existingDodo = await this.createDodo("Unkown", conn.peer);
+            this.game.networkDodos.push(existingDodo);
+        }
+
         setInterval(() => {
             conn.send(JSON.stringify({
-                dodoId: this.game.playerDodo.dodoId,
+                dodoId: this.game.playerDodo.peerId,
                 x: this.game.playerDodo.position.x,
                 y: this.game.playerDodo.position.y,
                 z: this.game.playerDodo.position.z,
@@ -115,5 +137,19 @@ class NetworkManager {
         while (dataArray.length > 10) {
             dataArray.pop();
         }
+    }
+
+    public async createDodo(name: string, peerId: string): Promise<Dodo> {
+        let dodo = new Dodo(name, this.game, {
+            speed: 1.5 + Math.random(),
+            stepDuration: 0.2 + 0.2 * Math.random()
+        });
+        dodo.peerId = peerId;
+        await dodo.instantiate();
+        dodo.unfold();
+        dodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));
+        dodo.brain = new Brain(dodo, BrainMode.Network);
+        dodo.brain.initialize();
+        return dodo;
     }
 }

@@ -90,3 +90,16 @@ a:active {
 .touch-joystick svg {
     position: relative;
 }
+
+#screen-loger-container {
+  display: block;
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  z-index: 1;
+  color: lime;
+}
+
+.screen-loger-line {
+  font-family: monospace;
+}

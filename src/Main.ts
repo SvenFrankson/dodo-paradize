@@ -117,16 +117,14 @@ function firstPlayerInteraction(): void {
     }
     PlayerHasInteracted = true;
 
-    Game.Instance.networkManager.initialize();
-
     if (IsMobile === 1) {
-        Game.Instance.playerDodo.dodoId = "MobileBoy";
-        Game.Instance.npcDodos[0].dodoId = "DesktopBoy";
+        Game.Instance.playerDodo.name = "MobileBoy";
     }
     else {
-        Game.Instance.playerDodo.dodoId = "DesktopBoy";
-        Game.Instance.npcDodos[0].dodoId = "MobileBoy";
+        Game.Instance.playerDodo.name = "PCBoy";
     }
+
+    Game.Instance.networkManager.initialize();
 }
 
 let onFirstPlayerInteractionTouch = (ev: Event) => {
@@ -240,6 +238,7 @@ class Game {
     public terrainManager: TerrainManager;
     public brickManager: BrickManager;
     public playerDodo: Dodo;
+    public networkDodos: Dodo[];
     public npcDodos: Dodo[];
 
     constructor(canvasElement: string) {
@@ -424,19 +423,8 @@ class Game {
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
 
+        this.networkDodos = [];
         this.npcDodos = [];
-        for (let n = 0; n < 1; n++) {
-            let dodo = new Dodo("Other", this, {
-                speed: 1.5 + Math.random(),
-                stepDuration: 0.2 + 0.2 * Math.random()
-            });
-            await dodo.instantiate();
-            dodo.unfold();
-            dodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));
-            dodo.brain = new Brain(dodo, BrainMode.Network);
-            dodo.brain.initialize();
-            this.npcDodos[n] = dodo;
-        }
 
         this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();
@@ -513,6 +501,9 @@ class Game {
             this.globalTimer += rawDT;
             this.terrainManager.update();
             this.playerDodo.update(rawDT);
+            this.networkDodos.forEach(dodo => {
+                dodo.update(rawDT);
+            })
             this.npcDodos.forEach(dodo => {
                 dodo.update(rawDT);
             })

@@ -13,7 +13,7 @@ class BrainNetwork extends SubBrain {
 
     public update(dt: number): void {
         let network = this.game.networkManager;
-        let dataArray = network.receivedData.get(this.dodo.dodoId);
+        let dataArray = network.receivedData.get(this.dodo.peerId);
         if (dataArray) {
             let data = dataArray[0];
             if (data) {

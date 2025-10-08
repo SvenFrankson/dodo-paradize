@@ -1,8 +1,10 @@
 <?php
 include 'src/ConnectPlayerController.php';
+include 'src/GetPlayersController.php';
 include './Config.php';
 use src\ConnectPlayerData;
 use src\ConnectPlayerController;
+use src\GetPlayersController;
 
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Origin: *");
@@ -54,6 +56,12 @@ if (isset($uri[2]) && $uri[2] == 'connect_player') {
     }
 
     $controller = new ConnectPlayerController($requestMethod, $connectPlayerData, $password);
+    $controller->processRequest();
+}
+else if (isset($uri[2]) && $uri[2] == 'get_players') {
+    $connectPlayerData = new ConnectPlayerData();
+    
+    $controller = new GetPlayersController($requestMethod, $connectPlayerData, $password);
     $controller->processRequest();
 }
 else {

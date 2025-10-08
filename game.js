@@ -280,15 +280,13 @@ function firstPlayerInteraction() {
         document.body.classList.add("mobile");
     }
     PlayerHasInteracted = true;
-    Game.Instance.networkManager.initialize();
     if (IsMobile === 1) {
-        Game.Instance.playerDodo.dodoId = "MobileBoy";
-        Game.Instance.npcDodos[0].dodoId = "DesktopBoy";
+        Game.Instance.playerDodo.name = "MobileBoy";
     }
     else {
-        Game.Instance.playerDodo.dodoId = "DesktopBoy";
-        Game.Instance.npcDodos[0].dodoId = "MobileBoy";
+        Game.Instance.playerDodo.name = "PCBoy";
     }
+    Game.Instance.networkManager.initialize();
 }
 let onFirstPlayerInteractionTouch = (ev) => {
     if (!Game.Instance.gameLoaded) {
@@ -534,19 +532,8 @@ class Game {
         this.playerDodo = new Dodo("Player", this);
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
+        this.networkDodos = [];
         this.npcDodos = [];
-        for (let n = 0; n < 1; n++) {
-            let dodo = new Dodo("Other", this, {
-                speed: 1.5 + Math.random(),
-                stepDuration: 0.2 + 0.2 * Math.random()
-            });
-            await dodo.instantiate();
-            dodo.unfold();
-            dodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));
-            dodo.brain = new Brain(dodo, BrainMode.Network);
-            dodo.brain.initialize();
-            this.npcDodos[n] = dodo;
-        }
         this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();
         this.playerDodo.unfold();
@@ -594,6 +581,9 @@ class Game {
             this.globalTimer += rawDT;
             this.terrainManager.update();
             this.playerDodo.update(rawDT);
+            this.networkDodos.forEach(dodo => {
+                dodo.update(rawDT);
+            });
             this.npcDodos.forEach(dodo => {
                 dodo.update(rawDT);
             });
@@ -747,50 +737,65 @@ class NetworkManager {
         this.game = game;
         this.debugConnected = false;
         this.receivedData = new Map();
-        console.log("Create NetworkManager");
+        ScreenLoger.Log("Create NetworkManager");
     }
     async initialize() {
-        let id = 640;
-        let otherId = 641;
-        if (IsMobile === 1) {
-            id = 641;
-            otherId = 640;
-        }
+        ScreenLoger.Log("Initialize NetworkManager");
+        this.peer = new Peer();
+        this.peer.on("open", this.onPeerOpen.bind(this));
+        this.peer.on("connection", this.onPeerConnection.bind(this));
+    }
+    async onPeerOpen(id) {
+        ScreenLoger.Log("Open peer connection, my ID is");
+        ScreenLoger.Log(id);
+        this.game.playerDodo.peerId = id;
         let connectPlayerData = {
-            peerId: id.toFixed(0),
+            peerId: id,
             displayName: this.game.playerDodo.name,
             posX: 0,
             posY: 0,
             posZ: 0
         };
         let dataString = JSON.stringify(connectPlayerData);
-        const response = await fetch(SHARE_SERVICE_PATH + "connect_player", {
-            method: "POST",
-            mode: "cors",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: dataString,
-        });
-        let responseText = await response.text();
-        console.log(responseText);
-        console.log("Initialize NetworkManager");
-        this.peer = new Peer(id.toFixed(0));
-        this.peer.on("open", this.onPeerOpen.bind(this));
-        this.peer.on("connection", this.onPeerConnection.bind(this));
-        let debugTryToConnect = () => {
-            if (this.debugConnected) {
-                return;
+        try {
+            const response = await fetch(SHARE_SERVICE_PATH + "connect_player", {
+                method: "POST",
+                mode: "cors",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: dataString,
+            });
+            let responseText = await response.text();
+            console.log(responseText);
+            ScreenLoger.Log(responseText);
+        }
+        catch (e) {
+            console.error(e);
+            ScreenLoger.Log("connect_player error");
+            ScreenLoger.Log(e);
+        }
+        try {
+            const responseExistingPlayers = await fetch(SHARE_SERVICE_PATH + "get_players", {
+                method: "GET",
+                mode: "cors"
+            });
+            let responseText = await responseExistingPlayers.text();
+            console.log(responseText);
+            let responseJSON = JSON.parse(responseText);
+            console.log(responseJSON);
+            for (let n = 0; n < responseJSON.players.length; n++) {
+                let otherPlayer = responseJSON.players[n];
+                if (otherPlayer.peerId != this.game.playerDodo.peerId) {
+                    this.connectToPlayer(otherPlayer.peerId);
+                }
             }
-            console.log("debugTryToConnect");
-            this.connectToPlayer(otherId.toFixed(0));
-            setTimeout(debugTryToConnect, 3000);
-        };
-        debugTryToConnect();
-    }
-    onPeerOpen(id) {
-        console.log("Open peer connection, my ID is");
-        console.log(id);
+        }
+        catch (e) {
+            console.error(e);
+            ScreenLoger.Log("get_players error");
+            ScreenLoger.Log(e);
+        }
     }
     connectToPlayer(playerId) {
         console.log("Connecting to player of ID'" + playerId + "'");
@@ -799,12 +804,17 @@ class NetworkManager {
             this.onPeerConnection(conn);
         });
     }
-    onPeerConnection(conn) {
+    async onPeerConnection(conn) {
         console.log("Incoming connection, other ID is '" + conn.peer + "'");
         this.debugConnected = true;
+        let existingDodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
+        if (!existingDodo) {
+            existingDodo = await this.createDodo("Unkown", conn.peer);
+            this.game.networkDodos.push(existingDodo);
+        }
         setInterval(() => {
             conn.send(JSON.stringify({
-                dodoId: this.game.playerDodo.dodoId,
+                dodoId: this.game.playerDodo.peerId,
                 x: this.game.playerDodo.position.x,
                 y: this.game.playerDodo.position.y,
                 z: this.game.playerDodo.position.z,
@@ -837,6 +847,19 @@ class NetworkManager {
         while (dataArray.length > 10) {
             dataArray.pop();
         }
+    }
+    async createDodo(name, peerId) {
+        let dodo = new Dodo(name, this.game, {
+            speed: 1.5 + Math.random(),
+            stepDuration: 0.2 + 0.2 * Math.random()
+        });
+        dodo.peerId = peerId;
+        await dodo.instantiate();
+        dodo.unfold();
+        dodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));
+        dodo.brain = new Brain(dodo, BrainMode.Network);
+        dodo.brain.initialize();
+        return dodo;
     }
 }
 class NumValueInput extends HTMLElement {
@@ -1068,6 +1091,22 @@ class PlayerCamera extends BABYLON.FreeCamera {
             let dir = targetLook.subtract(this.position);
             this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
         }
+    }
+}
+class ScreenLoger {
+    static get container() {
+        if (!ScreenLoger._container) {
+            ScreenLoger._container = document.createElement("div");
+            ScreenLoger._container.id = "screen-loger-container";
+            document.body.appendChild(ScreenLoger._container);
+        }
+        return ScreenLoger._container;
+    }
+    static Log(s) {
+        let line = document.createElement("div");
+        line.classList.add("screen-loger-line");
+        line.innerText = s;
+        ScreenLoger.container.appendChild(line);
     }
 }
 class MySound {
@@ -2849,7 +2888,7 @@ class CreatureFactory {
 class Dodo extends Creature {
     constructor(name, game, prop) {
         super(name, game);
-        this.dodoId = "";
+        this.peerId = "";
         this.stepDuration = 0.2;
         this.colors = [];
         this.targetLook = BABYLON.Vector3.Zero();
@@ -2871,7 +2910,7 @@ class Dodo extends Creature {
         this.walking = 0;
         this.footIndex = 0;
         this.name = "Dodo_" + Math.floor(Math.random() * 10000).toFixed(0);
-        this.dodoId = name;
+        this.peerId = name;
         this.colors = [
             new BABYLON.Color3(Math.random(), Math.random(), Math.random()),
             new BABYLON.Color3(Math.random(), Math.random(), Math.random()),
@@ -3498,7 +3537,7 @@ class BrainNetwork extends SubBrain {
     }
     update(dt) {
         let network = this.game.networkManager;
-        let dataArray = network.receivedData.get(this.dodo.dodoId);
+        let dataArray = network.receivedData.get(this.dodo.peerId);
         if (dataArray) {
             let data = dataArray[0];
             if (data) {
