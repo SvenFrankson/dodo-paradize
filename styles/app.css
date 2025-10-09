@@ -99,6 +99,28 @@ a:active {
     top: calc(50vh - 10px);
 }
 
+#dodo-customize-menu {
+    position: fixed;
+    top: 25%;
+    left: calc(50vw + 300px);
+    border: 1px solid black;
+    border-radius: 5px;
+    width: fit-content;
+    padding: 10px;
+    font-family: Roboto;
+    font-weight: 300;
+}
+
+#dodo-customize-menu .label {
+    display: block;
+    margin-left: 10px;
+}
+
+#dodo-customize-menu .value {
+    display: inline-block;
+    width: 80px;
+}
+
 #screen-loger-container {
   display: block;
   position: fixed;

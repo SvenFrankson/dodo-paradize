@@ -8,7 +8,8 @@ class PlayerCamera extends BABYLON.FreeCamera {
     public set verticalAngle(v: number) {
         this._verticalAngle = Nabu.MinMax(v, - Math.PI / 2, Math.PI / 2);
     }
-    public pivotHeight: number = 2;
+    public pivotHeight: number = 1.1;
+    public pivotHeightHome: number = 0.5;
     public pivotRecoil: number = 4;
     public playerPosY: number = 0;
 
@@ -18,26 +19,50 @@ class PlayerCamera extends BABYLON.FreeCamera {
 
     public onUpdate(dt: number): void {
         if (this.player) {
-            let target = this.player.forward.scale(- this.pivotRecoil);
-            Mummu.RotateInPlace(target, this.player.right, this.verticalAngle);
-            let targetLook = target.clone().scaleInPlace(-5);
+            if (this.game.gameMode === GameMode.Home) {
+                let target = new BABYLON.Vector3(0, 0, - this.pivotRecoil);
+                Mummu.RotateInPlace(target, BABYLON.Axis.X, this.verticalAngle);
+                let targetLook = target.clone().scaleInPlace(-5);
 
-            let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 1);
-            this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
-            target.y += this.pivotHeight;
-            target.x += this.player.position.x;
-            target.y += this.playerPosY;
-            target.z += this.player.position.z;
+                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 1);
+                this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
+                target.y += this.pivotHeightHome;
+                target.x += this.player.position.x;
+                target.y += this.playerPosY;
+                target.z += this.player.position.z;
 
-            targetLook.y += this.pivotHeight;
-            targetLook.x += this.player.position.x;
-            targetLook.y += this.player.position.y;
-            targetLook.z += this.player.position.z;
+                targetLook.y += this.pivotHeightHome;
+                targetLook.x += this.player.position.x;
+                targetLook.y += this.player.position.y;
+                targetLook.z += this.player.position.z;
 
-            this.position.copyFrom(target);
+                this.position.copyFrom(target);
 
-            let dir = targetLook.subtract(this.position);
-            this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
+                let dir = targetLook.subtract(this.position);
+                this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
+            }
+            else if (this.game.gameMode === GameMode.Playing) {
+                let target = this.player.forward.scale(- this.pivotRecoil);
+                Mummu.RotateInPlace(target, this.player.right, this.verticalAngle);
+                let targetLook = target.clone().scaleInPlace(-5);
+
+                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 1);
+                this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
+                target.y += this.pivotHeight;
+                target.x += this.player.position.x;
+                target.y += this.playerPosY;
+                target.z += this.player.position.z;
+
+                targetLook.y += this.pivotHeight;
+                targetLook.x += this.player.position.x;
+                targetLook.y += this.player.position.y;
+                targetLook.z += this.player.position.z;
+
+                this.position.copyFrom(target);
+
+                let dir = targetLook.subtract(this.position);
+                this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
+            }
         }
     }
 }

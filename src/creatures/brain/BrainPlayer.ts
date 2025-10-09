@@ -66,21 +66,22 @@ class BrainPlayer extends SubBrain {
 
     public update(dt: number): void {
         
-
-        let moveInput = new BABYLON.Vector2(this._moveXAxisInput, this._moveYAxisInput);
-        let inputForce = moveInput.length();
-        if (inputForce > 1) {
-            moveInput.normalize();
-        }
-        let dir = this.dodo.right.scale(moveInput.x * 0.5).add(this.dodo.forward.scale(moveInput.y));
-        if (dir.lengthSquared() > 0) {
-            this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
-            let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.5);
-            BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, dir.scale(this.dodo.speed), 1 - fSpeed, this.dodo.animatedSpeed);
-        }
-        else {
-            let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
-            this.dodo.animatedSpeed.scaleInPlace(fSpeed);
+        if (this.game.gameMode === GameMode.Playing) {
+            let moveInput = new BABYLON.Vector2(this._moveXAxisInput, this._moveYAxisInput);
+            let inputForce = moveInput.length();
+            if (inputForce > 1) {
+                moveInput.normalize();
+            }
+            let dir = this.dodo.right.scale(moveInput.x * 0.3).add(this.dodo.forward.scale(moveInput.y));
+            if (dir.lengthSquared() > 0) {
+                this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
+                let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+                BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, dir.scale(this.dodo.speed), 1 - fSpeed, this.dodo.animatedSpeed);
+            }
+            else {
+                let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+                this.dodo.animatedSpeed.scaleInPlace(fSpeed);
+            }
         }
 
         this._smoothedRotateXAxisInput = this._smoothedRotateXAxisInput * this._pointerSmoothness + this._rotateXAxisInput * (1 - this._pointerSmoothness);
@@ -91,19 +92,38 @@ class BrainPlayer extends SubBrain {
         this.game.camera.verticalAngle += this._smoothedRotateXAxisInput;
         this.dodo.rotate(BABYLON.Axis.Y, this._smoothedRotateYAxisInput);
 
-        let aimRay = this.game.camera.getForwardRay(50);
-        let pick = this.game.scene.pickWithRay(aimRay, (mesh) => {
-            return mesh instanceof DodoCollider;
-        });
-
         let f = 1;
-        if (pick.hit && pick.pickedMesh instanceof DodoCollider) {
-            this._targetLook.copyFrom(pick.pickedMesh.dodo.head.absolutePosition);
+        if (this.game.gameMode === GameMode.Home) {
+            let dir = this.game.camera.globalPosition.subtract(this.dodo.position);
+            let angle = Mummu.AngleFromToAround(this.dodo.forward, dir, BABYLON.Axis.Y);
             f = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+            if (Math.abs(angle) < Math.PI / 4) {
+                this._targetLook.copyFrom(this.game.camera.globalPosition);
+            }
+            else {
+                let twistAngle = Mummu.Angle(this.dodo.forward, this.dodo.head.forward);
+                if (Math.random() < 0.005 || twistAngle > Math.PI / 6) {
+                    this._targetLook.copyFrom(this.dodo.position);
+                    this._targetLook.addInPlace(this.dodo.forward.scale(20));
+                    this._targetLook.x += Math.random() * 10 - 5;
+                    this._targetLook.y += Math.random() * 10 - 5;
+                    this._targetLook.z += Math.random() * 10 - 5;
+                }
+            }
         }
-        else {
-            this._targetLook.copyFrom(aimRay.direction).scaleInPlace(50).addInPlace(aimRay.origin);
-            f = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+        else if (this.game.gameMode === GameMode.Playing) {
+            let aimRay = this.game.camera.getForwardRay(50);
+            let pick = this.game.scene.pickWithRay(aimRay, (mesh) => {
+                return mesh instanceof DodoCollider && mesh.dodo != this.dodo;
+            });
+            if (pick.hit && pick.pickedMesh instanceof DodoCollider) {
+                this._targetLook.copyFrom(pick.pickedMesh.dodo.head.absolutePosition);
+                f = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+            }
+            else {
+                this._targetLook.copyFrom(aimRay.direction).scaleInPlace(50).addInPlace(aimRay.origin);
+                f = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+            }
         }
         BABYLON.Vector3.LerpToRef(this.dodo.targetLook, this._targetLook, 1 - f, this.dodo.targetLook);
     }

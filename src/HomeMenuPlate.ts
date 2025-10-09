@@ -1,0 +1,86 @@
+class HomeMenuCustomizeLine {
+
+    public maxValue: number = 16;
+    private _value: number = 0;
+    public get value(): number {
+        return this._value;
+    }
+    public setValue(v: number, skipOnValueChangedCallback?: boolean) {
+        this._value = (v + this.maxValue) % this.maxValue;
+        this.valueElement.innerHTML = this.toString(this.value);
+        if (!skipOnValueChangedCallback) {
+            this.onValueChanged(this.value);
+        }
+    }
+    public prev: HTMLButtonElement;
+    public next: HTMLButtonElement;
+    public valueElement: HTMLSpanElement;
+
+    constructor(public line: HTMLDivElement) {
+        this.prev = this.line.querySelector(".prev");
+        this.prev.onclick = this.onPrev;
+        this.next = this.line.querySelector(".next");
+        this.next.onclick = this.onNext;
+        this.valueElement = this.line.querySelector(".value");
+    }
+
+    public onPrev = () => {
+        this.setValue(this.value - 1);
+    };
+    public onNext = () => {
+        this.setValue(this.value + 1);
+    };
+    public toString = (v: number) => {
+        return v.toFixed(0);
+    }
+    public onValueChanged = (v: number) => {
+
+    }
+}
+
+class HomeMenuPlate extends BABYLON.Mesh {
+
+    public customizeHeadLine: HomeMenuCustomizeLine;
+    public customizeEyesLine: HomeMenuCustomizeLine;
+    public customizeBeakLine: HomeMenuCustomizeLine;
+    public customizeBodyLine: HomeMenuCustomizeLine;
+
+    constructor(public game: Game) {
+        super("home-menu-plate");
+        BABYLON.CreateCylinderVertexData({ height: 0.1, diameter: 1 }).applyToMesh(this);
+        this.position.copyFromFloats(0, -1000, 0);
+
+        this.customizeHeadLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-head"));
+        this.customizeEyesLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-eyes"));
+        this.customizeBeakLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-beak"));
+        this.customizeBodyLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-body"));
+    }
+
+    public initialize(): void {
+        let style = this.game.playerDodo.style;
+        this.customizeHeadLine.setValue(parseInt(style.substring(2, 4), 16));
+        this.customizeBeakLine.setValue(parseInt(style.substring(4, 6), 16));
+        this.customizeBodyLine.setValue(parseInt(style.substring(0, 2), 16));
+
+        this.customizeHeadLine.onValueChanged = (v) => {
+            let style = this.game.playerDodo.style;
+            let newStyle = style.substring(0, 2) + v.toString(16).padStart(2, "0") + style.substring(4, 6);
+            console.log(style + " " + newStyle);
+            this.game.playerDodo.setStyle(newStyle);
+        }
+
+        this.customizeBeakLine.onValueChanged = (v) => {
+            let style = this.game.playerDodo.style;
+            let newStyle = style.substring(0, 4) + v.toString(16).padStart(2, "0");
+            console.log(style + " " + newStyle);
+            this.game.playerDodo.setStyle(newStyle);
+        }
+        
+        this.customizeBodyLine.onValueChanged = (v) => {
+            let style = this.game.playerDodo.style;
+            let newStyle = v.toString(16).padStart(2, "0") + style.substring(2, 6);
+            console.log(style + " " + newStyle);
+            this.game.playerDodo.setStyle(newStyle);
+        }
+    }
+}

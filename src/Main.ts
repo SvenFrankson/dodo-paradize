@@ -197,11 +197,18 @@ function StopPointerProgatationAndMonkeys(ev: PointerEvent) {
     ev.stopPropagation();
 }
 
+enum GameMode {
+    Home,
+    Playing,
+}
+
 class Game {
     
     public static Instance: Game;
     public DEBUG_MODE: boolean = true;
     public DEBUG_USE_LOCAL_STORAGE: boolean = true;
+
+    public gameMode: GameMode = GameMode.Home;
 
 	public canvas: HTMLCanvasElement;
     public canvasCurtain: HTMLDivElement;
@@ -234,6 +241,7 @@ class Game {
 
     public defaultToonMaterial: BABYLON.StandardMaterial;
     public networkManager: NetworkManager;
+    public homeMenuPlate: HomeMenuPlate;
     public terrain: Terrain;
     public terrainManager: TerrainManager;
     public brickManager: BrickManager;
@@ -415,26 +423,28 @@ class Game {
 
         this.networkManager = new NetworkManager(this);
 
+        this.homeMenuPlate = new HomeMenuPlate(this);
+
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
 
-        this.playerDodo = new Dodo("Player", this);
+        this.playerDodo = new Dodo("Player", this, { speed: 3, stepDuration: 0.3 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
 
         this.networkDodos = [];
         this.npcDodos = [];
 
-        for (let n = 0; n < 4; n++) {
+        for (let n = 0; n < 0; n++) {
             let npcDodo = new Dodo("Test", this, {
-                speed: 1.5 + Math.random(),
-                stepDuration: 0.2 + 0.2 * Math.random()
+                speed: 1 + Math.random(),
+                stepDuration: 0.2 + 0.1 * Math.random()
             });
             await npcDodo.instantiate();
             npcDodo.unfold();
             npcDodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));
-            npcDodo.brain = new Brain(npcDodo, BrainMode.Network);
+            npcDodo.brain = new Brain(npcDodo, BrainMode.Idle, BrainMode.Travel);
             npcDodo.brain.initialize();
             this.npcDodos.push(npcDodo);
         }
@@ -442,7 +452,10 @@ class Game {
         this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();
         this.playerDodo.unfold();
-        this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
+        this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, -1000, 0));
+        this.playerDodo.r = - 4 * Math.PI / 6;
+
+        this.homeMenuPlate.initialize();
 
         //let brick = new Brick(this.brickManager, Brick.BrickIdToIndex("brick_4x1"), 0);
         //brick.position.copyFromFloats(0, TILE_H, 0);

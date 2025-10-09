@@ -54,10 +54,10 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num triangles      :  220
 	processing begun of mesh:  4-eye
 		processing begun of material:  White
-		num positions      :  196
-		num normals        :  196
+		num positions      :  124
+		num normals        :  124
 		num tangents       :  0
-		num uvs            :  392
+		num uvs            :  248
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  240
@@ -72,6 +72,25 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  12
+	processing begun of mesh:  5-tail
+		processing begun of material:  Blue
+		registered as also a user of material:  Blue
+		num positions      :  9
+		num normals        :  9
+		num tangents       :  0
+		num uvs            :  18
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  13
+	processing begun of mesh:  6-tail-side
+		WARNING: No materials have been assigned: 
+		num positions      :  9
+		num normals        :  9
+		num tangents       :  0
+		num uvs            :  18
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  13
 ========= Writing of JSON file started =========
 	writing mesh:  0-body
 	writing mesh:  1-upper-leg
@@ -79,6 +98,8 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	writing mesh:  3-head
 	writing mesh:  4-eye
 	writing mesh:  Cube
+	writing mesh:  5-tail
+	writing mesh:  6-tail-side
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.0473 secs
+elapsed time:  0 min, 0.1846 secs
