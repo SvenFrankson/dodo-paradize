@@ -380,14 +380,13 @@ class Dodo extends Creature {
 
         this.body.position.copyFrom(p);
         this.body.position.y += this.bodyHeight;
+        this.bodyTargetPos.copyFrom(this.body.position);
 
         this.head.position.copyFrom(p);
         this.head.position.y += this.bodyHeight + 0.5;
         
-        let pRight = new BABYLON.Vector3(0.4, 0.2, this.speed * 0.2);
-        BABYLON.Vector3.TransformCoordinatesToRef(pRight, this.getWorldMatrix(), this.feet[0].position);
-        let pLeft = new BABYLON.Vector3(-0.4, 0.2, this.speed * 0.2);
-        BABYLON.Vector3.TransformCoordinatesToRef(pLeft, this.getWorldMatrix(), this.feet[1].position);
+        this.feet[0].position.copyFrom(p);
+        this.feet[1].position.copyFrom(p);
     }
 
     public barycenterWorldPositionToRef(ref: BABYLON.Vector3): void {

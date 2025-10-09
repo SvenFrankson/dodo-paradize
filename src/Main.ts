@@ -123,8 +123,6 @@ function firstPlayerInteraction(): void {
     else {
         Game.Instance.playerDodo.name = "PCBoy";
     }
-
-    Game.Instance.networkManager.initialize();
 }
 
 let onFirstPlayerInteractionTouch = (ev: Event) => {
@@ -451,17 +449,21 @@ class Game {
 
         this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();
-        this.playerDodo.unfold();
-        this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, -1000, 0));
-        this.playerDodo.r = - 4 * Math.PI / 6;
 
         this.homeMenuPlate.initialize();
+
+        document.querySelector("#start").addEventListener("click", () => {
+            this.setGameMode(GameMode.Playing);
+        })
 
         //let brick = new Brick(this.brickManager, Brick.BrickIdToIndex("brick_4x1"), 0);
         //brick.position.copyFromFloats(0, TILE_H, 0);
         //brick.updateMesh();
 
         this.gameLoaded = true;
+
+        this.setGameMode(GameMode.Home);
+
         I18Nizer.Translate(LOCALE);
         if (USE_POKI_SDK) {
             PokiSDK.gameLoadingFinished();
@@ -480,6 +482,25 @@ class Game {
         }
         //this.performanceWatcher.showDebug();
 	}
+
+    public setGameMode(mode: GameMode) {
+        this.gameMode = mode;
+        if (this.gameMode === GameMode.Home) {
+            (document.querySelector("#start") as HTMLDivElement).style.display = "";
+            (document.querySelector("#dodo-customize-menu") as HTMLDivElement).style.display = "";
+            this.playerDodo.unfold();
+            this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, -1000, 0));
+            this.playerDodo.r = - 4 * Math.PI / 6;
+        }
+        else if (this.gameMode === GameMode.Playing) {
+            (document.querySelector("#start") as HTMLDivElement).style.display = "none";
+            (document.querySelector("#dodo-customize-menu") as HTMLDivElement).style.display = "none";
+            this.playerDodo.unfold();
+            this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
+            this.playerDodo.r = 0;
+            this.networkManager.initialize();
+        }
+    }
 
     public onResize = () => {
         let rect = this.canvas.getBoundingClientRect();

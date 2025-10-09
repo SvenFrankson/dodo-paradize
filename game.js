@@ -355,7 +355,6 @@ function firstPlayerInteraction() {
     else {
         Game.Instance.playerDodo.name = "PCBoy";
     }
-    Game.Instance.networkManager.initialize();
 }
 let onFirstPlayerInteractionTouch = (ev) => {
     if (!Game.Instance.gameLoaded) {
@@ -624,14 +623,15 @@ class Game {
         }
         this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();
-        this.playerDodo.unfold();
-        this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, -1000, 0));
-        this.playerDodo.r = -4 * Math.PI / 6;
         this.homeMenuPlate.initialize();
+        document.querySelector("#start").addEventListener("click", () => {
+            this.setGameMode(GameMode.Playing);
+        });
         //let brick = new Brick(this.brickManager, Brick.BrickIdToIndex("brick_4x1"), 0);
         //brick.position.copyFromFloats(0, TILE_H, 0);
         //brick.updateMesh();
         this.gameLoaded = true;
+        this.setGameMode(GameMode.Home);
         I18Nizer.Translate(LOCALE);
         if (USE_POKI_SDK) {
             PokiSDK.gameLoadingFinished();
@@ -648,6 +648,24 @@ class Game {
             document.getElementById("click-anywhere-screen").style.display = "none";
         }
         //this.performanceWatcher.showDebug();
+    }
+    setGameMode(mode) {
+        this.gameMode = mode;
+        if (this.gameMode === GameMode.Home) {
+            document.querySelector("#start").style.display = "";
+            document.querySelector("#dodo-customize-menu").style.display = "";
+            this.playerDodo.unfold();
+            this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, -1000, 0));
+            this.playerDodo.r = -4 * Math.PI / 6;
+        }
+        else if (this.gameMode === GameMode.Playing) {
+            document.querySelector("#start").style.display = "none";
+            document.querySelector("#dodo-customize-menu").style.display = "none";
+            this.playerDodo.unfold();
+            this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
+            this.playerDodo.r = 0;
+            this.networkManager.initialize();
+        }
     }
     animate() {
         this.engine.runRenderLoop(() => {
@@ -1165,7 +1183,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
         super("player-camera", BABYLON.Vector3.Zero());
         this.game = game;
         this._verticalAngle = 0;
-        this.pivotHeight = 1.1;
+        this.pivotHeight = 1.5;
         this.pivotHeightHome = 0.5;
         this.pivotRecoil = 4;
         this.playerPosY = 0;
@@ -1200,7 +1218,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 let target = this.player.forward.scale(-this.pivotRecoil);
                 Mummu.RotateInPlace(target, this.player.right, this.verticalAngle);
                 let targetLook = target.clone().scaleInPlace(-5);
-                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 1);
+                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.1);
                 this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
                 target.y += this.pivotHeight;
                 target.x += this.player.position.x;
@@ -3294,12 +3312,11 @@ class Dodo extends Creature {
         this.computeWorldMatrix(true);
         this.body.position.copyFrom(p);
         this.body.position.y += this.bodyHeight;
+        this.bodyTargetPos.copyFrom(this.body.position);
         this.head.position.copyFrom(p);
         this.head.position.y += this.bodyHeight + 0.5;
-        let pRight = new BABYLON.Vector3(0.4, 0.2, this.speed * 0.2);
-        BABYLON.Vector3.TransformCoordinatesToRef(pRight, this.getWorldMatrix(), this.feet[0].position);
-        let pLeft = new BABYLON.Vector3(-0.4, 0.2, this.speed * 0.2);
-        BABYLON.Vector3.TransformCoordinatesToRef(pLeft, this.getWorldMatrix(), this.feet[1].position);
+        this.feet[0].position.copyFrom(p);
+        this.feet[1].position.copyFrom(p);
     }
     barycenterWorldPositionToRef(ref) {
         BABYLON.Vector3.TransformCoordinatesToRef(new BABYLON.Vector3(0, 0.2, 0.2), this.body.getWorldMatrix(), ref);

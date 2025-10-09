@@ -8,7 +8,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
     public set verticalAngle(v: number) {
         this._verticalAngle = Nabu.MinMax(v, - Math.PI / 2, Math.PI / 2);
     }
-    public pivotHeight: number = 1.1;
+    public pivotHeight: number = 1.5;
     public pivotHeightHome: number = 0.5;
     public pivotRecoil: number = 4;
     public playerPosY: number = 0;
@@ -46,7 +46,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 Mummu.RotateInPlace(target, this.player.right, this.verticalAngle);
                 let targetLook = target.clone().scaleInPlace(-5);
 
-                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 1);
+                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.1);
                 this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
                 target.y += this.pivotHeight;
                 target.x += this.player.position.x;
