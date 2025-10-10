@@ -3,8 +3,7 @@
 class NetworkManager {
 
     private peer: Peer;
-
-    private debugConnected: boolean = false;
+    private token: string;
 
     public serverPlayersList: any[] = [];
     public receivedData: Map<string, IBrainNetworkData[]> = new Map<string, IBrainNetworkData[]>();
@@ -46,8 +45,11 @@ class NetworkManager {
                 body: dataString,
             });
             let responseText = await response.text();
-            console.log(responseText);
-            ScreenLoger.Log(responseText);
+            let responseJSON = JSON.parse(responseText);
+            this.token = responseJSON.token;
+            this.game.playerDodo.gameId = responseJSON.gameId;
+            console.log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
+            ScreenLoger.Log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
         }
         catch(e) {
             console.error(e);
@@ -90,7 +92,6 @@ class NetworkManager {
 
     public async onPeerConnection(conn: Peer.DataConnection): Promise<void> {
         console.log("Incoming connection, other ID is '" + conn.peer + "'");
-        this.debugConnected = true;
         let existingDodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
         if (!existingDodo) {
             let playerDesc = this.serverPlayersList.find(p => { return p.peerId === conn.peer; });

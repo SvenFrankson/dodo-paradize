@@ -52,6 +52,10 @@ class HomeMenuPlate extends BABYLON.Mesh {
 
         this.customizeHeadLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-head"));
         this.customizeEyesLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-eyes"));
+        this.customizeEyesLine.maxValue = DodoEyes.length;
+        this.customizeEyesLine.toString = (v: number) => {
+            return DodoEyes[v].name;
+        }
         this.customizeBeakLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-beak"));
         this.customizeBodyLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-body"));
     }
@@ -59,26 +63,34 @@ class HomeMenuPlate extends BABYLON.Mesh {
     public initialize(): void {
         let style = this.game.playerDodo.style;
         this.customizeHeadLine.setValue(parseInt(style.substring(2, 4), 16));
+        this.customizeEyesLine.setValue(parseInt(style.substring(6, 8), 16));
         this.customizeBeakLine.setValue(parseInt(style.substring(4, 6), 16));
         this.customizeBodyLine.setValue(parseInt(style.substring(0, 2), 16));
 
         this.customizeHeadLine.onValueChanged = (v) => {
             let style = this.game.playerDodo.style;
-            let newStyle = style.substring(0, 2) + v.toString(16).padStart(2, "0") + style.substring(4, 6);
+            let newStyle = style.substring(0, 2) + v.toString(16).padStart(2, "0") + style.substring(4, 8);
+            console.log(style + " " + newStyle);
+            this.game.playerDodo.setStyle(newStyle);
+        }
+
+        this.customizeEyesLine.onValueChanged = (v) => {
+            let style = this.game.playerDodo.style;
+            let newStyle = style.substring(0, 6) + v.toString(16).padStart(2, "0");
             console.log(style + " " + newStyle);
             this.game.playerDodo.setStyle(newStyle);
         }
 
         this.customizeBeakLine.onValueChanged = (v) => {
             let style = this.game.playerDodo.style;
-            let newStyle = style.substring(0, 4) + v.toString(16).padStart(2, "0");
+            let newStyle = style.substring(0, 4) + v.toString(16).padStart(2, "0")  + style.substring(6, 8);
             console.log(style + " " + newStyle);
             this.game.playerDodo.setStyle(newStyle);
         }
         
         this.customizeBodyLine.onValueChanged = (v) => {
             let style = this.game.playerDodo.style;
-            let newStyle = v.toString(16).padStart(2, "0") + style.substring(2, 6);
+            let newStyle = v.toString(16).padStart(2, "0") + style.substring(2, 8);
             console.log(style + " " + newStyle);
             this.game.playerDodo.setStyle(newStyle);
         }

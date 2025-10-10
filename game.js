@@ -214,29 +214,40 @@ class HomeMenuPlate extends BABYLON.Mesh {
         this.position.copyFromFloats(0, -1000, 0);
         this.customizeHeadLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-head"));
         this.customizeEyesLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-eyes"));
+        this.customizeEyesLine.maxValue = DodoEyes.length;
+        this.customizeEyesLine.toString = (v) => {
+            return DodoEyes[v].name;
+        };
         this.customizeBeakLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-beak"));
         this.customizeBodyLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-body"));
     }
     initialize() {
         let style = this.game.playerDodo.style;
         this.customizeHeadLine.setValue(parseInt(style.substring(2, 4), 16));
+        this.customizeEyesLine.setValue(parseInt(style.substring(6, 8), 16));
         this.customizeBeakLine.setValue(parseInt(style.substring(4, 6), 16));
         this.customizeBodyLine.setValue(parseInt(style.substring(0, 2), 16));
         this.customizeHeadLine.onValueChanged = (v) => {
             let style = this.game.playerDodo.style;
-            let newStyle = style.substring(0, 2) + v.toString(16).padStart(2, "0") + style.substring(4, 6);
+            let newStyle = style.substring(0, 2) + v.toString(16).padStart(2, "0") + style.substring(4, 8);
+            console.log(style + " " + newStyle);
+            this.game.playerDodo.setStyle(newStyle);
+        };
+        this.customizeEyesLine.onValueChanged = (v) => {
+            let style = this.game.playerDodo.style;
+            let newStyle = style.substring(0, 6) + v.toString(16).padStart(2, "0");
             console.log(style + " " + newStyle);
             this.game.playerDodo.setStyle(newStyle);
         };
         this.customizeBeakLine.onValueChanged = (v) => {
             let style = this.game.playerDodo.style;
-            let newStyle = style.substring(0, 4) + v.toString(16).padStart(2, "0");
+            let newStyle = style.substring(0, 4) + v.toString(16).padStart(2, "0") + style.substring(6, 8);
             console.log(style + " " + newStyle);
             this.game.playerDodo.setStyle(newStyle);
         };
         this.customizeBodyLine.onValueChanged = (v) => {
             let style = this.game.playerDodo.style;
-            let newStyle = v.toString(16).padStart(2, "0") + style.substring(2, 6);
+            let newStyle = v.toString(16).padStart(2, "0") + style.substring(2, 8);
             console.log(style + " " + newStyle);
             this.game.playerDodo.setStyle(newStyle);
         };
@@ -323,7 +334,7 @@ function StorageSetItem(key, value) {
 }
 var SHARE_SERVICE_PATH = "https://dodopolis.tiaratum.com/index.php/";
 if (location.host.startsWith("127.0.0.1")) {
-    //SHARE_SERVICE_PATH = "http://localhost/index.php/";
+    SHARE_SERVICE_PATH = "http://localhost/index.php/";
 }
 async function WaitPlayerInteraction() {
     return new Promise(resolve => {
@@ -604,7 +615,7 @@ class Game {
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
-        this.playerDodo = new Dodo("Player", this, { speed: 3, stepDuration: 0.3 });
+        this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.3 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.networkDodos = [];
@@ -843,7 +854,6 @@ requestAnimationFrame(async () => {
 class NetworkManager {
     constructor(game) {
         this.game = game;
-        this.debugConnected = false;
         this.serverPlayersList = [];
         this.receivedData = new Map();
         ScreenLoger.Log("Create NetworkManager");
@@ -877,8 +887,11 @@ class NetworkManager {
                 body: dataString,
             });
             let responseText = await response.text();
-            console.log(responseText);
-            ScreenLoger.Log(responseText);
+            let responseJSON = JSON.parse(responseText);
+            this.token = responseJSON.token;
+            this.game.playerDodo.gameId = responseJSON.gameId;
+            console.log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
+            ScreenLoger.Log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
         }
         catch (e) {
             console.error(e);
@@ -917,7 +930,6 @@ class NetworkManager {
     }
     async onPeerConnection(conn) {
         console.log("Incoming connection, other ID is '" + conn.peer + "'");
-        this.debugConnected = true;
         let existingDodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
         if (!existingDodo) {
             let playerDesc = this.serverPlayersList.find(p => { return p.peerId === conn.peer; });
@@ -3032,6 +3044,12 @@ var DodoColors = [
     BABYLON.Color3.FromHexString("#e8c6a1"),
     BABYLON.Color3.FromHexString("#dcd6cf")
 ];
+var DodoEyes = [
+    { name: "Blue", file: "datas/textures/eye_0.png" },
+    { name: "Green", file: "datas/textures/eye_1.png" },
+    { name: "Yellow", file: "datas/textures/eye_2.png" },
+    { name: "Brown", file: "datas/textures/eye_3.png" },
+];
 class DodoCollider extends BABYLON.Mesh {
     constructor(dodo) {
         super("dodo-collider");
@@ -3042,8 +3060,10 @@ class Dodo extends Creature {
     constructor(name, game, prop) {
         super(name, game);
         this.peerId = "";
+        this.gameId = -1;
         this.stepDuration = 0.2;
         this.colors = [];
+        this.eyeColor = 0;
         this.targetLook = BABYLON.Vector3.Zero();
         this.bodyTargetPos = BABYLON.Vector3.Zero();
         this.bodyVelocity = BABYLON.Vector3.Zero();
@@ -3088,7 +3108,8 @@ class Dodo extends Creature {
             let c1 = Math.floor(Math.random() * 16);
             let c2 = Math.floor(Math.random() * 16);
             let c3 = Math.floor(Math.random() * 16);
-            let style = c1.toString(16).padStart(2, "0") + c2.toString(16).padStart(2, "0") + c3.toString(16).padStart(2, "0");
+            let c4 = Math.floor(Math.random() * 4);
+            let style = c1.toString(16).padStart(2, "0") + c2.toString(16).padStart(2, "0") + c3.toString(16).padStart(2, "0") + c4.toString(16).padStart(2, "0");
             this.setStyle(style);
         }
         this.rotationQuaternion = BABYLON.Quaternion.Identity();
@@ -3219,6 +3240,7 @@ class Dodo extends Creature {
         this.colors[0] = DodoColors[parseInt(style.substring(0, 2), 16)];
         this.colors[1] = DodoColors[parseInt(style.substring(2, 4), 16)];
         this.colors[2] = DodoColors[parseInt(style.substring(4, 6), 16)];
+        this.eyeColor = parseInt(style.substring(6, 8), 16);
         if (this._instantiated) {
             this.instantiate();
         }
@@ -3229,7 +3251,7 @@ class Dodo extends Creature {
         this.head.material = this.material;
         this.eyeMaterial = new BABYLON.StandardMaterial("eye-material");
         this.eyeMaterial.specularColor.copyFromFloats(0, 0, 0);
-        this.eyeMaterial.diffuseTexture = new BABYLON.Texture("datas/textures/eye.png");
+        this.eyeMaterial.diffuseTexture = new BABYLON.Texture(DodoEyes[this.eyeColor].file);
         this.eyeMaterial.emissiveColor.copyFromFloats(1, 1, 1);
         this.eyes[0].material = this.eyeMaterial;
         this.eyes[1].material = this.eyeMaterial;
@@ -3874,7 +3896,7 @@ class BrainPlayer extends SubBrain {
             if (inputForce > 1) {
                 moveInput.normalize();
             }
-            let dir = this.dodo.right.scale(moveInput.x * 0.3).add(this.dodo.forward.scale(moveInput.y));
+            let dir = this.dodo.right.scale(moveInput.x * 0.3).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.3)));
             if (dir.lengthSquared() > 0) {
                 this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
                 let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
@@ -3895,7 +3917,7 @@ class BrainPlayer extends SubBrain {
         if (this.game.gameMode === GameMode.Home) {
             let dir = this.game.camera.globalPosition.subtract(this.dodo.position);
             let angle = Mummu.AngleFromToAround(this.dodo.forward, dir, BABYLON.Axis.Y);
-            f = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+            f = Nabu.Easing.smoothNSec(1 / dt, 1);
             if (Math.abs(angle) < Math.PI / 4) {
                 this._targetLook.copyFrom(this.game.camera.globalPosition);
             }
@@ -3903,10 +3925,10 @@ class BrainPlayer extends SubBrain {
                 let twistAngle = Mummu.Angle(this.dodo.forward, this.dodo.head.forward);
                 if (Math.random() < 0.005 || twistAngle > Math.PI / 6) {
                     this._targetLook.copyFrom(this.dodo.position);
-                    this._targetLook.addInPlace(this.dodo.forward.scale(20));
-                    this._targetLook.x += Math.random() * 10 - 5;
-                    this._targetLook.y += Math.random() * 10 - 5;
-                    this._targetLook.z += Math.random() * 10 - 5;
+                    this._targetLook.addInPlace(this.dodo.forward.scale(4));
+                    this._targetLook.x += Math.random() * 2 - 1;
+                    this._targetLook.y += Math.random() * 2 - 1;
+                    this._targetLook.z += Math.random() * 2 - 1;
                 }
             }
         }

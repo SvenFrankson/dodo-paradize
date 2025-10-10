@@ -72,7 +72,7 @@ class BrainPlayer extends SubBrain {
             if (inputForce > 1) {
                 moveInput.normalize();
             }
-            let dir = this.dodo.right.scale(moveInput.x * 0.3).add(this.dodo.forward.scale(moveInput.y));
+            let dir = this.dodo.right.scale(moveInput.x * 0.3).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.3)));
             if (dir.lengthSquared() > 0) {
                 this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
                 let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
@@ -96,7 +96,7 @@ class BrainPlayer extends SubBrain {
         if (this.game.gameMode === GameMode.Home) {
             let dir = this.game.camera.globalPosition.subtract(this.dodo.position);
             let angle = Mummu.AngleFromToAround(this.dodo.forward, dir, BABYLON.Axis.Y);
-            f = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+            f = Nabu.Easing.smoothNSec(1 / dt, 1);
             if (Math.abs(angle) < Math.PI / 4) {
                 this._targetLook.copyFrom(this.game.camera.globalPosition);
             }
@@ -104,10 +104,10 @@ class BrainPlayer extends SubBrain {
                 let twistAngle = Mummu.Angle(this.dodo.forward, this.dodo.head.forward);
                 if (Math.random() < 0.005 || twistAngle > Math.PI / 6) {
                     this._targetLook.copyFrom(this.dodo.position);
-                    this._targetLook.addInPlace(this.dodo.forward.scale(20));
-                    this._targetLook.x += Math.random() * 10 - 5;
-                    this._targetLook.y += Math.random() * 10 - 5;
-                    this._targetLook.z += Math.random() * 10 - 5;
+                    this._targetLook.addInPlace(this.dodo.forward.scale(4));
+                    this._targetLook.x += Math.random() * 2 - 1;
+                    this._targetLook.y += Math.random() * 2 - 1;
+                    this._targetLook.z += Math.random() * 2 - 1;
                 }
             }
         }

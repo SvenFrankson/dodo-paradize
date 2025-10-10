@@ -11,6 +11,7 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,DELETE");
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Origin, Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header("Access-Control-Expose-Headers: set-cookie");
 
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = explode( '/', $uri );
@@ -26,10 +27,6 @@ foreach (getallheaders() as $name => $value) {
 }
 
 $requestMethod = $_SERVER["REQUEST_METHOD"];
-
-if ($requestMethod === "POST" && isset($uri[2]) && $uri[2] == 'machine') {
-    $uri[2] = 'publish_machine';
-}
 
 // everything else results in a 404 Not Found
 if (isset($uri[2]) && $uri[2] == 'connect_player') {

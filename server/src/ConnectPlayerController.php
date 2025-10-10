@@ -15,6 +15,15 @@ class ConnectPlayerData {
     }
 }
 
+class ConnectPlayerResponse {
+    public $gameId;
+    public $token;
+
+    public function toJSON() {
+        return json_encode(get_object_vars($this));
+    }
+}
+
 class ConnectPlayerController {
 
     private $requestMethod;
@@ -49,6 +58,10 @@ class ConnectPlayerController {
         }
     }
 
+    private function generateToken($length = 32) {
+        return bin2hex(random_bytes($length));
+    }
+
     private function connectPlayer($connectPlayerData, $password)
     {
         global $servername;
@@ -62,7 +75,6 @@ class ConnectPlayerController {
             $connectPlayerData->displayName = $conn->real_escape_string($connectPlayerData->displayName);
             $connectPlayerData->style = $conn->real_escape_string($connectPlayerData->style);
     
-            $response['status_code_header'] = 'HTTP/1.1 200 OK';
             if (!$conn) {
                 $response['status_code_header'] = 'HTTP/1.1 404 Not Found';
                 $response['body'] = "Can't connect to DB.";
@@ -78,10 +90,15 @@ class ConnectPlayerController {
                 //$row = $result->fetch_row();
                 //$duplicateCount = $row[0];
 
-                $sql = "INSERT INTO dodo_players (display_name, peer_id, style, pos_x, pos_y, pos_z, creation_date) VALUES ('$connectPlayerData->displayName', '$connectPlayerData->peerId', '$connectPlayerData->style', $connectPlayerData->posX, $connectPlayerData->posY, $connectPlayerData->posZ, $creation)";
+                $token = $this->generateToken(32);
+                $sql = "INSERT INTO dodo_players (token, display_name, peer_id, style, pos_x, pos_y, pos_z, creation_date) VALUES ('$token', '$connectPlayerData->displayName', '$connectPlayerData->peerId', '$connectPlayerData->style', $connectPlayerData->posX, $connectPlayerData->posY, $connectPlayerData->posZ, $creation)";
 
                 if ($conn->query($sql) === TRUE) {
-                    $response['body'] = mysqli_insert_id($conn);
+                    $response['status_code_header'] = 'HTTP/1.1 200 OK';
+                    $connectResponse = new ConnectPlayerResponse();
+                    $connectResponse->gameId = mysqli_insert_id($conn);
+                    $connectResponse->token = $token;
+                    $response['body'] = $connectResponse->toJSON();
                 } 
                 else {
                     $response['status_code_header'] = 'HTTP/1.1 404 Not Found';

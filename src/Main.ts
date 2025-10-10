@@ -87,7 +87,7 @@ function StorageSetItem(key: string, value: string): void {
 
 var SHARE_SERVICE_PATH: string = "https://dodopolis.tiaratum.com/index.php/";
 if (location.host.startsWith("127.0.0.1")) {
-    //SHARE_SERVICE_PATH = "http://localhost/index.php/";
+    SHARE_SERVICE_PATH = "http://localhost/index.php/";
 }
 
 async function WaitPlayerInteraction(): Promise<void> {
@@ -427,7 +427,7 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
 
-        this.playerDodo = new Dodo("Player", this, { speed: 3, stepDuration: 0.3 });
+        this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.3 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
 

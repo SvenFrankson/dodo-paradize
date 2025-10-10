@@ -38,6 +38,13 @@ var DodoColors = [
     BABYLON.Color3.FromHexString("#dcd6cf")
 ];
 
+var DodoEyes = [
+    { name: "Blue", file: "datas/textures/eye_0.png" },
+    { name: "Green", file: "datas/textures/eye_1.png" },
+    { name: "Yellow", file: "datas/textures/eye_2.png" },
+    { name: "Brown", file: "datas/textures/eye_3.png" },
+]
+
 class DodoCollider extends BABYLON.Mesh {
 
     constructor(public dodo: Dodo) {
@@ -48,8 +55,10 @@ class DodoCollider extends BABYLON.Mesh {
 class Dodo extends Creature {
 
     public peerId: string = "";
+    public gameId: number = -1;
     public stepDuration: number = 0.2;
     public colors: BABYLON.Color3[] = [];
+    public eyeColor: number = 0;
     public style: string;
     public brain: Brain;
 
@@ -134,7 +143,8 @@ class Dodo extends Creature {
             let c1 = Math.floor(Math.random() * 16);
             let c2 = Math.floor(Math.random() * 16);
             let c3 = Math.floor(Math.random() * 16);
-            let style = c1.toString(16).padStart(2, "0") + c2.toString(16).padStart(2, "0") + c3.toString(16).padStart(2, "0");
+            let c4 = Math.floor(Math.random() * 4);
+            let style = c1.toString(16).padStart(2, "0") + c2.toString(16).padStart(2, "0") + c3.toString(16).padStart(2, "0") + c4.toString(16).padStart(2, "0");
             this.setStyle(style);
         }
 
@@ -261,6 +271,7 @@ class Dodo extends Creature {
         this.colors[0] = DodoColors[parseInt(style.substring(0, 2), 16)];
         this.colors[1] = DodoColors[parseInt(style.substring(2, 4), 16)];
         this.colors[2] = DodoColors[parseInt(style.substring(4, 6), 16)];
+        this.eyeColor = parseInt(style.substring(6, 8), 16);
 
         if (this._instantiated) {
             this.instantiate();
@@ -276,7 +287,7 @@ class Dodo extends Creature {
 
         this.eyeMaterial = new BABYLON.StandardMaterial("eye-material");
         this.eyeMaterial.specularColor.copyFromFloats(0, 0, 0);
-        this.eyeMaterial.diffuseTexture = new BABYLON.Texture("datas/textures/eye.png");
+        this.eyeMaterial.diffuseTexture = new BABYLON.Texture(DodoEyes[this.eyeColor].file);
         this.eyeMaterial.emissiveColor.copyFromFloats(1, 1, 1);
         this.eyes[0].material = this.eyeMaterial;
         this.eyes[1].material = this.eyeMaterial;
