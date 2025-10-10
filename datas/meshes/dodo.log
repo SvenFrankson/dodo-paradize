@@ -91,6 +91,19 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  13
+	processing begun of mesh:  7-jaw
+		processing begun of material:  Blue
+		processing begun of material:  Red
+		registered as also a user of material:  Blue
+		registered as also a user of material:  Red
+		processing begun of multimaterial:  dodo.Multimaterial#1
+		num positions      :  18
+		num normals        :  18
+		num tangents       :  0
+		num uvs            :  36
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  32
 ========= Writing of JSON file started =========
 	writing mesh:  0-body
 	writing mesh:  1-upper-leg
@@ -100,6 +113,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	writing mesh:  Cube
 	writing mesh:  5-tail
 	writing mesh:  6-tail-side
+	writing mesh:  7-jaw
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.051 secs
+elapsed time:  0 min, 0.0585 secs

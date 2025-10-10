@@ -120,6 +120,7 @@ class Dodo extends Creature {
     public head: BABYLON.Mesh;
     public headVelocity: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public eyes: BABYLON.Mesh[];
+    public jaw: BABYLON.Mesh;
     public tail: BABYLON.Mesh;
     public tailTargetPos: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public tailFeathers: BABYLON.Mesh[];
@@ -136,6 +137,7 @@ class Dodo extends Creature {
     //public animateCanonRotX = Mummu.AnimationFactory.EmptyNumberCallback;
     //public animateTopEyeLids = [Mummu.AnimationFactory.EmptyNumberCallback];
     //public animateBottomEyeLids = [Mummu.AnimationFactory.EmptyNumberCallback];
+    public animateJaw = Mummu.AnimationFactory.EmptyNumberCallback;
     public feet: DodoFoot[];
     public hipPos: BABYLON.Vector3 = new BABYLON.Vector3(.20792, -0.13091, 0);
     public upperLegLength: number = 0.217;
@@ -200,6 +202,11 @@ class Dodo extends Creature {
 
         this.head = Dodo.OutlinedMesh("head");
         this.head.rotationQuaternion = BABYLON.Quaternion.Identity();
+
+        
+        this.jaw = Dodo.OutlinedMesh("jaw");
+        this.jaw.parent = this.head;
+        this.jaw.position.copyFromFloats(0, -0.078575, 0.055646);
 
         this.eyes = [
             new BABYLON.Mesh("eyeR"),
@@ -300,6 +307,7 @@ class Dodo extends Creature {
 
         this.animateWait = Mummu.AnimationFactory.CreateWait(this);
         this.animateBodyHeight = Mummu.AnimationFactory.CreateNumber(this, this, "bodyHeight", undefined, undefined, Nabu.Easing.easeInOutSine);
+        this.animateJaw = Mummu.AnimationFactory.CreateNumber(this, this.jaw.rotation, "x");
         /*
         this.animateCanonRotX = Mummu.AnimationFactory.CreateNumber(this, this.canon.rotation, "x");
         this.animateTopEyeLids = [
@@ -331,6 +339,7 @@ class Dodo extends Creature {
 
         this.body.material = this.material;
         this.head.material = this.material;
+        this.jaw.material = this.material;
 
         this.eyeMaterial = new BABYLON.StandardMaterial("eye-material");
         this.eyeMaterial.specularColor.copyFromFloats(0, 0, 0);
@@ -424,6 +433,8 @@ class Dodo extends Creature {
 
         await this.feet[0].instantiate();
         await this.feet[1].instantiate();
+        
+        datas[7].applyToMesh(this.jaw);
 
         //datas[1].applyToMesh(this.upperLegs[0]);
         //datas[1].applyToMesh(this.upperLegs[1]);
@@ -642,6 +653,10 @@ class Dodo extends Creature {
             this.brain.update(dt);
         }
 
+        if (Math.random() < 0.01) {
+            this.kwak();
+        }
+
         this.walk();
 
         let dR = this.r - this._lastR;
@@ -800,5 +815,10 @@ class Dodo extends Creature {
             //this.animateBottomEyeLids[i](- Math.PI / 4, 0.15)
         })
         await this.animateWait(0.15);
+    }
+
+    public async kwak(): Promise<void> {
+        await this.animateJaw(Math.PI / 6, 0.1);
+        await this.animateJaw(0, 0.1);
     }
 }

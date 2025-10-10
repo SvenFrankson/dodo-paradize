@@ -3385,6 +3385,10 @@ class Dodo extends Creature {
         this.bodyHeight = this.foldedBodyHeight;
         this.animateWait = Mummu.AnimationFactory.EmptyVoidCallback;
         this.animateBodyHeight = Mummu.AnimationFactory.EmptyNumberCallback;
+        //public animateCanonRotX = Mummu.AnimationFactory.EmptyNumberCallback;
+        //public animateTopEyeLids = [Mummu.AnimationFactory.EmptyNumberCallback];
+        //public animateBottomEyeLids = [Mummu.AnimationFactory.EmptyNumberCallback];
+        this.animateJaw = Mummu.AnimationFactory.EmptyNumberCallback;
         this.hipPos = new BABYLON.Vector3(.20792, -0.13091, 0);
         this.upperLegLength = 0.217;
         this.lowerLegLength = 0.224;
@@ -3422,6 +3426,9 @@ class Dodo extends Creature {
         this.body = Dodo.OutlinedMesh("body");
         this.head = Dodo.OutlinedMesh("head");
         this.head.rotationQuaternion = BABYLON.Quaternion.Identity();
+        this.jaw = Dodo.OutlinedMesh("jaw");
+        this.jaw.parent = this.head;
+        this.jaw.position.copyFromFloats(0, -0.078575, 0.055646);
         this.eyes = [
             new BABYLON.Mesh("eyeR"),
             new BABYLON.Mesh("eyeL")
@@ -3512,6 +3519,7 @@ class Dodo extends Creature {
         this.hitCollider.parent = this.body;
         this.animateWait = Mummu.AnimationFactory.CreateWait(this);
         this.animateBodyHeight = Mummu.AnimationFactory.CreateNumber(this, this, "bodyHeight", undefined, undefined, Nabu.Easing.easeInOutSine);
+        this.animateJaw = Mummu.AnimationFactory.CreateNumber(this, this.jaw.rotation, "x");
         /*
         this.animateCanonRotX = Mummu.AnimationFactory.CreateNumber(this, this.canon.rotation, "x");
         this.animateTopEyeLids = [
@@ -3555,6 +3563,7 @@ class Dodo extends Creature {
         this.material = this.game.defaultToonMaterial;
         this.body.material = this.material;
         this.head.material = this.material;
+        this.jaw.material = this.material;
         this.eyeMaterial = new BABYLON.StandardMaterial("eye-material");
         this.eyeMaterial.specularColor.copyFromFloats(0, 0, 0);
         let eyeTexture = new BABYLON.DynamicTexture("eye-texture", 256);
@@ -3624,6 +3633,7 @@ class Dodo extends Creature {
         datas[2].applyToMesh(this.lowerLegs[1]);
         await this.feet[0].instantiate();
         await this.feet[1].instantiate();
+        datas[7].applyToMesh(this.jaw);
         //datas[1].applyToMesh(this.upperLegs[0]);
         //datas[1].applyToMesh(this.upperLegs[1]);
         //this.upperLegs[1].scaling.copyFromFloats(-1, 1, 1);
@@ -3813,6 +3823,9 @@ class Dodo extends Creature {
         if (this.brain) {
             this.brain.update(dt);
         }
+        if (Math.random() < 0.01) {
+            this.kwak();
+        }
         this.walk();
         let dR = this.r - this._lastR;
         this._lastR = this.r;
@@ -3942,6 +3955,10 @@ class Dodo extends Creature {
             //this.animateBottomEyeLids[i](- Math.PI / 4, 0.15)
         });
         await this.animateWait(0.15);
+    }
+    async kwak() {
+        await this.animateJaw(Math.PI / 6, 0.1);
+        await this.animateJaw(0, 0.1);
     }
 }
 class DodoFoot extends BABYLON.Mesh {
