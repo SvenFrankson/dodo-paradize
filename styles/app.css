@@ -156,7 +156,8 @@ a:active {
 
 #dodo-customize-menu .value {
     display: inline-block;
-    width: 80px;
+    width: 160px;
+    text-align: center;
 }
 
 #screen-loger-container {

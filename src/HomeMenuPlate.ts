@@ -66,13 +66,25 @@ class HomeMenuPlate extends BABYLON.Mesh {
         skybox.material = skyboxMaterial;
 
         this.customizeHeadLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-head"));
+        this.customizeHeadLine.maxValue = DodoColors.length;
+        this.customizeHeadLine.toString = (v: number) => {
+            return DodoColors[v].name;
+        }
         this.customizeEyesLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-eyes"));
         this.customizeEyesLine.maxValue = DodoEyes.length;
         this.customizeEyesLine.toString = (v: number) => {
             return DodoEyes[v].name;
         }
         this.customizeBeakLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-beak"));
+        this.customizeBeakLine.maxValue = DodoColors.length;
+        this.customizeBeakLine.toString = (v: number) => {
+            return DodoColors[v].name;
+        }
         this.customizeBodyLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-body"));
+        this.customizeBodyLine.maxValue = DodoColors.length;
+        this.customizeBodyLine.toString = (v: number) => {
+            return DodoColors[v].name;
+        }
     }
 
     public initialize(): void {

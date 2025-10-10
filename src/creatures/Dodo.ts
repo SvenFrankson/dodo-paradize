@@ -19,6 +19,7 @@ function IsStyleNetworkData(v: any): boolean {
     return false;
 }
 
+/*
 var DodoColors = [
     BABYLON.Color3.FromHexString("#17171c"),
     BABYLON.Color3.FromHexString("#282a30"),
@@ -37,6 +38,52 @@ var DodoColors = [
     BABYLON.Color3.FromHexString("#e8c6a1"),
     BABYLON.Color3.FromHexString("#dcd6cf")
 ];
+*/
+
+var DodoColors = [
+    { name: "Chinese Black", color: BABYLON.Color3.FromHexString("#10121c") },
+    { name: "Dark Purple", color: BABYLON.Color3.FromHexString("#2c1e31") },
+    { name: "Old Mauve", color: BABYLON.Color3.FromHexString("#6b2643") },
+    { name: "Amaranth Purple", color: BABYLON.Color3.FromHexString("#ac2847") },
+    { name: "Imperial Red", color: BABYLON.Color3.FromHexString("#ec273f") },
+    { name: "Chestnut", color: BABYLON.Color3.FromHexString("#94493a") },
+    { name: "#Medium Vermilion", color: BABYLON.Color3.FromHexString("#de5d3a") },
+    { name: "Cadmium Orange", color: BABYLON.Color3.FromHexString("#e98537") },
+    { name: "Deep Saffron", color: BABYLON.Color3.FromHexString("#f3a833") },
+    { name: "Royal Brown", color: BABYLON.Color3.FromHexString("#4d3533") },
+    { name: "Coffee", color: BABYLON.Color3.FromHexString("#6e4c30") },
+    { name: "Metallic Bronze", color: BABYLON.Color3.FromHexString("#a26d3f") },
+    { name: "Peru", color: BABYLON.Color3.FromHexString("#ce9248") },
+    { name: "Earth Yellow", color: BABYLON.Color3.FromHexString("#dab163") },
+    { name: "Flax", color: BABYLON.Color3.FromHexString("#e8d282") },
+    { name: "Blond", color: BABYLON.Color3.FromHexString("#f7f3b7") },
+    { name: "Japanese Indigo", color: BABYLON.Color3.FromHexString("#1e4044") },
+    { name: "Bangladesh Green", color: BABYLON.Color3.FromHexString("#006554") },
+    { name: "Sea Green", color: BABYLON.Color3.FromHexString("#26854c") },
+    { name: "Apple", color: BABYLON.Color3.FromHexString("#5ab552") },
+    { name: "Kiwi", color: BABYLON.Color3.FromHexString("#9de64e") },
+    { name: "Dark Cyan", color: BABYLON.Color3.FromHexString("#008b8b") },
+    { name: "Forest Green", color: BABYLON.Color3.FromHexString("#62a477") },
+    { name: "Laurel Green", color: BABYLON.Color3.FromHexString("#a6cb96") },
+    { name: "Tea Green", color: BABYLON.Color3.FromHexString("#d3eed3") },
+    { name: "American Blue", color: BABYLON.Color3.FromHexString("#3e3b65") },
+    { name: "Violet-Blue", color: BABYLON.Color3.FromHexString("#3859b3") },
+    { name: "Bleu De France", color: BABYLON.Color3.FromHexString("#3388de") },
+    { name: "Picton Blue", color: BABYLON.Color3.FromHexString("#36c5f4") },
+    { name: "Aquamarine", color: BABYLON.Color3.FromHexString("#6dead6") },
+    { name: "Dark Blue-Gray", color: BABYLON.Color3.FromHexString("#5e5b8c") },
+    { name: "Purple Mountain Majesty", color: BABYLON.Color3.FromHexString("#8c78a5") },
+    { name: "Pastel Purple", color: BABYLON.Color3.FromHexString("#b0a7b8") },
+    { name: "Soap", color: BABYLON.Color3.FromHexString("#deceed") },
+    { name: "Sugar Plum", color: BABYLON.Color3.FromHexString("#9a4d76") },
+    { name: "Sky Magenta", color: BABYLON.Color3.FromHexString("#c878af") },
+    { name: "Pale Violet", color: BABYLON.Color3.FromHexString("#cc99ff") },
+    { name: "Begonia", color: BABYLON.Color3.FromHexString("#fa6e79") },
+    { name: "Baker-Miller Pink", color: BABYLON.Color3.FromHexString("#ffa2ac") },
+    { name: "Light Red", color: BABYLON.Color3.FromHexString("#ffd1d5") },
+    { name: "Misty Rose", color: BABYLON.Color3.FromHexString("#f6e8e0") },
+    { name: "White", color: BABYLON.Color3.FromHexString("#ffffff") }
+]
 
 var DodoEyes = [
     { name: "Blue", file: "datas/textures/eye_0.png" },
@@ -140,10 +187,10 @@ class Dodo extends Creature {
         }
 
         if (this.colors.length === 0) {
-            let c1 = Math.floor(Math.random() * 16);
-            let c2 = Math.floor(Math.random() * 16);
-            let c3 = Math.floor(Math.random() * 16);
-            let c4 = Math.floor(Math.random() * 4);
+            let c1 = Math.floor(Math.random() * DodoColors.length);
+            let c2 = Math.floor(Math.random() * DodoColors.length);
+            let c3 = Math.floor(Math.random() * DodoColors.length);
+            let c4 = Math.floor(Math.random() * DodoEyes.length);
             let style = c1.toString(16).padStart(2, "0") + c2.toString(16).padStart(2, "0") + c3.toString(16).padStart(2, "0") + c4.toString(16).padStart(2, "0");
             this.setStyle(style);
         }
@@ -268,9 +315,9 @@ class Dodo extends Creature {
 
     public setStyle(style: string): void {
         this.style = style;
-        this.colors[0] = DodoColors[parseInt(style.substring(0, 2), 16)];
-        this.colors[1] = DodoColors[parseInt(style.substring(2, 4), 16)];
-        this.colors[2] = DodoColors[parseInt(style.substring(4, 6), 16)];
+        this.colors[0] = DodoColors[parseInt(style.substring(0, 2), 16)].color;
+        this.colors[1] = DodoColors[parseInt(style.substring(2, 4), 16)].color;
+        this.colors[2] = DodoColors[parseInt(style.substring(4, 6), 16)].color;
         this.eyeColor = parseInt(style.substring(6, 8), 16);
 
         if (this._instantiated) {

@@ -95,7 +95,7 @@ class NetworkManager {
         let existingDodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
         if (!existingDodo) {
             let playerDesc = this.serverPlayersList.find(p => { return p.peerId === conn.peer; });
-            let style = "000000";
+            let style = "00000000";
             if (playerDesc) {
                 style = playerDesc.style;
             }
