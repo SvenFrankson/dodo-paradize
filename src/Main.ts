@@ -237,7 +237,7 @@ class Game {
 
     public gameLoaded: boolean = false;
 
-    public defaultToonMaterial: BABYLON.StandardMaterial;
+    public defaultToonMaterial: ToonMaterial;
     public networkManager: NetworkManager;
     public homeMenuPlate: HomeMenuPlate;
     public terrain: Terrain;
@@ -414,8 +414,10 @@ class Game {
             }
         );
 
-        this.defaultToonMaterial = new BABYLON.StandardMaterial("default-toon-material");
-        this.defaultToonMaterial.specularColor.copyFromFloats(0, 0, 0);
+        this.defaultToonMaterial = new ToonMaterial("default-toon-material", this.scene);
+        this.defaultToonMaterial.setUseVertexColor(true);
+        this.defaultToonMaterial.setDiffuseSharpness(-1);
+        this.defaultToonMaterial.setDiffuseCount(2);
 
         BABYLON.MeshBuilder.CreateBox("debug", { width: 0.01, height: 1000, depth: 0.01 });
 
@@ -486,15 +488,13 @@ class Game {
     public setGameMode(mode: GameMode) {
         this.gameMode = mode;
         if (this.gameMode === GameMode.Home) {
-            (document.querySelector("#start") as HTMLDivElement).style.display = "";
-            (document.querySelector("#dodo-customize-menu") as HTMLDivElement).style.display = "";
+            (document.querySelector("#home-page") as HTMLDivElement).style.display = "";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, -1000, 0));
             this.playerDodo.r = - 4 * Math.PI / 6;
         }
         else if (this.gameMode === GameMode.Playing) {
-            (document.querySelector("#start") as HTMLDivElement).style.display = "none";
-            (document.querySelector("#dodo-customize-menu") as HTMLDivElement).style.display = "none";
+            (document.querySelector("#home-page") as HTMLDivElement).style.display = "none";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
             this.playerDodo.r = 0;

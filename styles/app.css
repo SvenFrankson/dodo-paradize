@@ -99,17 +99,43 @@ a:active {
     top: calc(50vh - 10px);
 }
 
+#home-page {
+    font-family: Roboto;
+}
+
+#home-page h1 {
+    position: fixed;
+    top: 0;
+    left: calc(50vw - 140px);
+    text-align: center;
+    width: 280px;
+    font-size: 40px;
+    border: 2px solid black;
+    border-radius: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    background-color: white;
+}
+
+#home-page h1 .subtitle {
+    position: absolute;
+    bottom: -30px;
+    right: 0;
+    font-size: 20px;
+    font-weight: 300;
+}
+
 #start {
     position: fixed;
     bottom: 50px;
     left: calc(50vw - 100px);
     width: 200px;
-    height: 50px;
+    height: 60px;
     font-size: 30px;
-    font-family: Roboto;
     font-weight: 900;
     border-radius: 5px;
     border: 2px solid black;
+    font-family: Roboto;
 }
 
 #dodo-customize-menu {
@@ -120,7 +146,6 @@ a:active {
     border-radius: 5px;
     width: fit-content;
     padding: 10px;
-    font-family: Roboto;
     font-weight: 300;
 }
 

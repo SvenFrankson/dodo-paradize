@@ -6,6 +6,7 @@ uniform vec3 viewDirectionW;
 uniform int useVertexColor;
 uniform int useLightFromPOV;
 uniform float autoLight;
+uniform float diffuseCount;
 uniform float diffuseSharpness;
 uniform vec3 diffuse;
 uniform sampler2D diffuseTexture;
@@ -40,7 +41,7 @@ void main() {
 
 	float lightFactor = 1.5;
 	if (sunLightFactor < 0.99) {
-		lightFactor = round(sunLightFactor * 4.) / 4. * 0.9 + 0.1;
+		lightFactor = round(sunLightFactor * diffuseCount) / diffuseCount * 0.8 + 0.2;
 	}
 
 	vec3 color = diffuse * texture(diffuseTexture, vUv).rgb;

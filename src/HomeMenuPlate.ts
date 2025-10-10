@@ -50,6 +50,21 @@ class HomeMenuPlate extends BABYLON.Mesh {
         BABYLON.CreateCylinderVertexData({ height: 0.1, diameter: 1 }).applyToMesh(this);
         this.position.copyFromFloats(0, -1000, 0);
 
+        let skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 100 }, this.game.scene);
+        skybox.parent = this;
+        let skyboxMaterial: BABYLON.StandardMaterial = new BABYLON.StandardMaterial("skyBox", this.game.scene);
+        skyboxMaterial.backFaceCulling = false;
+        let skyTexture = new BABYLON.CubeTexture(
+            "./datas/skyboxes/cloud",
+            this.game.scene,
+            ["-px.jpg", "-py.jpg", "-pz.jpg", "-nx.jpg", "-ny.jpg", "-nz.jpg"]);
+        skyboxMaterial.reflectionTexture = skyTexture;
+        skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+        skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+        skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+        skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
+        skybox.material = skyboxMaterial;
+
         this.customizeHeadLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-head"));
         this.customizeEyesLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-eyes"));
         this.customizeEyesLine.maxValue = DodoEyes.length;

@@ -97,9 +97,9 @@ class Dodo extends Creature {
     public lowerLegs: BABYLON.Mesh[];
     public static OutlinedMesh(name: string): BABYLON.Mesh {
         let mesh = new BABYLON.Mesh(name);
-        //mesh.renderOutline = true;
-        //mesh.outlineColor.copyFromFloats(0, 0, 0);
-        //mesh.outlineWidth = 0.03;
+        mesh.renderOutline = true;
+        mesh.outlineColor.copyFromFloats(0, 0, 0);
+        mesh.outlineWidth = 0.01;
         return mesh;
     }
     public eyeMaterial: BABYLON.StandardMaterial;
@@ -155,8 +155,8 @@ class Dodo extends Creature {
         this.head.rotationQuaternion = BABYLON.Quaternion.Identity();
 
         this.eyes = [
-            Dodo.OutlinedMesh("eyeR"),
-            Dodo.OutlinedMesh("eyeL")
+            new BABYLON.Mesh("eyeR"),
+            new BABYLON.Mesh("eyeL")
         ];
         this.eyes[0].parent = this.head;
         this.eyes[0].position.copyFromFloats(0.09299, 0.125989, 0.076938);
@@ -244,7 +244,7 @@ class Dodo extends Creature {
         this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
         this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
 
-        this.neck = new BABYLON.Mesh("neck");
+        this.neck = Dodo.OutlinedMesh("neck");
 
         this.hitCollider = new BABYLON.Mesh("hit-collider");
         this.hitCollider.parent = this;

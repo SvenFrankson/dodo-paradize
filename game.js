@@ -212,6 +212,17 @@ class HomeMenuPlate extends BABYLON.Mesh {
         this.game = game;
         BABYLON.CreateCylinderVertexData({ height: 0.1, diameter: 1 }).applyToMesh(this);
         this.position.copyFromFloats(0, -1000, 0);
+        let skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 100 }, this.game.scene);
+        skybox.parent = this;
+        let skyboxMaterial = new BABYLON.StandardMaterial("skyBox", this.game.scene);
+        skyboxMaterial.backFaceCulling = false;
+        let skyTexture = new BABYLON.CubeTexture("./datas/skyboxes/cloud", this.game.scene, ["-px.jpg", "-py.jpg", "-pz.jpg", "-nx.jpg", "-ny.jpg", "-nz.jpg"]);
+        skyboxMaterial.reflectionTexture = skyTexture;
+        skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+        skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+        skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+        skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
+        skybox.material = skyboxMaterial;
         this.customizeHeadLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-head"));
         this.customizeEyesLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-eyes"));
         this.customizeEyesLine.maxValue = DodoEyes.length;
@@ -607,8 +618,10 @@ class Game {
             autoplay: true,
             loop: true
         });
-        this.defaultToonMaterial = new BABYLON.StandardMaterial("default-toon-material");
-        this.defaultToonMaterial.specularColor.copyFromFloats(0, 0, 0);
+        this.defaultToonMaterial = new ToonMaterial("default-toon-material", this.scene);
+        this.defaultToonMaterial.setUseVertexColor(true);
+        this.defaultToonMaterial.setDiffuseSharpness(-1);
+        this.defaultToonMaterial.setDiffuseCount(2);
         BABYLON.MeshBuilder.CreateBox("debug", { width: 0.01, height: 1000, depth: 0.01 });
         this.networkManager = new NetworkManager(this);
         this.homeMenuPlate = new HomeMenuPlate(this);
@@ -663,15 +676,13 @@ class Game {
     setGameMode(mode) {
         this.gameMode = mode;
         if (this.gameMode === GameMode.Home) {
-            document.querySelector("#start").style.display = "";
-            document.querySelector("#dodo-customize-menu").style.display = "";
+            document.querySelector("#home-page").style.display = "";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, -1000, 0));
             this.playerDodo.r = -4 * Math.PI / 6;
         }
         else if (this.gameMode === GameMode.Playing) {
-            document.querySelector("#start").style.display = "none";
-            document.querySelector("#dodo-customize-menu").style.display = "none";
+            document.querySelector("#home-page").style.display = "none";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
             this.playerDodo.r = 0;
@@ -1598,6 +1609,243 @@ class TerrainMaterial extends BABYLON.ShaderMaterial {
     setLightInvDir(p) {
         this._lightInvDirW.copyFrom(p);
         this.setVector3("lightInvDirW", this._lightInvDirW);
+    }
+}
+class ToonMaterial extends BABYLON.ShaderMaterial {
+    constructor(name, scene) {
+        super(name, scene, {
+            vertex: "toon",
+            fragment: "toon",
+        }, {
+            attributes: ["position", "normal", "uv", "color"],
+            uniforms: [
+                "world", "worldView", "worldViewProjection", "view", "projection",
+                "useVertexColor",
+                "useLightFromPOV",
+                "autoLight",
+                "diffuseSharpness",
+                "diffuse",
+                "diffuseTexture",
+                "normalTexture",
+                "viewPositionW",
+                "viewDirectionW",
+                "lightInvDirW",
+                "alpha",
+                "useFlatSpecular",
+                "specularIntensity",
+                "specularColor",
+                "specularCount",
+                "specularPower"
+            ]
+        });
+        this._update = () => {
+            let camera = this.getScene().activeCamera;
+            let direction = camera.getForwardRay().direction;
+            this.setVector3("viewPositionW", camera.globalPosition);
+            this.setVector3("viewDirectionW", direction);
+            let lights = this.getScene().lights;
+            for (let i = 0; i < lights.length; i++) {
+                let light = lights[i];
+                if (light instanceof BABYLON.HemisphericLight) {
+                    this.setVector3("lightInvDirW", light.direction);
+                }
+            }
+        };
+        this._useVertexColor = false;
+        this._useLightFromPOV = false;
+        this._autoLight = 0;
+        this._diffuseSharpness = 0;
+        this._diffuse = BABYLON.Color3.White();
+        this._diffuseCount = 4;
+        this._useFlatSpecular = false;
+        this._specularIntensity = 0;
+        this._specular = BABYLON.Color3.White();
+        this._specularCount = 1;
+        this._specularPower = 4;
+        this._whiteTexture = new BABYLON.Texture("./datas/textures/void-texture.png");
+        this._whiteTexture.wrapU = 1;
+        this._whiteTexture.wrapV = 1;
+        this._blackTexture = new BABYLON.Texture("./datas/textures/black-texture.png");
+        this._blackTexture.wrapU = 1;
+        this._blackTexture.wrapV = 1;
+        this.updateUseVertexColor();
+        this.updateUseLightFromPOV();
+        this.updateAutoLight();
+        this.updateDiffuseSharpness();
+        this.updateDiffuse();
+        this.updateDiffuseCount();
+        this.updateDiffuseTexture();
+        this.updateNormalTexture();
+        this.updateAlpha();
+        this.updateUseFlatSpecular();
+        this.updateSpecularIntensity();
+        this.updateSpecular();
+        this.updateSpecularCount();
+        this.updateSpecularPower();
+        this.setVector3("viewPositionW", BABYLON.Vector3.Zero());
+        this.setVector3("viewDirectionW", BABYLON.Vector3.Up());
+        this.setVector3("lightInvDirW", BABYLON.Vector3.Up());
+        this.getScene().onBeforeRenderObservable.add(this._update);
+    }
+    dispose(forceDisposeEffect, forceDisposeTextures, notBoundToMesh) {
+        super.dispose(forceDisposeEffect, forceDisposeTextures, notBoundToMesh);
+        this.getScene().onBeforeRenderObservable.removeCallback(this._update);
+    }
+    get useVertexColor() {
+        return this._useVertexColor;
+    }
+    setUseVertexColor(b) {
+        this._useVertexColor = b;
+        this.updateUseVertexColor();
+    }
+    updateUseVertexColor() {
+        this.setInt("useVertexColor", this._useVertexColor ? 1 : 0);
+    }
+    get useLightFromPOV() {
+        return this._useLightFromPOV;
+    }
+    setUseLightFromPOV(b) {
+        this._useLightFromPOV = b;
+        this.updateUseLightFromPOV();
+    }
+    updateUseLightFromPOV() {
+        this.setInt("useLightFromPOV", this._useLightFromPOV ? 1 : 0);
+    }
+    get autoLight() {
+        return this._autoLight;
+    }
+    setAutoLight(v) {
+        this._autoLight = v;
+        this.updateAutoLight();
+    }
+    updateAutoLight() {
+        this.setFloat("autoLight", this._autoLight);
+    }
+    get diffuseSharpness() {
+        return this._diffuseSharpness;
+    }
+    setDiffuseSharpness(v) {
+        this._diffuseSharpness = v;
+        this.updateDiffuseSharpness();
+    }
+    updateDiffuseSharpness() {
+        this.setFloat("diffuseSharpness", this._diffuseSharpness);
+    }
+    get diffuse() {
+        return this._diffuse;
+    }
+    setDiffuse(c) {
+        this._diffuse = c;
+        this.updateDiffuse();
+    }
+    updateDiffuse() {
+        this.setColor3("diffuse", this._diffuse);
+    }
+    get diffuseCount() {
+        return this._diffuseCount;
+    }
+    setDiffuseCount(v) {
+        this._diffuseCount = v;
+        this.updateDiffuseCount();
+    }
+    updateDiffuseCount() {
+        this.setFloat("diffuseCount", this._diffuseCount);
+    }
+    get diffuseTexture() {
+        return this._diffuseTexture;
+    }
+    setDiffuseTexture(t) {
+        this._diffuseTexture = t;
+        this.updateDiffuseTexture();
+    }
+    updateDiffuseTexture() {
+        if (this._diffuseTexture) {
+            this.setTexture("diffuseTexture", this._diffuseTexture);
+        }
+        else {
+            this.setTexture("diffuseTexture", this._whiteTexture);
+        }
+    }
+    get normalTexture() {
+        return this._normalTexture;
+    }
+    setNormalTexture(t) {
+        this._normalTexture = t;
+        this.updateNormalTexture();
+    }
+    updateNormalTexture() {
+        if (this._normalTexture) {
+            this.setTexture("normalTexture", this._normalTexture);
+        }
+        else {
+            this.setTexture("normalTexture", this._blackTexture);
+        }
+    }
+    get alpha() {
+        return this._alpha;
+    }
+    setAlpha(v) {
+        this._alpha = v;
+        this.updateAlpha();
+    }
+    updateAlpha() {
+        if (this.alpha != 1) {
+            this.alphaMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+        }
+        else {
+            this.alphaMode = BABYLON.Material.MATERIAL_OPAQUE;
+        }
+        this.setFloat("alpha", this._alpha);
+    }
+    get useFlatSpecular() {
+        return this._useFlatSpecular;
+    }
+    setUseFlatSpecular(b) {
+        this._useFlatSpecular = b;
+        this.updateUseFlatSpecular();
+    }
+    updateUseFlatSpecular() {
+        this.setInt("useFlatSpecular", this._useFlatSpecular ? 1 : 0);
+    }
+    get specularIntensity() {
+        return this._specularIntensity;
+    }
+    setSpecularIntensity(v) {
+        this._specularIntensity = v;
+        this.updateSpecularIntensity();
+    }
+    updateSpecularIntensity() {
+        this.setFloat("specularIntensity", this._specularIntensity);
+    }
+    get specular() {
+        return this._specular;
+    }
+    setSpecular(c) {
+        this._specular = c;
+        this.updateSpecular();
+    }
+    updateSpecular() {
+        this.setColor3("specular", this._specular);
+    }
+    get specularCount() {
+        return this._specularCount;
+    }
+    setSpecularCount(v) {
+        this._specularCount = v;
+        this.updateSpecularCount();
+    }
+    updateSpecularCount() {
+        this.setFloat("specularCount", this._specularCount);
+    }
+    get specularPower() {
+        return this._specularPower;
+    }
+    setSpecularPower(v) {
+        this._specularPower = v;
+        this.updateSpecularPower();
+    }
+    updateSpecularPower() {
+        this.setFloat("specularPower", this._specularPower);
     }
 }
 /*
@@ -3117,8 +3365,8 @@ class Dodo extends Creature {
         this.head = Dodo.OutlinedMesh("head");
         this.head.rotationQuaternion = BABYLON.Quaternion.Identity();
         this.eyes = [
-            Dodo.OutlinedMesh("eyeR"),
-            Dodo.OutlinedMesh("eyeL")
+            new BABYLON.Mesh("eyeR"),
+            new BABYLON.Mesh("eyeL")
         ];
         this.eyes[0].parent = this.head;
         this.eyes[0].position.copyFromFloats(0.09299, 0.125989, 0.076938);
@@ -3199,7 +3447,7 @@ class Dodo extends Creature {
         ];
         this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
         this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
-        this.neck = new BABYLON.Mesh("neck");
+        this.neck = Dodo.OutlinedMesh("neck");
         this.hitCollider = new BABYLON.Mesh("hit-collider");
         this.hitCollider.parent = this;
         this.hitCollider.isVisible = false;
@@ -3220,9 +3468,9 @@ class Dodo extends Creature {
     }
     static OutlinedMesh(name) {
         let mesh = new BABYLON.Mesh(name);
-        //mesh.renderOutline = true;
-        //mesh.outlineColor.copyFromFloats(0, 0, 0);
-        //mesh.outlineWidth = 0.03;
+        mesh.renderOutline = true;
+        mesh.outlineColor.copyFromFloats(0, 0, 0);
+        mesh.outlineWidth = 0.01;
         return mesh;
     }
     get r() {
