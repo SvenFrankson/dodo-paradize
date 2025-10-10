@@ -71,9 +71,9 @@ class HomeMenuPlate extends BABYLON.Mesh {
             return DodoColors[v].name;
         }
         this.customizeEyesLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-eyes"));
-        this.customizeEyesLine.maxValue = DodoEyes.length;
+        this.customizeEyesLine.maxValue = DodoColors.length;
         this.customizeEyesLine.toString = (v: number) => {
-            return DodoEyes[v].name;
+            return DodoColors[v].name;
         }
         this.customizeBeakLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-beak"));
         this.customizeBeakLine.maxValue = DodoColors.length;
