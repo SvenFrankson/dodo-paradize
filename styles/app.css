@@ -140,24 +140,37 @@ a:active {
 
 #dodo-customize-menu {
     position: fixed;
-    top: 25%;
+    top: 200px;
     left: calc(50vw + 300px);
     border: 1px solid black;
     border-radius: 5px;
-    width: fit-content;
+    width: 250px;
     padding: 15px 5px 15px 5px;
     font-weight: 300;
+    background-color: #272b2e;
+    color: white;
+    text-align: center;
 }
 
 #dodo-customize-menu .label {
     display: block;
-    margin-left: 10px;
+    text-align: left;
+    margin-top: 5px;
+    margin-left: 15px;
+    font-style: italic;
 }
 
 #dodo-customize-menu .value {
     display: inline-block;
     width: 160px;
     text-align: center;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+#dodo-color-picker {
+    left: calc(50vw + 300px);
+    top: 420px;
 }
 
 #screen-loger-container {
@@ -171,4 +184,40 @@ a:active {
 
 .screen-loger-line {
   font-family: monospace;
+}
+
+color-picker {
+    position: fixed;
+    z-index: 10;
+    background-color: #272b2e;
+    color: white;
+    font-family: Roboto, Arial, Helvetica, sans-serif;
+    border: 1px solid white;
+    border-radius: 5px;
+    width: 250px;
+    padding: 5px;
+}
+
+color-picker .container {
+    margin: 1svh;
+}
+
+color-picker h2 {
+    font-size: min(2svh, 3vw);
+    margin: min(1svh, 1vw);
+    margin-left: 0;
+    font-weight: 300;
+}
+
+color-picker button {
+    display: inline-block;
+    width: 3vh;
+    height: 3vh;
+    margin: 0.3vh;
+    border: none;
+    outline: 1px solid white;
+}
+
+color-picker button.selected {
+    outline: 3px solid white;
 }

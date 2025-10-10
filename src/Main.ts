@@ -240,6 +240,7 @@ class Game {
     public defaultToonMaterial: ToonMaterial;
     public networkManager: NetworkManager;
     public homeMenuPlate: HomeMenuPlate;
+    public colorPicker: ColorPicker;
     public terrain: Terrain;
     public terrainManager: TerrainManager;
     public brickManager: BrickManager;
@@ -423,6 +424,8 @@ class Game {
 
         this.networkManager = new NetworkManager(this);
 
+        this.colorPicker = document.querySelector("color-picker");
+        this.colorPicker.initColorButtons(this);
         this.homeMenuPlate = new HomeMenuPlate(this);
 
         this.terrain = new Terrain(this);

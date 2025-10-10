@@ -65,6 +65,128 @@ class CarillonRouter extends Nabu.Router {
         }
     }
 }
+class ColorPicker extends HTMLElement {
+    constructor() {
+        super(...arguments);
+        this.targetIndex = -1;
+        this.buttons = [];
+        this._loaded = false;
+        this._shown = false;
+        this.onColorIndexChanged = (colorIndex) => { };
+    }
+    static get observedAttributes() {
+        return [];
+    }
+    get loaded() {
+        return this._loaded;
+    }
+    get shown() {
+        return this._shown;
+    }
+    get onLoad() {
+        return this._onLoad;
+    }
+    set onLoad(callback) {
+        this._onLoad = callback;
+        if (this._loaded) {
+            this._onLoad();
+        }
+    }
+    async waitLoaded() {
+        return new Promise(resolve => {
+            let wait = () => {
+                if (this._loaded) {
+                    resolve();
+                }
+                else {
+                    requestAnimationFrame(wait);
+                }
+            };
+            wait();
+        });
+    }
+    connectedCallback() {
+        this.style.display = "none";
+        this.addEventListener("pointerdown", StopPointerProgatation);
+        this.addEventListener("pointermove", StopPointerProgatation);
+        this.addEventListener("pointerup", StopPointerProgatationAndMonkeys);
+        let container;
+        container = document.createElement("div");
+        container.classList.add("container");
+        this.appendChild(container);
+        this.titleElement = document.createElement("h2");
+        this.titleElement.innerHTML = "Color";
+        container.appendChild(this.titleElement);
+        this.metalMaterialButtons = document.createElement("div");
+        container.appendChild(this.metalMaterialButtons);
+        this._loaded = true;
+    }
+    initColorButtons(game) {
+        this.buttons = [];
+        for (let i = 0; i < DodoColors.length; i++) {
+            let index = i;
+            let dodoColor = DodoColors[i];
+            let colorbutton = document.createElement("button");
+            colorbutton.setAttribute("title", dodoColor.name);
+            colorbutton.style.backgroundColor = dodoColor.color.toHexString();
+            this.metalMaterialButtons.appendChild(colorbutton);
+            this.buttons[index] = colorbutton;
+            colorbutton.onclick = () => {
+                this.setCurrentColorIndex(index);
+                if (this.onColorIndexChanged) {
+                    this.onColorIndexChanged(index);
+                }
+            };
+        }
+    }
+    setCurrentColorIndex(colorIndex) {
+        this.buttons.forEach(btn => {
+            btn.classList.remove("selected");
+        });
+        if (this.buttons[colorIndex]) {
+            this.buttons[colorIndex].classList.add("selected");
+        }
+    }
+    attributeChangedCallback(name, oldValue, newValue) { }
+    setAnchor(x, y) {
+        let w = window.innerWidth;
+        let h = window.innerHeight;
+        if (document.body.classList.contains("vertical")) {
+            this.style.right = x.toFixed(0) + "px";
+            this.style.bottom = y.toFixed(0) + "px";
+            this.style.top = "";
+        }
+        else {
+            console.log(w + " " + h + " " + x + " " + y);
+            if (x > w * 0.5) {
+                this.style.right = (w - x).toFixed(0) + "px";
+                this.style.left = "";
+            }
+            else {
+                this.style.right = "";
+                this.style.left = x.toFixed(0) + "px";
+            }
+            if (y > h * 0.5) {
+                this.style.bottom = (h - y).toFixed(0) + "px";
+                this.style.top = "";
+            }
+            else {
+                this.style.bottom = "";
+                this.style.top = y.toFixed(0) + "px";
+            }
+        }
+    }
+    async show() {
+        this._shown = true;
+        this.style.display = "block";
+    }
+    async hide() {
+        this._shown = false;
+        this.style.display = "none";
+        this.onColorIndexChanged = undefined;
+    }
+}
+customElements.define("color-picker", ColorPicker);
 class CompletionBar extends HTMLElement {
     constructor() {
         super(...arguments);
@@ -206,6 +328,61 @@ class HomeMenuCustomizeLine {
         }
     }
 }
+class HomeMenuCustomizeColorLine {
+    constructor(index, line, homeMenuPlate) {
+        this.index = index;
+        this.line = line;
+        this.homeMenuPlate = homeMenuPlate;
+        this.maxValue = 16;
+        this._value = 0;
+        this.onPrev = () => {
+            this.setValue(this.value - 1);
+        };
+        this.onNext = () => {
+            this.setValue(this.value + 1);
+        };
+        this.toString = (v) => {
+            return v.toFixed(0);
+        };
+        this.onValueChanged = (v) => {
+        };
+        this.prev = this.line.querySelector(".prev");
+        this.prev.onclick = this.onPrev;
+        this.next = this.line.querySelector(".next");
+        this.next.onclick = this.onNext;
+        this.valueElement = this.line.querySelector(".value");
+        this.valueElement.onclick = (ev) => {
+            if (this.homeMenuPlate.game.colorPicker.shown &&
+                this.homeMenuPlate.game.colorPicker.targetIndex === this.index) {
+                this.homeMenuPlate.game.colorPicker.hide();
+            }
+            else {
+                //let bbox = this.line.getBoundingClientRect();
+                //this.homeMenuPlate.game.colorPicker.setAnchor(bbox.right + 10, ev.clientY);
+                this.homeMenuPlate.game.colorPicker.setCurrentColorIndex(this.value);
+                this.homeMenuPlate.game.colorPicker.onColorIndexChanged = async (colorIndex) => {
+                    this.setValue(colorIndex);
+                };
+                this.homeMenuPlate.game.colorPicker.show();
+                this.homeMenuPlate.game.colorPicker.titleElement.innerHTML = this.line.querySelector(".label").innerHTML;
+                this.homeMenuPlate.game.colorPicker.targetIndex = this.index;
+            }
+            this.homeMenuPlate.game.colorPicker.show();
+        };
+    }
+    get value() {
+        return this._value;
+    }
+    setValue(v, skipOnValueChangedCallback) {
+        this._value = (v + this.maxValue) % this.maxValue;
+        this.valueElement.innerHTML = this.toString(this.value);
+        this.valueElement.style.backgroundColor = DodoColors[this.value].color.toHexString();
+        this.valueElement.style.color = DodoColors[this.value].textColor;
+        if (!skipOnValueChangedCallback) {
+            this.onValueChanged(this.value);
+        }
+    }
+}
 class HomeMenuPlate extends BABYLON.Mesh {
     constructor(game) {
         super("home-menu-plate");
@@ -223,22 +400,22 @@ class HomeMenuPlate extends BABYLON.Mesh {
         skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
         skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
         skybox.material = skyboxMaterial;
-        this.customizeHeadLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-head"));
+        this.customizeHeadLine = new HomeMenuCustomizeColorLine(0, document.querySelector("#dodo-customize-head"), this);
         this.customizeHeadLine.maxValue = DodoColors.length;
         this.customizeHeadLine.toString = (v) => {
             return DodoColors[v].name;
         };
-        this.customizeEyesLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-eyes"));
+        this.customizeEyesLine = new HomeMenuCustomizeColorLine(1, document.querySelector("#dodo-customize-eyes"), this);
         this.customizeEyesLine.maxValue = DodoColors.length;
         this.customizeEyesLine.toString = (v) => {
             return DodoColors[v].name;
         };
-        this.customizeBeakLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-beak"));
+        this.customizeBeakLine = new HomeMenuCustomizeColorLine(2, document.querySelector("#dodo-customize-beak"), this);
         this.customizeBeakLine.maxValue = DodoColors.length;
         this.customizeBeakLine.toString = (v) => {
             return DodoColors[v].name;
         };
-        this.customizeBodyLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-body"));
+        this.customizeBodyLine = new HomeMenuCustomizeColorLine(3, document.querySelector("#dodo-customize-body"), this);
         this.customizeBodyLine.maxValue = DodoColors.length;
         this.customizeBodyLine.toString = (v) => {
             return DodoColors[v].name;
@@ -636,6 +813,8 @@ class Game {
         this.defaultToonMaterial.setDiffuseCount(2);
         BABYLON.MeshBuilder.CreateBox("debug", { width: 0.01, height: 1000, depth: 0.01 });
         this.networkManager = new NetworkManager(this);
+        this.colorPicker = document.querySelector("color-picker");
+        this.colorPicker.initColorButtons(this);
         this.homeMenuPlate = new HomeMenuPlate(this);
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
@@ -3307,49 +3486,58 @@ var DodoColors = [
 ];
 */
 var DodoColors = [
-    { name: "Chinese Black", color: BABYLON.Color3.FromHexString("#10121c") },
-    { name: "Dark Purple", color: BABYLON.Color3.FromHexString("#2c1e31") },
-    { name: "Old Mauve", color: BABYLON.Color3.FromHexString("#6b2643") },
-    { name: "Amaranth Purple", color: BABYLON.Color3.FromHexString("#ac2847") },
-    { name: "Imperial Red", color: BABYLON.Color3.FromHexString("#ec273f") },
-    { name: "Chestnut", color: BABYLON.Color3.FromHexString("#94493a") },
-    { name: "#Medium Vermilion", color: BABYLON.Color3.FromHexString("#de5d3a") },
-    { name: "Cadmium Orange", color: BABYLON.Color3.FromHexString("#e98537") },
-    { name: "Deep Saffron", color: BABYLON.Color3.FromHexString("#f3a833") },
-    { name: "Royal Brown", color: BABYLON.Color3.FromHexString("#4d3533") },
-    { name: "Coffee", color: BABYLON.Color3.FromHexString("#6e4c30") },
-    { name: "Metallic Bronze", color: BABYLON.Color3.FromHexString("#a26d3f") },
-    { name: "Peru", color: BABYLON.Color3.FromHexString("#ce9248") },
-    { name: "Earth Yellow", color: BABYLON.Color3.FromHexString("#dab163") },
-    { name: "Flax", color: BABYLON.Color3.FromHexString("#e8d282") },
-    { name: "Blond", color: BABYLON.Color3.FromHexString("#f7f3b7") },
-    { name: "Japanese Indigo", color: BABYLON.Color3.FromHexString("#1e4044") },
-    { name: "Bangladesh Green", color: BABYLON.Color3.FromHexString("#006554") },
-    { name: "Sea Green", color: BABYLON.Color3.FromHexString("#26854c") },
-    { name: "Apple", color: BABYLON.Color3.FromHexString("#5ab552") },
-    { name: "Kiwi", color: BABYLON.Color3.FromHexString("#9de64e") },
-    { name: "Dark Cyan", color: BABYLON.Color3.FromHexString("#008b8b") },
-    { name: "Forest Green", color: BABYLON.Color3.FromHexString("#62a477") },
-    { name: "Laurel Green", color: BABYLON.Color3.FromHexString("#a6cb96") },
-    { name: "Tea Green", color: BABYLON.Color3.FromHexString("#d3eed3") },
-    { name: "American Blue", color: BABYLON.Color3.FromHexString("#3e3b65") },
-    { name: "Violet-Blue", color: BABYLON.Color3.FromHexString("#3859b3") },
-    { name: "Bleu De France", color: BABYLON.Color3.FromHexString("#3388de") },
-    { name: "Picton Blue", color: BABYLON.Color3.FromHexString("#36c5f4") },
-    { name: "Aquamarine", color: BABYLON.Color3.FromHexString("#6dead6") },
-    { name: "Dark Blue-Gray", color: BABYLON.Color3.FromHexString("#5e5b8c") },
-    { name: "Purple Mountain Majesty", color: BABYLON.Color3.FromHexString("#8c78a5") },
-    { name: "Pastel Purple", color: BABYLON.Color3.FromHexString("#b0a7b8") },
-    { name: "Soap", color: BABYLON.Color3.FromHexString("#deceed") },
-    { name: "Sugar Plum", color: BABYLON.Color3.FromHexString("#9a4d76") },
-    { name: "Sky Magenta", color: BABYLON.Color3.FromHexString("#c878af") },
-    { name: "Pale Violet", color: BABYLON.Color3.FromHexString("#cc99ff") },
-    { name: "Begonia", color: BABYLON.Color3.FromHexString("#fa6e79") },
-    { name: "Baker-Miller Pink", color: BABYLON.Color3.FromHexString("#ffa2ac") },
-    { name: "Light Red", color: BABYLON.Color3.FromHexString("#ffd1d5") },
-    { name: "Misty Rose", color: BABYLON.Color3.FromHexString("#f6e8e0") },
-    { name: "White", color: BABYLON.Color3.FromHexString("#ffffff") }
+    { name: "Chinese Black", color: BABYLON.Color3.FromHexString("#10121c"), textColor: "black" },
+    { name: "Dark Purple", color: BABYLON.Color3.FromHexString("#2c1e31"), textColor: "black" },
+    { name: "Old Mauve", color: BABYLON.Color3.FromHexString("#6b2643"), textColor: "black" },
+    { name: "Amaranth Purple", color: BABYLON.Color3.FromHexString("#ac2847"), textColor: "black" },
+    { name: "Imperial Red", color: BABYLON.Color3.FromHexString("#ec273f"), textColor: "black" },
+    { name: "Chestnut", color: BABYLON.Color3.FromHexString("#94493a"), textColor: "black" },
+    { name: "Medium Vermilion", color: BABYLON.Color3.FromHexString("#de5d3a"), textColor: "black" },
+    { name: "Cadmium Orange", color: BABYLON.Color3.FromHexString("#e98537"), textColor: "black" },
+    { name: "Deep Saffron", color: BABYLON.Color3.FromHexString("#f3a833"), textColor: "black" },
+    { name: "Royal Brown", color: BABYLON.Color3.FromHexString("#4d3533"), textColor: "black" },
+    { name: "Coffee", color: BABYLON.Color3.FromHexString("#6e4c30"), textColor: "black" },
+    { name: "Metallic Bronze", color: BABYLON.Color3.FromHexString("#a26d3f"), textColor: "black" },
+    { name: "Peru", color: BABYLON.Color3.FromHexString("#ce9248"), textColor: "black" },
+    { name: "Earth Yellow", color: BABYLON.Color3.FromHexString("#dab163"), textColor: "black" },
+    { name: "Flax", color: BABYLON.Color3.FromHexString("#e8d282"), textColor: "black" },
+    { name: "Blond", color: BABYLON.Color3.FromHexString("#f7f3b7"), textColor: "black" },
+    { name: "Japanese Indigo", color: BABYLON.Color3.FromHexString("#1e4044"), textColor: "black" },
+    { name: "Bangladesh Green", color: BABYLON.Color3.FromHexString("#006554"), textColor: "black" },
+    { name: "Sea Green", color: BABYLON.Color3.FromHexString("#26854c"), textColor: "black" },
+    { name: "Apple", color: BABYLON.Color3.FromHexString("#5ab552"), textColor: "black" },
+    { name: "Kiwi", color: BABYLON.Color3.FromHexString("#9de64e"), textColor: "black" },
+    { name: "Dark Cyan", color: BABYLON.Color3.FromHexString("#008b8b"), textColor: "black" },
+    { name: "Forest Green", color: BABYLON.Color3.FromHexString("#62a477"), textColor: "black" },
+    { name: "Laurel Green", color: BABYLON.Color3.FromHexString("#a6cb96"), textColor: "black" },
+    { name: "Tea Green", color: BABYLON.Color3.FromHexString("#d3eed3"), textColor: "black" },
+    { name: "American Blue", color: BABYLON.Color3.FromHexString("#3e3b65"), textColor: "black" },
+    { name: "Violet-Blue", color: BABYLON.Color3.FromHexString("#3859b3"), textColor: "black" },
+    { name: "Bleu De France", color: BABYLON.Color3.FromHexString("#3388de"), textColor: "black" },
+    { name: "Picton Blue", color: BABYLON.Color3.FromHexString("#36c5f4"), textColor: "black" },
+    { name: "Aquamarine", color: BABYLON.Color3.FromHexString("#6dead6"), textColor: "black" },
+    { name: "Dark Blue-Gray", color: BABYLON.Color3.FromHexString("#5e5b8c"), textColor: "black" },
+    { name: "Purple Mountain", color: BABYLON.Color3.FromHexString("#8c78a5"), textColor: "black" },
+    { name: "Pastel Purple", color: BABYLON.Color3.FromHexString("#b0a7b8"), textColor: "black" },
+    { name: "Soap", color: BABYLON.Color3.FromHexString("#deceed"), textColor: "black" },
+    { name: "Sugar Plum", color: BABYLON.Color3.FromHexString("#9a4d76"), textColor: "black" },
+    { name: "Sky Magenta", color: BABYLON.Color3.FromHexString("#c878af"), textColor: "black" },
+    { name: "Pale Violet", color: BABYLON.Color3.FromHexString("#cc99ff"), textColor: "black" },
+    { name: "Begonia", color: BABYLON.Color3.FromHexString("#fa6e79"), textColor: "black" },
+    { name: "Baker-Miller Pink", color: BABYLON.Color3.FromHexString("#ffa2ac"), textColor: "black" },
+    { name: "Light Red", color: BABYLON.Color3.FromHexString("#ffd1d5"), textColor: "black" },
+    { name: "Misty Rose", color: BABYLON.Color3.FromHexString("#f6e8e0"), textColor: "black" },
+    { name: "White", color: BABYLON.Color3.FromHexString("#ffffff"), textColor: "black" }
 ];
+DodoColors.forEach(c => {
+    let sum = c.color.r + c.color.g + c.color.b;
+    if (sum < 1.5) {
+        c.textColor = "white";
+    }
+    else {
+        c.textColor = "black";
+    }
+});
 var DodoEyes = [
     { name: "Blue", file: "datas/textures/eye_0.png" },
     { name: "Green", file: "datas/textures/eye_1.png" },
