@@ -84,7 +84,6 @@ class HomeMenuCustomizeColorLine {
                 this.homeMenuPlate.game.colorPicker.titleElement.innerHTML = this.line.querySelector(".label").innerHTML;
                 this.homeMenuPlate.game.colorPicker.targetIndex = this.index;
             }
-            this.homeMenuPlate.game.colorPicker.show();
         }
     }
 

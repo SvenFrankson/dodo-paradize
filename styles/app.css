@@ -141,7 +141,7 @@ a:active {
 #dodo-customize-menu {
     position: fixed;
     top: 200px;
-    left: calc(50vw + 300px);
+    right: 100px;
     border: 1px solid black;
     border-radius: 5px;
     width: 250px;
@@ -150,6 +150,12 @@ a:active {
     background-color: #272b2e;
     color: white;
     text-align: center;
+}
+
+body.vertical #dodo-customize-menu {
+    top: 130px;
+    right: 10px;
+    width: 150px;
 }
 
 #dodo-customize-menu .label {
@@ -166,11 +172,25 @@ a:active {
     text-align: center;
     border-radius: 4px;
     font-size: 16px;
+    overflow: none;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+body.vertical #dodo-customize-menu .value{
+    right: 10px;
+    width: 60px;
 }
 
 #dodo-color-picker {
-    left: calc(50vw + 300px);
+    right: 100px;
     top: 420px;
+}
+
+body.vertical #dodo-color-picker {
+    top: 400px;
+    right: 10px;
+    width: 315px;
 }
 
 #screen-loger-container {
@@ -195,7 +215,7 @@ color-picker {
     border: 1px solid white;
     border-radius: 5px;
     width: 250px;
-    padding: 5px;
+    padding: 0px;
 }
 
 color-picker .container {

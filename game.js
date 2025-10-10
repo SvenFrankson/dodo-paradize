@@ -367,7 +367,6 @@ class HomeMenuCustomizeColorLine {
                 this.homeMenuPlate.game.colorPicker.titleElement.innerHTML = this.line.querySelector(".label").innerHTML;
                 this.homeMenuPlate.game.colorPicker.targetIndex = this.index;
             }
-            this.homeMenuPlate.game.colorPicker.show();
         };
     }
     get value() {
@@ -1425,6 +1424,9 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 targetLook.y += this.player.position.y;
                 targetLook.z += this.player.position.z;
                 this.position.copyFrom(target);
+                if (document.body.classList.contains("vertical")) {
+                    this.position.x += 0.5;
+                }
                 let dir = targetLook.subtract(this.position);
                 this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
             }

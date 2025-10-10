@@ -37,6 +37,10 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 targetLook.z += this.player.position.z;
 
                 this.position.copyFrom(target);
+                
+                if (document.body.classList.contains("vertical")) {
+                    this.position.x += 0.5;
+                }
 
                 let dir = targetLook.subtract(this.position);
                 this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
