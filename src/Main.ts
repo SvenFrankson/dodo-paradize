@@ -516,12 +516,14 @@ class Game {
     public setGameMode(mode: GameMode) {
         this.gameMode = mode;
         if (this.gameMode === GameMode.Home) {
+            this.inputManager.temporaryNoPointerLock = true;
             (document.querySelector("#home-page") as HTMLDivElement).style.display = "";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, -1000, 0));
             this.playerDodo.r = - 4 * Math.PI / 6;
         }
         else if (this.gameMode === GameMode.Playing) {
+            this.inputManager.temporaryNoPointerLock = false;
             (document.querySelector("#home-page") as HTMLDivElement).style.display = "none";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
