@@ -121,7 +121,8 @@ class ColorPicker extends HTMLElement {
         container.appendChild(this.metalMaterialButtons);
         this.exterior = document.createElement("div");
         this.exterior.classList.add("color-picker-exterior");
-        this.appendChild(this.exterior);
+        this.exterior.style.display = "none";
+        this.parentElement.appendChild(this.exterior);
         this.exterior.onclick = () => {
             this.hide();
         };
@@ -185,10 +186,12 @@ class ColorPicker extends HTMLElement {
     async show() {
         this._shown = true;
         this.style.display = "block";
+        this.exterior.style.display = "block";
     }
     async hide() {
         this._shown = false;
         this.style.display = "none";
+        this.exterior.style.display = "none";
         this.onColorIndexChanged = undefined;
     }
 }
@@ -301,6 +304,98 @@ class CompletionBar extends HTMLElement {
 }
 customElements.define("completion-bar", CompletionBar);
 var BRICKS_PER_CONSTRUCTION = 64;
+var KeyInput;
+(function (KeyInput) {
+    KeyInput[KeyInput["NULL"] = -1] = "NULL";
+    KeyInput[KeyInput["ACTION_SLOT_0"] = 0] = "ACTION_SLOT_0";
+    KeyInput[KeyInput["ACTION_SLOT_1"] = 1] = "ACTION_SLOT_1";
+    KeyInput[KeyInput["ACTION_SLOT_2"] = 2] = "ACTION_SLOT_2";
+    KeyInput[KeyInput["ACTION_SLOT_3"] = 3] = "ACTION_SLOT_3";
+    KeyInput[KeyInput["ACTION_SLOT_4"] = 4] = "ACTION_SLOT_4";
+    KeyInput[KeyInput["ACTION_SLOT_5"] = 5] = "ACTION_SLOT_5";
+    KeyInput[KeyInput["ACTION_SLOT_6"] = 6] = "ACTION_SLOT_6";
+    KeyInput[KeyInput["ACTION_SLOT_7"] = 7] = "ACTION_SLOT_7";
+    KeyInput[KeyInput["ACTION_SLOT_8"] = 8] = "ACTION_SLOT_8";
+    KeyInput[KeyInput["ACTION_SLOT_9"] = 9] = "ACTION_SLOT_9";
+    KeyInput[KeyInput["PLAYER_ACTION"] = 10] = "PLAYER_ACTION";
+    KeyInput[KeyInput["PLAYER_ACTION_EQUIP"] = 11] = "PLAYER_ACTION_EQUIP";
+    KeyInput[KeyInput["PLAYER_ACTION_INC"] = 12] = "PLAYER_ACTION_INC";
+    KeyInput[KeyInput["PLAYER_ACTION_DEC"] = 13] = "PLAYER_ACTION_DEC";
+    KeyInput[KeyInput["INVENTORY"] = 14] = "INVENTORY";
+    KeyInput[KeyInput["INVENTORY_PREV_CAT"] = 15] = "INVENTORY_PREV_CAT";
+    KeyInput[KeyInput["INVENTORY_NEXT_CAT"] = 16] = "INVENTORY_NEXT_CAT";
+    KeyInput[KeyInput["INVENTORY_EQUIP_ITEM"] = 17] = "INVENTORY_EQUIP_ITEM";
+    KeyInput[KeyInput["NEXT_SHAPE"] = 18] = "NEXT_SHAPE";
+    KeyInput[KeyInput["ROTATE_SELECTED"] = 19] = "ROTATE_SELECTED";
+    KeyInput[KeyInput["DELETE_SELECTED"] = 20] = "DELETE_SELECTED";
+    KeyInput[KeyInput["MOVE_FORWARD"] = 21] = "MOVE_FORWARD";
+    KeyInput[KeyInput["MOVE_LEFT"] = 22] = "MOVE_LEFT";
+    KeyInput[KeyInput["MOVE_BACK"] = 23] = "MOVE_BACK";
+    KeyInput[KeyInput["MOVE_RIGHT"] = 24] = "MOVE_RIGHT";
+    KeyInput[KeyInput["JUMP"] = 25] = "JUMP";
+    KeyInput[KeyInput["MAIN_MENU"] = 26] = "MAIN_MENU";
+    KeyInput[KeyInput["WORKBENCH"] = 27] = "WORKBENCH";
+})(KeyInput || (KeyInput = {}));
+class GameConfiguration extends Nabu.Configuration {
+    constructor(configName, game) {
+        super(configName);
+        this.game = game;
+    }
+    _buildElementsArray() {
+        this.configurationElements = [
+            new Nabu.ConfigurationElement("quality", Nabu.ConfigurationElementType.Enum, 0, Nabu.ConfigurationElementCategory.Graphic, {
+                displayName: "Graphic Quality",
+                min: 0,
+                max: 2,
+                toString: (v) => {
+                    if (v === 0) {
+                        return "LOW";
+                    }
+                    if (v === 1) {
+                        return "MEDIUM";
+                    }
+                    if (v === 2) {
+                        return "HIGH";
+                    }
+                }
+            }),
+            new Nabu.ConfigurationElement("canLockPointer", Nabu.ConfigurationElementType.Boolean, 1, Nabu.ConfigurationElementCategory.Control, {
+                displayName: "Can Lock Pointer"
+            }),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "PLAYER_ACTION", KeyInput.PLAYER_ACTION, "GamepadBtn0"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "PLAYER_ACTION_DEC", KeyInput.PLAYER_ACTION_DEC, "GamepadBtn12"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "PLAYER_ACTION_INC", KeyInput.PLAYER_ACTION_INC, "GamepadBtn13"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "INVENTORY.0", KeyInput.INVENTORY, "GamepadBtn2"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "INVENTORY.1", KeyInput.INVENTORY, "KeyI"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "INVENTORY_PREV_CAT", KeyInput.INVENTORY_PREV_CAT, "GamepadBtn4"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "INVENTORY_NEXT_CAT", KeyInput.INVENTORY_NEXT_CAT, "GamepadBtn5"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "INVENTORY_EQUIP_ITEM", KeyInput.INVENTORY_EQUIP_ITEM, "GamepadBtn0"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "NEXT_SHAPE", KeyInput.NEXT_SHAPE, "KeyZ"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ROTATE_SELECTED", KeyInput.ROTATE_SELECTED, "KeyR"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "DELETE_SELECTED", KeyInput.DELETE_SELECTED, "KeyX"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_FORWARD", KeyInput.MOVE_FORWARD, "KeyW"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_LEFT", KeyInput.MOVE_LEFT, "KeyA"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_BACK", KeyInput.MOVE_BACK, "KeyS"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_RIGHT", KeyInput.MOVE_RIGHT, "KeyD"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_0", KeyInput.ACTION_SLOT_0, "Digit0"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_1", KeyInput.ACTION_SLOT_1, "Digit1"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_2", KeyInput.ACTION_SLOT_2, "Digit2"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_3", KeyInput.ACTION_SLOT_3, "Digit3"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_4", KeyInput.ACTION_SLOT_4, "Digit4"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_5", KeyInput.ACTION_SLOT_5, "Digit5"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_6", KeyInput.ACTION_SLOT_6, "Digit6"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_7", KeyInput.ACTION_SLOT_7, "Digit7"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_8", KeyInput.ACTION_SLOT_8, "Digit8"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_9", KeyInput.ACTION_SLOT_9, "Digit9")
+        ];
+    }
+    getValue(property) {
+        let configElement = this.configurationElements.find(e => { return e.property === property; });
+        if (configElement) {
+            return configElement.value;
+        }
+    }
+}
 class HomeMenuCustomizeLine {
     constructor(line) {
         this.line = line;
@@ -693,6 +788,10 @@ class Game {
         BABYLON.Engine.audioEngine.useCustomUnlockedButton = true;
         BABYLON.Engine.audioEngine.lock();
         this.soundManager = new SoundManager();
+        this.configuration = new GameConfiguration("my-test-configuration", this);
+        this.inputManager = new Nabu.InputManager(this.canvas, this.configuration);
+        this.configuration.initialize();
+        this.configuration.saveToLocalStorage();
         this.uiInputManager = new UserInterfaceInputManager(this);
         this.performanceWatcher = new PerformanceWatcher(this);
         this.analytics = new Analytics(this);
@@ -829,6 +928,9 @@ class Game {
         this.networkManager = new NetworkManager(this);
         this.colorPicker = document.querySelector("color-picker");
         this.colorPicker.initColorButtons(this);
+        this.brickMenuView = document.querySelector("brick-menu");
+        this.playerInventoryView = document.querySelector("inventory-page");
+        this.playerActionView = new PlayerActionView();
         this.homeMenuPlate = new HomeMenuPlate(this);
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
@@ -2418,6 +2520,1342 @@ class UserInterfaceInputManager {
                 });
             }
         });
+    }
+}
+class BrickMenuView extends HTMLElement {
+    constructor() {
+        super(...arguments);
+        this._loaded = false;
+        this._shown = false;
+        this.currentPointers = 0;
+        this._timer = 0;
+    }
+    static get observedAttributes() {
+        return [];
+    }
+    get loaded() {
+        return this._loaded;
+    }
+    waitLoaded() {
+        return new Promise(resolve => {
+            let step = () => {
+                if (this.loaded) {
+                    resolve();
+                }
+                else {
+                    requestAnimationFrame(step);
+                }
+            };
+            step();
+        });
+    }
+    get shown() {
+        return this._shown;
+    }
+    get onLoad() {
+        return this._onLoad;
+    }
+    set onLoad(callback) {
+        this._onLoad = callback;
+        if (this._loaded) {
+            this._onLoad();
+        }
+    }
+    currentPointerUp() {
+        if (this._options.length > 0) {
+            this.setPointer((this.currentPointers - 1 + this._options.length) % this._options.length);
+        }
+    }
+    currentPointerDown() {
+        if (this._options.length > 0) {
+            this.setPointer((this.currentPointers + 1) % this._options.length);
+        }
+    }
+    setPointer(n) {
+        if (this._options[this.currentPointers]) {
+            this._options[this.currentPointers].classList.remove("highlit");
+        }
+        this.currentPointers = n;
+        if (this._options[this.currentPointers]) {
+            this._options[this.currentPointers].classList.add("highlit");
+        }
+    }
+    _makeCategoryBtnStyle(btn) {
+        btn.style.fontSize = "min(2svh, 2vw)";
+        btn.style.display = "block";
+        btn.style.marginRight = "1%";
+        btn.style.paddingTop = "0.5%";
+        btn.style.paddingBottom = "0.5%";
+        btn.style.width = "20%";
+        btn.style.textAlign = "center";
+        btn.style.borderLeft = "2px solid white";
+        btn.style.borderTop = "2px solid white";
+        btn.style.borderRight = "2px solid white";
+        btn.style.borderTopLeftRadius = "10px";
+        btn.style.borderTopRightRadius = "10px";
+    }
+    _makeCategoryBtnActive(btn) {
+        btn.style.borderLeft = "2px solid white";
+        btn.style.borderTop = "2px solid white";
+        btn.style.borderRight = "2px solid white";
+        btn.style.color = "#272b2e";
+        btn.style.backgroundColor = "white";
+        btn.style.fontWeight = "bold";
+    }
+    _makeCategoryBtnInactive(btn) {
+        btn.style.borderLeft = "2px solid #7F7F7F";
+        btn.style.borderTop = "2px solid #7F7F7F";
+        btn.style.borderRight = "2px solid #7F7F7F";
+        btn.style.borderBottom = "";
+        btn.style.color = "#7F7F7F";
+        btn.style.backgroundColor = "";
+        btn.style.fontWeight = "";
+    }
+    connectedCallback() {
+        this.style.display = "none";
+        this.style.opacity = "0";
+        this._title = document.createElement("h1");
+        this._title.classList.add("brick-menu-title");
+        this._title.innerHTML = "BRICK";
+        this.appendChild(this._title);
+        let categoriesContainer;
+        categoriesContainer = document.createElement("div");
+        this.appendChild(categoriesContainer);
+        this._anchorBtn = document.createElement("button");
+        this._anchorBtn.innerHTML = "ANCHOR";
+        categoriesContainer.appendChild(this._anchorBtn);
+        this._anchorBtn.onclick = () => {
+            if (this._brick) {
+                this._brick.root.anchored = !this._brick.root.anchored;
+            }
+            this._brick.brickManager.saveToLocalStorage();
+            this.hide(0.1);
+        };
+        this._copyBrickBtn = document.createElement("button");
+        this._copyBrickBtn.innerHTML = "COPY BRICK";
+        categoriesContainer.appendChild(this._copyBrickBtn);
+        this._copyBrickBtn.onclick = () => {
+            this._player.currentAction = PlayerActionTemplate.CreateBrickAction(this._player, this._brick.index, this._brick.colorIndex);
+            this.hide(0.1);
+        };
+        this._copyWithChildrenBtn = document.createElement("button");
+        this._copyWithChildrenBtn.innerHTML = "COPY FULL";
+        categoriesContainer.appendChild(this._copyWithChildrenBtn);
+        this._copyWithChildrenBtn.onclick = () => {
+            let clone = this._brick.cloneWithChildren();
+            clone.updateMesh();
+            this._player.currentAction = PlayerActionMoveBrick.Create(this._player, clone);
+            this.hide(0.1);
+        };
+        this._copyColorBtn = document.createElement("button");
+        this._copyColorBtn.innerHTML = "COPY COLOR";
+        categoriesContainer.appendChild(this._copyColorBtn);
+        this._copyColorBtn.onclick = () => {
+            this._player.currentAction = PlayerActionTemplate.CreatePaintAction(this._player, this._brick.colorIndex);
+            this.hide(0.1);
+        };
+        this._cancelBtn = document.createElement("button");
+        this._cancelBtn.innerHTML = "CANCEL";
+        categoriesContainer.appendChild(this._cancelBtn);
+        this._cancelBtn.onclick = () => {
+            this.hide(0.1);
+        };
+        this._options = [
+            this._anchorBtn,
+            this._copyBrickBtn,
+            this._copyColorBtn,
+            this._cancelBtn,
+        ];
+    }
+    attributeChangedCallback(name, oldValue, newValue) { }
+    async show(duration = 1) {
+        return new Promise((resolve) => {
+            if (!this._shown) {
+                this._shown = true;
+                this.style.display = "block";
+                let opacity0 = parseFloat(this.style.opacity);
+                let opacity1 = 1;
+                let t0 = performance.now();
+                let step = () => {
+                    let t = performance.now();
+                    let dt = (t - t0) / 1000;
+                    if (dt >= duration) {
+                        this.style.opacity = "1";
+                        resolve();
+                    }
+                    else {
+                        let f = dt / duration;
+                        this.style.opacity = ((1 - f) * opacity0 + f * opacity1).toFixed(2);
+                        requestAnimationFrame(step);
+                    }
+                };
+                step();
+            }
+        });
+    }
+    async hide(duration = 1) {
+        if (duration === 0) {
+            this._shown = false;
+            this.style.display = "none";
+            this.style.opacity = "0";
+        }
+        else {
+            return new Promise((resolve) => {
+                if (this._shown) {
+                    this._shown = false;
+                    this.style.display = "block";
+                    let opacity0 = parseFloat(this.style.opacity);
+                    let opacity1 = 0;
+                    let t0 = performance.now();
+                    let step = () => {
+                        let t = performance.now();
+                        let dt = (t - t0) / 1000;
+                        if (dt >= duration) {
+                            this.style.display = "none";
+                            this.style.opacity = "0";
+                            if (this.onNextHide) {
+                                this.onNextHide();
+                                this.onNextHide = undefined;
+                            }
+                            resolve();
+                        }
+                        else {
+                            let f = dt / duration;
+                            this.style.opacity = ((1 - f) * opacity0 + f * opacity1).toFixed(2);
+                            requestAnimationFrame(step);
+                        }
+                    };
+                    step();
+                }
+            });
+        }
+    }
+    setPlayer(player) {
+        this._player = player;
+    }
+    setBrick(brick) {
+        this._brick = brick;
+    }
+    update(dt) {
+        if (this._timer > 0) {
+            this._timer -= dt;
+        }
+        let gamepads = navigator.getGamepads();
+        let gamepad = gamepads[0];
+        if (gamepad) {
+            let axis1 = -Nabu.InputManager.DeadZoneAxis(gamepad.axes[1]);
+            if (axis1 > 0.5) {
+                if (this._timer <= 0) {
+                    this.currentPointerUp();
+                    this._timer = 0.5;
+                }
+            }
+            else if (axis1 < -0.5) {
+                if (this._timer <= 0) {
+                    this.currentPointerDown();
+                    this._timer = 0.5;
+                }
+            }
+            else {
+                this._timer = 0;
+            }
+        }
+    }
+}
+customElements.define("brick-menu", BrickMenuView);
+class PlayerActionManager {
+    constructor(player, game) {
+        this.player = player;
+        this.game = game;
+        this.alwaysEquip = true;
+        this.linkedActions = [];
+        this.currentActionIndex = -1;
+        this.update = () => {
+        };
+        player.playerActionManager = this;
+    }
+    get playerActionView() {
+        return this.game.playerActionView;
+    }
+    prevActionIndex() {
+        if (this.currentActionIndex === 1) {
+            return -1;
+        }
+        if (this.currentActionIndex === 0) {
+            return 9;
+        }
+        if (this.currentActionIndex === 10) {
+            return 0;
+        }
+        return this.currentActionIndex - 1;
+    }
+    nextActionIndex() {
+        if (this.currentActionIndex === -1) {
+            return 1;
+        }
+        if (this.currentActionIndex === 9) {
+            return 0;
+        }
+        if (this.currentActionIndex === 0) {
+            return 10;
+        }
+        return this.currentActionIndex + 1;
+    }
+    initialize() {
+        let savedPlayerActionString = window.localStorage.getItem("player-action-manager");
+        if (savedPlayerActionString) {
+            let savedPlayerAction = JSON.parse(savedPlayerActionString);
+            this.deserializeInPlace(savedPlayerAction);
+        }
+        this.game.scene.onBeforeRenderObservable.add(this.update);
+    }
+    linkAction(action, slotIndex) {
+        this.unlinkAction(slotIndex);
+        if (slotIndex >= 0 && slotIndex <= 9) {
+            this.linkedActions[slotIndex] = action;
+            this.playerActionView.onActionLinked(action, slotIndex);
+            this.saveToLocalStorage();
+        }
+    }
+    unlinkAction(slotIndex) {
+        if (slotIndex >= 0 && slotIndex <= 9) {
+            this.linkedActions[slotIndex] = undefined;
+            this.playerActionView.onActionUnlinked(slotIndex);
+            this.saveToLocalStorage();
+        }
+    }
+    setActionIndex(slotIndex) {
+        this.playerActionView.unlight(this.currentActionIndex);
+        this.currentActionIndex = Nabu.MinMax(slotIndex, -1, 10);
+        if (this.alwaysEquip || this.player.currentAction) {
+            this.unEquipAction();
+            this.equipAction();
+        }
+        this.playerActionView.highlight(this.currentActionIndex);
+    }
+    toggleEquipAction() {
+        if (this.player.currentAction) {
+            this.unEquipAction();
+        }
+        else {
+            this.equipAction();
+        }
+    }
+    equipAction() {
+        this.player.currentAction = this.linkedActions[this.currentActionIndex];
+        if (this.player.currentAction) {
+            this.playerActionView.onActionEquiped(this.currentActionIndex);
+        }
+        else {
+            this.playerActionView.onActionEquiped(-1);
+        }
+    }
+    unEquipAction() {
+        if (this.player.currentAction) {
+            this.player.currentAction = undefined;
+            this.playerActionView.onActionEquiped(-1);
+        }
+    }
+    saveToLocalStorage() {
+        let data = this.serialize();
+        window.localStorage.setItem("player-action-manager", JSON.stringify(data));
+    }
+    loadFromLocalStorage() {
+        let dataString = window.localStorage.getItem("player-action-manager");
+        if (dataString) {
+            let data = JSON.parse(dataString);
+            this.deserializeInPlace(data);
+        }
+    }
+    serialize() {
+        let linkedActionsNames = [];
+        for (let i = 0; i < this.linkedActions.length; i++) {
+            if (this.linkedActions[i]) {
+                linkedActionsNames[i] = this.linkedActions[i].name;
+            }
+            else {
+                linkedActionsNames[i] = undefined;
+            }
+        }
+        return {
+            linkedItemNames: linkedActionsNames
+        };
+    }
+    deserializeInPlace(data) {
+        if (data && data.linkedItemNames) {
+            for (let i = 0; i < data.linkedItemNames.length; i++) {
+                let linkedItemName = data.linkedItemNames[i];
+                if (linkedItemName) {
+                    if (linkedItemName.startsWith("paint_")) {
+                        let paintName = linkedItemName.replace("paint_", "");
+                        let paintIndex = BRICK_COLORS.findIndex(c => { return c.name === paintName; });
+                        this.linkAction(PlayerActionTemplate.CreatePaintAction(this.player, paintIndex), i);
+                    }
+                    else if (linkedItemName) {
+                        this.linkAction(PlayerActionTemplate.CreateBrickAction(this.player, linkedItemName), i);
+                    }
+                }
+            }
+        }
+    }
+}
+class PlayerActionView {
+    constructor() {
+        this._tiles = [];
+    }
+    getTile(slotIndex) {
+        if (slotIndex < 0 || slotIndex > 9) {
+            return undefined;
+        }
+        if (!this._tiles[slotIndex]) {
+            this._tiles[slotIndex] = document.querySelector("#action-" + slotIndex.toFixed(0));
+        }
+        return this._tiles[slotIndex];
+    }
+    initialize(player) {
+        this.player = player;
+        for (let i = 0; i <= 9; i++) {
+            let slotIndex = i;
+            let tile = this.getTile(i);
+            tile.onclick = () => {
+                if (this.player.playerActionManager) {
+                    if (slotIndex === this.player.playerActionManager.currentActionIndex) {
+                        this.player.playerActionManager.toggleEquipAction();
+                    }
+                    else {
+                        this.player.playerActionManager.setActionIndex(slotIndex);
+                        this.player.playerActionManager.equipAction();
+                    }
+                }
+            };
+        }
+    }
+    highlight(slotIndex) {
+        if (slotIndex >= 0 && slotIndex <= 9) {
+            let tile = this.getTile(slotIndex);
+            if (tile) {
+                tile.classList.add("highlit");
+            }
+        }
+    }
+    unlight(slotIndex) {
+        if (slotIndex >= 0 && slotIndex <= 9) {
+            let tile = this.getTile(slotIndex);
+            if (tile) {
+                tile.classList.remove("highlit");
+            }
+        }
+    }
+    equip(slotIndex) {
+        if (slotIndex >= 0 && slotIndex <= 9) {
+            let tile = this.getTile(slotIndex);
+            if (tile) {
+                tile.classList.add("equiped");
+            }
+        }
+    }
+    unEquip(slotIndex) {
+        if (slotIndex >= 0 && slotIndex <= 9) {
+            let tile = this.getTile(slotIndex);
+            if (tile) {
+                tile.classList.remove("equiped");
+            }
+        }
+    }
+    onActionEquiped(slotIndex) {
+        for (let i = 0; i <= 9; i++) {
+            this.unEquip(i);
+        }
+        if (slotIndex >= 0 && slotIndex <= 9) {
+            this.equip(slotIndex);
+        }
+    }
+    onHintStart(slotIndex) {
+    }
+    onHintEnd(slotIndex) {
+    }
+    onActionLinked(action, slotIndex) {
+        if (slotIndex >= 0 && slotIndex <= 9) {
+            let tile = this.getTile(slotIndex);
+            if (tile) {
+                if (action.iconUrl) {
+                    tile.style.background = "url(" + action.iconUrl + ")";
+                    tile.style.backgroundSize = "contain";
+                    tile.style.backgroundRepeat = "no-repeat";
+                    tile.style.backgroundPosition = "center";
+                    tile.style.backgroundColor = action.backgroundColor;
+                }
+                else {
+                    tile.style.background = undefined;
+                    tile.style.backgroundColor = action.backgroundColor;
+                }
+                action._onIconUrlChanged = () => {
+                    tile.style.background = "url(" + action.iconUrl + ")";
+                    tile.style.backgroundSize = "contain";
+                    tile.style.backgroundRepeat = "no-repeat";
+                    tile.style.backgroundPosition = "center";
+                    tile.style.backgroundColor = action.backgroundColor;
+                };
+            }
+        }
+    }
+    onActionUnlinked(slotIndex) {
+        if (slotIndex >= 0 && slotIndex <= 9) {
+            let tile = this.getTile(slotIndex);
+            if (tile) {
+                tile.style.background = undefined;
+                tile.style.backgroundColor = undefined;
+            }
+        }
+    }
+}
+class PlayerAction {
+    constructor(name, player) {
+        this.name = name;
+        this.player = player;
+        this.backgroundColor = "#ffffff";
+        this.r = 0;
+    }
+    get iconUrl() {
+        return this._iconUrl;
+    }
+    set iconUrl(url) {
+        this._iconUrl = url;
+        if (this._onIconUrlChanged) {
+            this._onIconUrlChanged();
+        }
+    }
+}
+var InventoryCategory;
+(function (InventoryCategory) {
+    InventoryCategory[InventoryCategory["Block"] = 0] = "Block";
+    InventoryCategory[InventoryCategory["Brick"] = 1] = "Brick";
+    InventoryCategory[InventoryCategory["Paint"] = 2] = "Paint";
+    InventoryCategory[InventoryCategory["Ingredient"] = 3] = "Ingredient";
+    InventoryCategory[InventoryCategory["End"] = 4] = "End";
+})(InventoryCategory || (InventoryCategory = {}));
+class PlayerInventoryItem {
+    constructor(name, category) {
+        this.count = 1;
+        this.name = name;
+        this.category = category;
+        this.icon = "/datas/icons/empty.png";
+        if (this.category === InventoryCategory.Brick) {
+            this.icon = "/datas/icons/bricks/" + name + ".png";
+        }
+    }
+    getPlayerAction(player) {
+        if (this.category === InventoryCategory.Brick) {
+            return PlayerActionTemplate.CreateBrickAction(player, this.name);
+        }
+        else if (this.category === InventoryCategory.Paint) {
+            let colorIndex = BRICK_COLORS.findIndex(c => { return c.name === this.name; });
+            if (colorIndex >= 0) {
+                return PlayerActionTemplate.CreatePaintAction(player, colorIndex);
+            }
+        }
+    }
+}
+class PlayerInventory {
+    constructor(player) {
+        this.player = player;
+        this.items = [];
+    }
+    addItem(item) {
+        let existingItem = this.items.find(it => { return it.name === item.name; });
+        if (existingItem) {
+            existingItem.count += item.count;
+        }
+        else {
+            this.items.push(item);
+        }
+    }
+}
+class PlayerInventoryLine extends HTMLDivElement {
+    constructor() {
+        super();
+    }
+}
+customElements.define("inventory-line", PlayerInventoryLine, { extends: "div" });
+class PlayerInventoryView extends HTMLElement {
+    constructor() {
+        super(...arguments);
+        this._loaded = false;
+        this._shown = false;
+        this.currentPointers = [0, 0, 0];
+        this._currentCategory = InventoryCategory.Block;
+        this._timer = 0;
+    }
+    static get observedAttributes() {
+        return [];
+    }
+    get loaded() {
+        return this._loaded;
+    }
+    waitLoaded() {
+        return new Promise(resolve => {
+            let step = () => {
+                if (this.loaded) {
+                    resolve();
+                }
+                else {
+                    requestAnimationFrame(step);
+                }
+            };
+            step();
+        });
+    }
+    get shown() {
+        return this._shown;
+    }
+    get onLoad() {
+        return this._onLoad;
+    }
+    set onLoad(callback) {
+        this._onLoad = callback;
+        if (this._loaded) {
+            this._onLoad();
+        }
+    }
+    currentPointerUp() {
+        if (this._lines[this._currentCategory].length > 0) {
+            this.setPointer((this.currentPointers[this._currentCategory] - 1 + this._lines[this._currentCategory].length) % this._lines[this._currentCategory].length);
+        }
+    }
+    currentPointerDown() {
+        if (this._lines[this._currentCategory].length > 0) {
+            this.setPointer((this.currentPointers[this._currentCategory] + 1) % this._lines[this._currentCategory].length);
+        }
+    }
+    setPointer(n, cat) {
+        if (!isFinite(cat)) {
+            cat = this._currentCategory;
+        }
+        if (this._lines[cat][this.currentPointers[cat]]) {
+            this._lines[cat][this.currentPointers[cat]].classList.remove("highlit");
+        }
+        this.currentPointers[cat] = n;
+        if (this._lines[cat][this.currentPointers[cat]]) {
+            this._lines[cat][this.currentPointers[cat]].classList.add("highlit");
+        }
+    }
+    setCurrentCategory(cat) {
+        this._currentCategory = cat;
+        for (let i = 0; i < this._categoryBtns.length; i++) {
+            this._makeCategoryBtnInactive(this._categoryBtns[i]);
+            this._containers[i].style.display = "none";
+        }
+        this._makeCategoryBtnActive(this._categoryBtns[this._currentCategory]);
+        this._containers[this._currentCategory].style.display = "block";
+    }
+    getCurrentItem() {
+        if (this._lines[this._currentCategory]) {
+            if (this._lines[this._currentCategory][this.currentPointers[this._currentCategory]]) {
+                return this._lines[this._currentCategory][this.currentPointers[this._currentCategory]].item;
+            }
+        }
+    }
+    get prevCategory() {
+        return (this._currentCategory - 1 + InventoryCategory.End) % InventoryCategory.End;
+    }
+    get nextCategory() {
+        return (this._currentCategory + 1) % InventoryCategory.End;
+    }
+    _makeCategoryBtnStyle(btn) {
+        btn.style.fontSize = "min(2svh, 2vw)";
+        btn.style.display = "inline-block";
+        btn.style.marginRight = "1%";
+        btn.style.paddingTop = "0.5%";
+        btn.style.paddingBottom = "0.5%";
+        btn.style.width = "20%";
+        btn.style.textAlign = "center";
+        btn.style.borderLeft = "2px solid white";
+        btn.style.borderTop = "2px solid white";
+        btn.style.borderRight = "2px solid white";
+        btn.style.borderTopLeftRadius = "10px";
+        btn.style.borderTopRightRadius = "10px";
+    }
+    _makeCategoryBtnActive(btn) {
+        btn.style.borderLeft = "2px solid white";
+        btn.style.borderTop = "2px solid white";
+        btn.style.borderRight = "2px solid white";
+        btn.style.color = "#272b2e";
+        btn.style.backgroundColor = "white";
+        btn.style.fontWeight = "bold";
+    }
+    _makeCategoryBtnInactive(btn) {
+        btn.style.borderLeft = "2px solid #7F7F7F";
+        btn.style.borderTop = "2px solid #7F7F7F";
+        btn.style.borderRight = "2px solid #7F7F7F";
+        btn.style.borderBottom = "";
+        btn.style.color = "#7F7F7F";
+        btn.style.backgroundColor = "";
+        btn.style.fontWeight = "";
+    }
+    connectedCallback() {
+        this.style.display = "none";
+        this.style.opacity = "0";
+        this._title = document.createElement("h1");
+        this._title.classList.add("inventory-page-title");
+        this._title.innerHTML = "INVENTORY";
+        this.appendChild(this._title);
+        let categoriesContainer;
+        categoriesContainer = document.createElement("div");
+        this.appendChild(categoriesContainer);
+        this._categoryBlocksBtn = document.createElement("div");
+        this._categoryBlocksBtn.innerHTML = "BLOCKS";
+        categoriesContainer.appendChild(this._categoryBlocksBtn);
+        this._makeCategoryBtnStyle(this._categoryBlocksBtn);
+        this._categoryBlocksBtn.onclick = () => {
+            this.setCurrentCategory(InventoryCategory.Block);
+        };
+        this._categoryBricksBtn = document.createElement("div");
+        this._categoryBricksBtn.innerHTML = "BRICKS";
+        categoriesContainer.appendChild(this._categoryBricksBtn);
+        this._makeCategoryBtnStyle(this._categoryBricksBtn);
+        this._categoryBricksBtn.onclick = () => {
+            this.setCurrentCategory(InventoryCategory.Brick);
+        };
+        this._categoryPaintsBtn = document.createElement("div");
+        this._categoryPaintsBtn.innerHTML = "PAINTS";
+        categoriesContainer.appendChild(this._categoryPaintsBtn);
+        this._makeCategoryBtnStyle(this._categoryPaintsBtn);
+        this._categoryPaintsBtn.onclick = () => {
+            this.setCurrentCategory(InventoryCategory.Paint);
+        };
+        this._categoryIngredientsBtn = document.createElement("div");
+        this._categoryIngredientsBtn.innerHTML = "INGREDIENTS";
+        categoriesContainer.appendChild(this._categoryIngredientsBtn);
+        this._makeCategoryBtnStyle(this._categoryIngredientsBtn);
+        this._categoryIngredientsBtn.onclick = () => {
+            this.setCurrentCategory(InventoryCategory.Ingredient);
+        };
+        this._categoryBtns = [
+            this._categoryBlocksBtn,
+            this._categoryBricksBtn,
+            this._categoryPaintsBtn,
+            this._categoryIngredientsBtn,
+        ];
+        this._containerFrame = document.createElement("div");
+        this._containerFrame.classList.add("container-frame");
+        this.appendChild(this._containerFrame);
+        this._containers = [];
+        for (let i = 0; i < InventoryCategory.End; i++) {
+            this._containers[i] = document.createElement("div");
+            this._containers[i].classList.add("container");
+            this._containerFrame.appendChild(this._containers[i]);
+        }
+        let a = document.createElement("a");
+        a.href = "#home";
+        this.appendChild(a);
+        this.setCurrentCategory(InventoryCategory.Block);
+    }
+    attributeChangedCallback(name, oldValue, newValue) { }
+    async show(duration = 1) {
+        this.createPage();
+        return new Promise((resolve) => {
+            if (!this._shown) {
+                this._shown = true;
+                this.style.display = "block";
+                let opacity0 = parseFloat(this.style.opacity);
+                let opacity1 = 1;
+                let t0 = performance.now();
+                let step = () => {
+                    let t = performance.now();
+                    let dt = (t - t0) / 1000;
+                    if (dt >= duration) {
+                        this.style.opacity = "1";
+                        resolve();
+                    }
+                    else {
+                        let f = dt / duration;
+                        this.style.opacity = ((1 - f) * opacity0 + f * opacity1).toFixed(2);
+                        requestAnimationFrame(step);
+                    }
+                };
+                step();
+            }
+        });
+    }
+    async hide(duration = 1) {
+        if (duration === 0) {
+            this._shown = false;
+            this.style.display = "none";
+            this.style.opacity = "0";
+        }
+        else {
+            return new Promise((resolve) => {
+                if (this._shown) {
+                    this._shown = false;
+                    this.style.display = "block";
+                    let opacity0 = parseFloat(this.style.opacity);
+                    let opacity1 = 0;
+                    let t0 = performance.now();
+                    let step = () => {
+                        let t = performance.now();
+                        let dt = (t - t0) / 1000;
+                        if (dt >= duration) {
+                            this.style.display = "none";
+                            this.style.opacity = "0";
+                            if (this.onNextHide) {
+                                this.onNextHide();
+                                this.onNextHide = undefined;
+                            }
+                            resolve();
+                        }
+                        else {
+                            let f = dt / duration;
+                            this.style.opacity = ((1 - f) * opacity0 + f * opacity1).toFixed(2);
+                            requestAnimationFrame(step);
+                        }
+                    };
+                    step();
+                }
+            });
+        }
+    }
+    setInventory(inventory) {
+        this.inventory = inventory;
+    }
+    createPage() {
+        this._lines = [];
+        for (let i = 0; i < this._containers.length; i++) {
+            this._containers[i].innerHTML = "";
+            this._lines[i] = [];
+        }
+        for (let i = 0; i < this.inventory.items.length; i++) {
+            let inventoryItem = this.inventory.items[i];
+            let line = document.createElement("div");
+            line.setAttribute("is", "inventory-line");
+            line.item = inventoryItem;
+            line.classList.add("line");
+            this._containers[inventoryItem.category].appendChild(line);
+            this._lines[inventoryItem.category].push(line);
+            let icon = document.createElement("img");
+            icon.classList.add("inventory-icon");
+            icon.setAttribute("src", inventoryItem.icon);
+            icon.style.display = "inline-block";
+            icon.style.verticalAlign = "top";
+            icon.style.marginLeft = "1%";
+            icon.style.marginRight = "1%";
+            icon.style.marginTop = "0";
+            icon.style.marginBottom = "0";
+            icon.style.height = "85%";
+            icon.style.outline = "1px solid white";
+            icon.style.borderRadius = "4px";
+            line.appendChild(icon);
+            let label = document.createElement("div");
+            label.classList.add("label");
+            label.innerHTML = inventoryItem.name;
+            label.style.display = "inline-block";
+            label.style.marginLeft = "1%";
+            label.style.marginRight = "1%";
+            label.style.paddingLeft = "1.5%";
+            label.style.paddingRight = "1.5%";
+            label.style.width = "45%";
+            line.appendChild(label);
+            let countBlock = document.createElement("div");
+            countBlock.classList.add("count-block");
+            countBlock.innerHTML = inventoryItem.count.toFixed(0);
+            countBlock.style.display = "inline-block";
+            countBlock.style.marginLeft = "1%";
+            countBlock.style.marginRight = "1%";
+            countBlock.style.paddingLeft = "1.5%";
+            countBlock.style.paddingRight = "1.5%";
+            countBlock.style.width = "15%";
+            line.appendChild(countBlock);
+            let equipButton = document.createElement("button");
+            equipButton.classList.add("equip-button");
+            equipButton.innerHTML = "EQUIP";
+            equipButton.style.display = "inline-block";
+            equipButton.style.marginLeft = "1%";
+            equipButton.style.marginRight = "1%";
+            equipButton.style.paddingLeft = "1.5%";
+            equipButton.style.paddingRight = "1.5%";
+            equipButton.style.width = "15%";
+            line.appendChild(equipButton);
+            equipButton.onclick = () => {
+                let action = inventoryItem.getPlayerAction(this.inventory.player);
+                this.inventory.player.playerActionManager.linkAction(action, this.inventory.player.playerActionManager.currentActionIndex);
+                if (this.inventory.player.playerActionManager.alwaysEquip) {
+                    this.inventory.player.playerActionManager.equipAction();
+                }
+            };
+        }
+        this.setPointer(0, InventoryCategory.Block);
+        this.setPointer(0, InventoryCategory.Brick);
+        this.setPointer(0, InventoryCategory.Ingredient);
+    }
+    update(dt) {
+        if (this._timer > 0) {
+            this._timer -= dt;
+        }
+        let gamepads = navigator.getGamepads();
+        let gamepad = gamepads[0];
+        if (gamepad) {
+            let axis1 = -Nabu.InputManager.DeadZoneAxis(gamepad.axes[1]);
+            if (axis1 > 0.5) {
+                if (this._timer <= 0) {
+                    this.currentPointerUp();
+                    this._timer = 0.5;
+                }
+            }
+            else if (axis1 < -0.5) {
+                if (this._timer <= 0) {
+                    this.currentPointerDown();
+                    this._timer = 0.5;
+                }
+            }
+            else {
+                this._timer = 0;
+            }
+        }
+    }
+}
+customElements.define("inventory-page", PlayerInventoryView);
+class PlayerActionDefault {
+    static IsAimable(mesh) {
+        if (mesh instanceof BrickMesh) {
+            return true;
+        }
+        return false;
+    }
+    static Create(player) {
+        let brickAction = new PlayerAction("default-action", player);
+        brickAction.backgroundColor = "#FF00FF";
+        brickAction.iconUrl = "";
+        let aimedObject;
+        let setAimedObject = (b) => {
+            if (b != aimedObject) {
+                if (aimedObject) {
+                    aimedObject.unlight();
+                }
+                aimedObject = b;
+                if (aimedObject) {
+                    aimedObject.highlight();
+                }
+            }
+        };
+        brickAction.onUpdate = () => {
+            if (player.playMode === PlayMode.Playing) {
+                let x;
+                let y;
+                if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
+                    x = player.game.canvas.clientWidth * 0.5;
+                    y = player.game.canvas.clientHeight * 0.5;
+                }
+                else {
+                    x = player.scene.pointerX;
+                    y = player.scene.pointerY;
+                }
+                let hit = player.game.scene.pick(x, y, (mesh) => {
+                    return PlayerActionDefault.IsAimable(mesh);
+                });
+                if (hit.hit && hit.pickedPoint) {
+                    if (hit.pickedMesh instanceof BrickMesh) {
+                        let brickRoot = hit.pickedMesh.brick.root;
+                        if (brickRoot) {
+                            let brick = brickRoot.getBrickForFaceId(hit.faceId);
+                            if (brick) {
+                                setAimedObject(brick);
+                            }
+                            return;
+                        }
+                    }
+                }
+            }
+            setAimedObject(undefined);
+        };
+        brickAction.onPointerUp = (duration, distance) => {
+            if (distance > 4) {
+                return;
+            }
+            if (duration > 0.3) {
+                if (aimedObject instanceof Brick) {
+                    player.game.brickMenuView.setBrick(aimedObject);
+                    if (player.game.inputManager.isPointerLocked) {
+                        document.exitPointerLock();
+                        player.game.brickMenuView.onNextHide = () => {
+                            player.game.canvas.requestPointerLock();
+                        };
+                    }
+                    player.game.brickMenuView.show(0.1);
+                }
+            }
+            else {
+                if (player.playMode === PlayMode.Playing) {
+                    if ((aimedObject instanceof Brick) && !aimedObject.root.anchored) {
+                        player.currentAction = PlayerActionMoveBrick.Create(player, aimedObject.root);
+                    }
+                }
+            }
+        };
+        brickAction.onRightPointerUp = (duration, distance) => {
+            if (distance > 4) {
+                return;
+            }
+            if (aimedObject instanceof Brick) {
+                let prevParent = aimedObject.parent;
+                if (prevParent instanceof Brick) {
+                    aimedObject.setParent(undefined);
+                    aimedObject.updateMesh();
+                    prevParent.updateMesh();
+                }
+            }
+        };
+        brickAction.onUnequip = () => {
+            setAimedObject(undefined);
+        };
+        return brickAction;
+    }
+}
+class PlayerActionMoveBrick {
+    static Create(player, brick) {
+        let brickAction = new PlayerAction("move-brick-action", player);
+        brickAction.backgroundColor = "#FF00FF";
+        brickAction.iconUrl = "";
+        let initPos = brick.root.position.clone();
+        brickAction.onUpdate = () => {
+            let terrain = player.game.terrain;
+            if (player.playMode === PlayMode.Playing) {
+                let x;
+                let y;
+                if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
+                    x = player.game.canvas.clientWidth * 0.5;
+                    y = player.game.canvas.clientHeight * 0.5;
+                }
+                else {
+                    x = player.scene.pointerX;
+                    y = player.scene.pointerY;
+                }
+                let hit = player.game.scene.pick(x, y, (mesh) => {
+                    return (mesh instanceof BrickMesh && mesh.brick != brick);
+                });
+                if (hit && hit.pickedPoint) {
+                    let n = hit.getNormal(true).scaleInPlace(0.05);
+                    if (hit.pickedMesh instanceof BrickMesh) {
+                        let root = hit.pickedMesh.brick.root;
+                        let rootPosition = root.position;
+                        let dp = hit.pickedPoint.add(n).subtract(rootPosition);
+                        //dp.x = terrain.blockSizeIJ_m * Math.round(dp.x / terrain.blockSizeIJ_m);
+                        //dp.y = (terrain.blockSizeK_m / 3) * Math.floor(dp.y / (terrain.blockSizeK_m / 3));
+                        //dp.z = terrain.blockSizeIJ_m * Math.round(dp.z / terrain.blockSizeIJ_m);
+                        brick.root.position.copyFrom(dp);
+                        brick.root.position.addInPlace(rootPosition);
+                        return;
+                    }
+                    else {
+                        brick.root.position.copyFrom(hit.pickedPoint);
+                    }
+                }
+            }
+        };
+        brickAction.onPointerUp = (duration) => {
+            let terrain = player.game.terrain;
+            if (player.playMode === PlayMode.Playing) {
+                let x;
+                let y;
+                if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
+                    x = player.game.canvas.clientWidth * 0.5;
+                    y = player.game.canvas.clientHeight * 0.5;
+                }
+                else {
+                    x = player.scene.pointerX;
+                    y = player.scene.pointerY;
+                }
+                let hit = player.game.scene.pick(x, y, (mesh) => {
+                    return (mesh instanceof BrickMesh && mesh.brick != brick);
+                });
+                if (hit && hit.pickedPoint) {
+                    let n = hit.getNormal(true).scaleInPlace(0.05);
+                    if (hit.pickedMesh instanceof BrickMesh) {
+                        if (duration > 0.3) {
+                            let root = hit.pickedMesh.brick.root;
+                            let aimedBrick = root.getBrickForFaceId(hit.faceId);
+                            brick.setParent(aimedBrick);
+                            brick.updateMesh();
+                            brick.brickManager.saveToLocalStorage();
+                        }
+                        else {
+                            let root = hit.pickedMesh.brick.root;
+                            let rootPosition = root.position;
+                            let dp = hit.pickedPoint.add(n).subtract(rootPosition);
+                            brick.root.position.copyFrom(dp);
+                            brick.root.position.addInPlace(rootPosition);
+                            brick.construction = root.construction;
+                            brick.brickManager.saveToLocalStorage();
+                        }
+                    }
+                    else {
+                        //let chunckIJK = player.game.terrain.getChunckAndIJKAtPos(hit.pickedPoint.add(n), 0);
+                        //if (chunckIJK) {
+                        //    brick.root.position.copyFromFloats((chunckIJK.ijk.i + 0.5) * terrain.blockSizeIJ_m, (chunckIJK.ijk.k) * terrain.blockSizeK_m, (chunckIJK.ijk.j + 0.5) * terrain.blockSizeIJ_m).addInPlace(chunckIJK.chunck.position);
+                        //    brick.root.chunck = chunckIJK.chunck;
+                        //    
+                        //    brick.brickManager.saveToLocalStorage();
+                        //}
+                    }
+                }
+            }
+            player.currentAction = undefined;
+        };
+        let rotateBrick = () => {
+            if (brick) {
+                let quat = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, Math.PI / 2);
+                quat.multiplyToRef(brick.rotationQuaternion, brick.rotationQuaternion);
+            }
+        };
+        let deleteBrick = () => {
+            if (brick) {
+                brick.dispose();
+                player.currentAction = undefined;
+            }
+        };
+        brickAction.onEquip = () => {
+            player.game.inputManager.addMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
+            player.game.inputManager.addMappedKeyDownListener(KeyInput.DELETE_SELECTED, deleteBrick);
+        };
+        brickAction.onUnequip = () => {
+            player.game.inputManager.removeMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
+            player.game.inputManager.removeMappedKeyDownListener(KeyInput.DELETE_SELECTED, deleteBrick);
+        };
+        brickAction.onWheel = (e) => {
+            if (brick.isRoot && brick.getChildTransformNodes().length === 0) {
+                if (e.deltaY > 0) {
+                    brick.index = (brick.index + BRICK_LIST.length - 1) % BRICK_LIST.length;
+                    brick.updateMesh();
+                }
+                else if (e.deltaY < 0) {
+                    brick.index = (brick.index + 1) % BRICK_LIST.length;
+                    brick.updateMesh();
+                }
+            }
+        };
+        return brickAction;
+    }
+}
+var ACTIVE_DEBUG_PLAYER_ACTION = true;
+var ADD_BRICK_ANIMATION_DURATION = 1000;
+class PlayerActionTemplate {
+    static CreateBrickAction(player, brickId, colorIndex) {
+        let brickIndex = Brick.BrickIdToIndex(brickId);
+        let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
+        brickAction.backgroundColor = "#000000";
+        let previewMesh;
+        brickAction.iconUrl = "/datas/icons/bricks/" + Brick.BrickIdToName(brickId) + ".png";
+        let rotationQuaternion = BABYLON.Quaternion.Identity();
+        brickAction.onUpdate = () => {
+            let terrain = player.game.terrain;
+            if (player.playMode === PlayMode.Playing) {
+                let x;
+                let y;
+                if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
+                    x = player.game.canvas.clientWidth * 0.5;
+                    y = player.game.canvas.clientHeight * 0.5;
+                }
+                else {
+                    x = player.scene.pointerX;
+                    y = player.scene.pointerY;
+                }
+                let hit = player.game.scene.pick(x, y, (mesh) => {
+                    return mesh instanceof BrickMesh;
+                });
+                if (hit && hit.pickedPoint) {
+                    let n = hit.getNormal(true).scaleInPlace(0.05);
+                    if (hit.pickedMesh instanceof BrickMesh) {
+                        let root = hit.pickedMesh.brick.root;
+                        if (root.mesh) {
+                            let dp = hit.pickedPoint.add(n).subtract(root.position);
+                            //dp.x = terrain.blockSizeIJ_m * Math.round(dp.x / terrain.blockSizeIJ_m);
+                            //dp.y = (terrain.blockSizeK_m / 3) * Math.floor(dp.y / (terrain.blockSizeK_m / 3));
+                            //dp.z = terrain.blockSizeIJ_m * Math.round(dp.z / terrain.blockSizeIJ_m);
+                            previewMesh.position.copyFrom(dp).addInPlace(root.position);
+                            previewMesh.parent = undefined;
+                            previewMesh.isVisible = true;
+                            return;
+                        }
+                    }
+                    else {
+                        //let chunckIJK = player.game.terrain.getChunckAndIJKAtPos(hit.pickedPoint.add(n), 0);
+                        //if (chunckIJK) {
+                        //    previewMesh.position.copyFromFloats((chunckIJK.ijk.i + 0.5) * terrain.blockSizeIJ_m, (chunckIJK.ijk.k + 0.5 / 3) * terrain.blockSizeK_m, (chunckIJK.ijk.j + 0.5) * terrain.blockSizeIJ_m);
+                        //    previewMesh.parent = chunckIJK.chunck.mesh;
+                        //    previewMesh.isVisible = true;
+                        //    return;
+                        //}
+                    }
+                }
+            }
+            if (previewMesh) {
+                previewMesh.isVisible = false;
+            }
+        };
+        brickAction.onPointerDown = () => {
+            let terrain = player.game.terrain;
+            if (player.playMode === PlayMode.Playing) {
+                let x;
+                let y;
+                if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
+                    x = player.game.canvas.clientWidth * 0.5;
+                    y = player.game.canvas.clientHeight * 0.5;
+                }
+                else {
+                    x = player.scene.pointerX;
+                    y = player.scene.pointerY;
+                }
+                let hit = player.game.scene.pick(x, y, (mesh) => {
+                    return mesh instanceof BrickMesh;
+                });
+                if (hit && hit.pickedPoint) {
+                    let n = hit.getNormal(true).scaleInPlace(0.05);
+                    if (hit.pickedMesh instanceof BrickMesh) {
+                        let root = hit.pickedMesh.brick.root;
+                        let aimedBrick = root.getBrickForFaceId(hit.faceId);
+                        let rootPosition = root.position;
+                        let dp = hit.pickedPoint.add(n).subtract(rootPosition);
+                        //dp.x = terrain.blockSizeIJ_m * Math.round(dp.x / terrain.blockSizeIJ_m);
+                        //dp.y = (terrain.blockSizeK_m / 3) * Math.floor(dp.y / (terrain.blockSizeK_m / 3));
+                        //dp.z = terrain.blockSizeIJ_m * Math.round(dp.z / terrain.blockSizeIJ_m);
+                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0);
+                        brick.position.copyFrom(dp).addInPlace(rootPosition);
+                        brick.rotationQuaternion = rotationQuaternion.clone();
+                        brick.computeWorldMatrix(true);
+                        brick.setParent(aimedBrick);
+                        brick.updateMesh();
+                        brick.brickManager.saveToLocalStorage();
+                    }
+                    else {
+                        //let chunckIJK = player.game.terrain.getChunckAndIJKAtPos(hit.pickedPoint.add(n), 0);
+                        //if (chunckIJK) {
+                        //    let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : player.controler.lastUsedPaintIndex);
+                        //    brick.position.copyFromFloats((chunckIJK.ijk.i + 0.5) * terrain.blockSizeIJ_m, (chunckIJK.ijk.k) * terrain.blockSizeK_m, (chunckIJK.ijk.j + 0.5) * terrain.blockSizeIJ_m).addInPlace(chunckIJK.chunck.position);
+                        //    brick.rotationQuaternion = rotationQuaternion.clone();
+                        //    brick.updateMesh();
+                        //    brick.chunck = chunckIJK.chunck;
+                        //    
+                        //    brick.brickManager.saveToLocalStorage();
+                        //}
+                    }
+                }
+            }
+        };
+        let rotateBrick = () => {
+            let quat = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, Math.PI / 2);
+            quat.multiplyToRef(rotationQuaternion, rotationQuaternion);
+        };
+        brickAction.onEquip = () => {
+            brickIndex = Brick.BrickIdToIndex(brickId);
+            if (!previewMesh || previewMesh.isDisposed()) {
+                previewMesh = new BABYLON.Mesh("brick-preview-mesh");
+            }
+            let previewMat = new BABYLON.StandardMaterial("brick-preview-material");
+            previewMat.alpha = 0.5;
+            previewMat.specularColor.copyFromFloats(1, 1, 1);
+            previewMesh.material = previewMat;
+            previewMesh.rotationQuaternion = rotationQuaternion;
+            BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
+                template.vertexData.applyToMesh(previewMesh);
+            });
+            player.game.inputManager.addMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
+        };
+        brickAction.onUnequip = () => {
+            if (previewMesh) {
+                previewMesh.dispose();
+            }
+            player.game.inputManager.removeMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
+        };
+        brickAction.onWheel = (e) => {
+            if (e.deltaY > 0) {
+                brickIndex = (brickIndex + BRICK_LIST.length - 1) % BRICK_LIST.length;
+                BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
+                    if (previewMesh && !previewMesh.isDisposed()) {
+                        template.vertexData.applyToMesh(previewMesh);
+                    }
+                });
+            }
+            else if (e.deltaY < 0) {
+                brickIndex = (brickIndex + 1) % BRICK_LIST.length;
+                BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
+                    if (previewMesh && !previewMesh.isDisposed()) {
+                        template.vertexData.applyToMesh(previewMesh);
+                    }
+                });
+            }
+        };
+        return brickAction;
+    }
+    static CreatePaintAction(player, paintIndex) {
+        let paintAction = new PlayerAction("paint_" + BRICK_COLORS[paintIndex].name, player);
+        paintAction.backgroundColor = BRICK_COLORS[paintIndex].hex;
+        paintAction.iconUrl = "/datas/icons/paintbrush.svg";
+        let brush;
+        let tip;
+        paintAction.onUpdate = () => {
+        };
+        paintAction.onPointerDown = () => {
+            if (player.playMode === PlayMode.Playing) {
+                let x;
+                let y;
+                if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
+                    x = player.game.canvas.clientWidth * 0.5;
+                    y = player.game.canvas.clientHeight * 0.5;
+                }
+                else {
+                    x = player.scene.pointerX;
+                    y = player.scene.pointerY;
+                }
+                let hit = player.game.scene.pick(x, y, (mesh) => {
+                    return mesh instanceof BrickMesh;
+                });
+                if (hit && hit.pickedPoint) {
+                    if (hit.pickedMesh instanceof BrickMesh) {
+                        let root = hit.pickedMesh.brick.root;
+                        let aimedBrick = root.getBrickForFaceId(hit.faceId);
+                        aimedBrick.colorIndex = paintIndex;
+                        //player.lastUsedPaintIndex = paintIndex;
+                        aimedBrick.updateMesh();
+                        aimedBrick.brickManager.saveToLocalStorage();
+                    }
+                }
+            }
+        };
+        paintAction.onEquip = async () => {
+            brush = new BABYLON.Mesh("brush");
+            brush.parent = player.dodo;
+            brush.position.z = 0.8;
+            brush.position.x = 0.1;
+            brush.position.y = -0.2;
+            tip = new BABYLON.Mesh("tip");
+            tip.parent = brush;
+            let tipMaterial = new BABYLON.StandardMaterial("tip-material");
+            tipMaterial.diffuseColor = BABYLON.Color3.FromHexString(BRICK_COLORS[paintIndex].hex);
+            tip.material = tipMaterial;
+            let vDatas = await player.game.vertexDataLoader.get("./datas/meshes/paintbrush.babylon");
+            if (brush && !brush.isDisposed()) {
+                vDatas[0].applyToMesh(brush);
+                vDatas[1].applyToMesh(tip);
+            }
+        };
+        paintAction.onUnequip = () => {
+            if (brush) {
+                brush.dispose();
+            }
+        };
+        paintAction.onWheel = (e) => {
+            if (e.deltaY > 0) {
+                paintIndex = (paintIndex + BRICK_COLORS.length - 1) % BRICK_COLORS.length;
+                if (tip && !tip.isDisposed() && tip.material instanceof BABYLON.StandardMaterial) {
+                    tip.material.diffuseColor = BABYLON.Color3.FromHexString(BRICK_COLORS[paintIndex].hex);
+                }
+            }
+            else if (e.deltaY < 0) {
+                paintIndex = (paintIndex + 1) % BRICK_COLORS.length;
+                if (tip && !tip.isDisposed() && tip.material instanceof BABYLON.StandardMaterial) {
+                    tip.material.diffuseColor = BABYLON.Color3.FromHexString(BRICK_COLORS[paintIndex].hex);
+                }
+            }
+        };
+        return paintAction;
     }
 }
 class BrickMesh extends BABYLON.Mesh {
@@ -4381,11 +5819,20 @@ class BrainNetwork extends SubBrain {
     }
 }
 /// <reference path="SubBrain.ts"/>
+var PlayMode;
+(function (PlayMode) {
+    PlayMode[PlayMode["Menu"] = 0] = "Menu";
+    PlayMode[PlayMode["Inventory"] = 1] = "Inventory";
+    PlayMode[PlayMode["Playing"] = 2] = "Playing";
+})(PlayMode || (PlayMode = {}));
 class BrainPlayer extends SubBrain {
     constructor() {
         super(...arguments);
         this._targetQ = BABYLON.Quaternion.Identity();
         this._targetLook = BABYLON.Vector3.Zero();
+        this.gamepadInControl = false;
+        this._pointerDownX = -100;
+        this._pointerDownY = -100;
         this._pointerDown = false;
         this._pointerSmoothness = 0.5;
         this._moveXAxisInput = 0;
@@ -4394,8 +5841,195 @@ class BrainPlayer extends SubBrain {
         this._rotateYAxisInput = 0;
         this._smoothedRotateXAxisInput = 0;
         this._smoothedRotateYAxisInput = 0;
+        this._onPointerDown = (event) => {
+            this._pointerDownTime = performance.now();
+            this._pointerDownX = event.clientX;
+            this._pointerDownY = event.clientY;
+            this._pointerDown = true;
+            if (this.playMode === PlayMode.Playing) {
+                if (this.currentAction) {
+                    if (event.button === 0) {
+                        if (this.currentAction.onPointerDown) {
+                            this.currentAction.onPointerDown();
+                        }
+                    }
+                    else if (event.button === 2) {
+                        if (this.currentAction.onRightPointerDown) {
+                            this.currentAction.onRightPointerDown();
+                        }
+                    }
+                }
+                else {
+                    if (event.button === 0) {
+                        if (this.defaultAction.onPointerDown) {
+                            this.defaultAction.onPointerDown();
+                        }
+                    }
+                    else if (event.button === 2) {
+                        if (this.defaultAction.onRightPointerDown) {
+                            this.defaultAction.onRightPointerDown();
+                        }
+                    }
+                }
+            }
+        };
+        this._pointerMove = (event) => {
+            if (this._pointerDown || this.game.inputManager.isPointerLocked) {
+                this.gamepadInControl = false;
+                this._rotateXAxisInput += event.movementY / 200;
+                this._rotateYAxisInput += event.movementX / 200;
+            }
+        };
+        this._pointerUp = (event) => {
+            this._pointerDown = false;
+            let dX = this._pointerDownX - event.clientX;
+            let dY = this._pointerDownY - event.clientY;
+            let distance = Math.sqrt(dX * dX + dY * dY);
+            let duration = (performance.now() - this._pointerDownTime) / 1000;
+            if (this.playMode === PlayMode.Playing) {
+                if (this.currentAction) {
+                    if (event.button === 0) {
+                        if (this.currentAction.onPointerUp) {
+                            this.currentAction.onPointerUp(duration, distance);
+                        }
+                    }
+                    else if (event.button === 2) {
+                        if (this.currentAction.onRightPointerUp) {
+                            this.currentAction.onRightPointerUp(duration, distance);
+                        }
+                    }
+                }
+                else {
+                    if (event.button === 0) {
+                        if (this.defaultAction.onPointerUp) {
+                            this.defaultAction.onPointerUp(duration, distance);
+                        }
+                    }
+                    else if (event.button === 2) {
+                        if (this.defaultAction.onRightPointerUp) {
+                            this.defaultAction.onRightPointerUp(duration, distance);
+                        }
+                    }
+                }
+            }
+        };
+        this._wheel = (event) => {
+            if (this.currentAction) {
+                if (this.currentAction.onWheel) {
+                    this.currentAction.onWheel(event);
+                }
+            }
+            else {
+                if (this.defaultAction.onWheel) {
+                    this.defaultAction.onWheel(event);
+                }
+            }
+        };
+    }
+    get currentAction() {
+        return this._currentAction;
+    }
+    set currentAction(action) {
+        if (this._currentAction && this._currentAction.onUnequip) {
+            this._currentAction.onUnequip();
+        }
+        this._currentAction = action;
+        if (this._currentAction && this._currentAction.onEquip) {
+            this._currentAction.onEquip();
+        }
+    }
+    get playMode() {
+        if (this.game.playerInventoryView.shown) {
+            return PlayMode.Inventory;
+        }
+        if (this.game.brickMenuView.shown) {
+            return PlayMode.Menu;
+        }
+        if (this.game.gameMode === GameMode.Playing) {
+            return PlayMode.Playing;
+        }
+        return PlayMode.Menu;
+    }
+    get scene() {
+        return this.game.scene;
     }
     initialize() {
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.PLAYER_ACTION, () => {
+            if (this.playMode === PlayMode.Playing) {
+                if (this.currentAction) {
+                    this.currentAction.onPointerDown();
+                }
+                else if (this.defaultAction.onPointerDown) {
+                    this.defaultAction.onPointerDown();
+                }
+            }
+        });
+        for (let slotIndex = 0; slotIndex < 10; slotIndex++) {
+            this.game.inputManager.addMappedKeyDownListener(KeyInput.ACTION_SLOT_0 + slotIndex, () => {
+                if (this.playerActionManager) {
+                    if (slotIndex === this.playerActionManager.currentActionIndex) {
+                        this.playerActionManager.toggleEquipAction();
+                    }
+                    else {
+                        this.playerActionManager.setActionIndex(slotIndex);
+                        this.playerActionManager.equipAction();
+                    }
+                }
+            });
+        }
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.PLAYER_ACTION_EQUIP, () => {
+            if (this.playMode === PlayMode.Playing) {
+                if (this.playerActionManager) {
+                    this.playerActionManager.toggleEquipAction();
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.PLAYER_ACTION_DEC, () => {
+            if (this.playerActionManager) {
+                this.playerActionManager.setActionIndex(this.playerActionManager.prevActionIndex());
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.PLAYER_ACTION_INC, () => {
+            if (this.playerActionManager) {
+                this.playerActionManager.setActionIndex(this.playerActionManager.nextActionIndex());
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.INVENTORY, () => {
+            if (this.game.playerInventoryView.shown) {
+                this.game.playerInventoryView.hide(0.2);
+            }
+            else {
+                if (this.game.inputManager.isPointerLocked) {
+                    document.exitPointerLock();
+                    this.game.playerInventoryView.onNextHide = () => {
+                        this.game.canvas.requestPointerLock();
+                    };
+                }
+                this.game.playerInventoryView.show(0.2);
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.INVENTORY_PREV_CAT, () => {
+            if (this.playMode === PlayMode.Inventory) {
+                this.game.playerInventoryView.setCurrentCategory(this.game.playerInventoryView.prevCategory);
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.INVENTORY_NEXT_CAT, () => {
+            if (this.playMode === PlayMode.Inventory) {
+                this.game.playerInventoryView.setCurrentCategory(this.game.playerInventoryView.nextCategory);
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.INVENTORY_EQUIP_ITEM, () => {
+            if (this.playMode === PlayMode.Inventory) {
+                let item = this.game.playerInventoryView.getCurrentItem();
+                if (item) {
+                    let action = item.getPlayerAction(this);
+                    this.playerActionManager.linkAction(action, this.playerActionManager.currentActionIndex);
+                    if (this.playerActionManager.alwaysEquip) {
+                        this.playerActionManager.equipAction();
+                    }
+                }
+            }
+        });
         this.game.canvas.addEventListener("keydown", (ev) => {
             if (ev.code === "KeyW") {
                 this._moveYAxisInput = 1;
@@ -4424,18 +6058,10 @@ class BrainPlayer extends SubBrain {
                 this._moveXAxisInput = 0;
             }
         });
-        this.game.canvas.addEventListener("pointerdown", (ev) => {
-            this._pointerDown = true;
-        });
-        this.game.canvas.addEventListener("pointerup", (ev) => {
-            this._pointerDown = false;
-        });
-        this.game.canvas.addEventListener("pointermove", (ev) => {
-            if (this._pointerDown) {
-                this._rotateXAxisInput += ev.movementY / 200;
-                this._rotateYAxisInput += ev.movementX / 200;
-            }
-        });
+        this.game.canvas.addEventListener("pointerdown", this._onPointerDown);
+        this.game.canvas.addEventListener("pointerup", this._pointerUp);
+        this.game.canvas.addEventListener("pointermove", this._pointerMove);
+        window.addEventListener("wheel", this._wheel);
         this._touchInputLeft = document.querySelector("#touch-input-move");
         this._touchInputLeft.onJoystickChange = (x, y) => {
             this._moveXAxisInput = x;

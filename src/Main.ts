@@ -218,6 +218,7 @@ class Game {
     }
     public soundManager: SoundManager;
     public uiInputManager: UserInterfaceInputManager;
+    public inputManager: Nabu.InputManager;
     public screenRatio: number = 1;
     public performanceWatcher: PerformanceWatcher;
     public analytics: Analytics;
@@ -239,9 +240,13 @@ class Game {
     public gameLoaded: boolean = false;
 
     public defaultToonMaterial: ToonMaterial;
+    public configuration: GameConfiguration;
     public networkManager: NetworkManager;
     public homeMenuPlate: HomeMenuPlate;
     public colorPicker: ColorPicker;
+    public brickMenuView: BrickMenuView;
+    public playerActionView: PlayerActionView;
+    public playerInventoryView: PlayerInventoryView;
     public terrain: Terrain;
     public terrainManager: TerrainManager;
     public brickManager: BrickManager;
@@ -260,6 +265,10 @@ class Game {
         BABYLON.Engine.audioEngine.useCustomUnlockedButton = true;
         BABYLON.Engine.audioEngine.lock();
         this.soundManager = new SoundManager();
+        this.configuration = new GameConfiguration("my-test-configuration", this);
+        this.inputManager = new Nabu.InputManager(this.canvas, this.configuration);
+        this.configuration.initialize();
+        this.configuration.saveToLocalStorage();
         this.uiInputManager = new UserInterfaceInputManager(this);
         this.performanceWatcher = new PerformanceWatcher(this);
         this.analytics = new Analytics(this);
@@ -429,6 +438,12 @@ class Game {
 
         this.colorPicker = document.querySelector("color-picker");
         this.colorPicker.initColorButtons(this);
+
+        this.brickMenuView = document.querySelector("brick-menu") as BrickMenuView;
+
+        this.playerInventoryView = document.querySelector("inventory-page") as PlayerInventoryView;
+        
+        this.playerActionView = new PlayerActionView();
         this.homeMenuPlate = new HomeMenuPlate(this);
 
         this.terrain = new Terrain(this);

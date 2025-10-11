@@ -67,7 +67,8 @@ class ColorPicker extends HTMLElement implements Nabu.IPage {
 
         this.exterior = document.createElement("div");
         this.exterior.classList.add("color-picker-exterior");
-        this.appendChild(this.exterior);
+        this.exterior.style.display = "none";
+        this.parentElement.appendChild(this.exterior);
         this.exterior.onclick = () => {
             this.hide();
         }
@@ -144,11 +145,13 @@ class ColorPicker extends HTMLElement implements Nabu.IPage {
     public async show(): Promise<void> {
         this._shown = true;
         this.style.display = "block";
+        this.exterior.style.display = "block";
     }
 
     public async hide(): Promise<void> {
         this._shown = false;
         this.style.display = "none";
+        this.exterior.style.display = "none";
         this.onColorIndexChanged = undefined;
     }
 }
