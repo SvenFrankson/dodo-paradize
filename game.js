@@ -936,13 +936,18 @@ class Game {
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
-        this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.3 });
+        this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.inputManager.initialize();
         let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
         let action = PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
         playerBrain.playerActionManager.linkAction(action, 1);
+        this.playerInventoryView.setInventory(playerBrain.inventory);
+        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick));
+        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick));
+        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick));
+        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick));
         this.networkDodos = [];
         this.npcDodos = [];
         for (let n = 0; n < 0; n++) {
@@ -6087,7 +6092,7 @@ class BrainPlayer extends SubBrain {
             if (inputForce > 1) {
                 moveInput.normalize();
             }
-            let dir = this.dodo.right.scale(moveInput.x * 0.3).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.3)));
+            let dir = this.dodo.right.scale(moveInput.x * 0.5).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.5)));
             if (dir.lengthSquared() > 0) {
                 this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
                 let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);

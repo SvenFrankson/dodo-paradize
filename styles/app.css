@@ -220,6 +220,64 @@ body.vertical #dodo-color-picker {
     outline: 4px solid rgb(255, 255, 255);
 }
 
+inventory-page.panel {
+    position: fixed;
+    top: calc((100vh - min(90svh, 90vw)) * 0.75);
+    left: calc((100vw - min(90svh, 90vw)) * 0.5);
+    padding-top: 30px;
+    width: min(80svh, 80vw);
+    height: min(80svh, 80vw);
+    font-family: Roboto;
+    color: white;
+}
+
+inventory-page .inventory-page-title {
+    font-size: 20px;
+    margin: 5px;
+    position: absolute;
+    left: min(20px);
+    top: min(-24px);
+    border: 2px solid white;
+    border-radius: 5px;
+    background-color: #272b2e;
+    padding-left: 20px;
+    padding-top: 8px;
+    padding-right: 20px;
+    padding-bottom: 5px;
+}
+
+inventory-page .container-frame {
+    height: 95%;
+    overflow-y: auto;
+    scrollbar-color: #272b2e rgba(255, 255, 255, 80%);
+    scrollbar-width: thin;
+    border: 2px solid white;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+inventory-page .line {
+    font-size: 16px;
+    height: 24px;
+    padding-top: 2px;
+    background-color: rgba(0, 0, 0, 10%);
+}
+
+inventory-page .line.highlit {
+    background-color: rgba(255, 255, 255, 20%);
+    outline: 1px solid white;
+}
+
+inventory-page .line .equip-button {
+    vertical-align: top;
+    font-size: 16px;
+    margin: 0;
+    color: white;
+    background-color: #272b2e;
+    border: 1px solid white;
+    border-radius: 2px;
+}
+
 #screen-loger-container {
   display: block;
   position: fixed;

@@ -451,7 +451,7 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
 
-        this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.3 });
+        this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
 
@@ -460,6 +460,13 @@ class Game {
         let playerBrain = (this.playerDodo.brain.subBrains[BrainMode.Player] as BrainPlayer);
         let action = PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
         playerBrain.playerActionManager.linkAction(action, 1);
+
+        this.playerInventoryView.setInventory(playerBrain.inventory);
+
+        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick));
+        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick));
+        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick));
+        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick));
 
         this.networkDodos = [];
         this.npcDodos = [];
