@@ -141,25 +141,7 @@
 	</head>
 	<body class="">
 		<canvas id="render-canvas"></canvas>
-		<touch-joystick id="touch-input-move" class="touch-joystick"></touch-joystick>
-		<svg id="center-pointer" viewBox="-20 -20 40 40">
-			<line stroke="white" stroke-width="2" x1="0" x2="0" y1="-20" y2="20"></line>
-			<line stroke="white" stroke-width="2" x1="-20" x2="20" y1="0" y2="0"></line>
-		</svg>
-		<inventory-page id="inventory-page" class="panel"></inventory-page>
-		<brick-menu id="brick-menu"></brick-menu>
-		<div id="action-bar">
-			<div id="action-1" class="action-tile"></div>
-			<div id="action-2" class="action-tile"></div>
-			<div id="action-3" class="action-tile"></div>
-			<div id="action-4" class="action-tile"></div>
-			<div id="action-5" class="action-tile"></div>
-			<div id="action-6" class="action-tile"></div>
-			<div id="action-7" class="action-tile"></div>
-			<div id="action-8" class="action-tile"></div>
-			<div id="action-9" class="action-tile"></div>
-			<div id="action-0" class="action-tile"></div>
-		</div>
+		
 		<div id="click-anywhere-screen" style="touch-action: none;">
 			<div id="click-anywhere-screen-container">
 				<div id="click-anywhere-screen-top">
@@ -173,6 +155,29 @@
 				</div>
 			</div>
 		</div>
+
+		<div id="ingame-ui">
+			<touch-joystick id="touch-input-move" class="touch-joystick"></touch-joystick>
+			<svg id="center-pointer" viewBox="-20 -20 40 40">
+				<line stroke="white" stroke-width="2" x1="0" x2="0" y1="-20" y2="20"></line>
+				<line stroke="white" stroke-width="2" x1="-20" x2="20" y1="0" y2="0"></line>
+			</svg>
+			<inventory-page id="inventory-page" class="panel"></inventory-page>
+			<brick-menu id="brick-menu"></brick-menu>
+			<div id="action-bar">
+				<div id="action-1" class="action-tile"></div>
+				<div id="action-2" class="action-tile"></div>
+				<div id="action-3" class="action-tile"></div>
+				<div id="action-4" class="action-tile"></div>
+				<div id="action-5" class="action-tile"></div>
+				<div id="action-6" class="action-tile"></div>
+				<div id="action-7" class="action-tile"></div>
+				<div id="action-8" class="action-tile"></div>
+				<div id="action-9" class="action-tile"></div>
+				<div id="action-0" class="action-tile"></div>
+			</div>
+		</div>
+
 		<div id="home-page">
 			<h1>DODOPOLIS<span class="subtitle">The Dodo Experience</span></h1>
 			<button id="start">START !</button>
@@ -204,5 +209,6 @@
 			</div>
 			<color-picker id="dodo-color-picker" class="panel"></color-picker>
 		</div>
+		
 	</body>
 </html>
