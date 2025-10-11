@@ -792,6 +792,7 @@ class Game {
         this.inputManager = new Nabu.InputManager(this.canvas, this.configuration);
         this.configuration.initialize();
         this.configuration.saveToLocalStorage();
+        this.inputManager.initializeInputs(this.configuration);
         this.uiInputManager = new UserInterfaceInputManager(this);
         this.performanceWatcher = new PerformanceWatcher(this);
         this.analytics = new Analytics(this);
@@ -938,6 +939,10 @@ class Game {
         this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.3 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
+        this.inputManager.initialize();
+        let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
+        let action = PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
+        playerBrain.playerActionManager.linkAction(action, 1);
         this.networkDodos = [];
         this.npcDodos = [];
         for (let n = 0; n < 0; n++) {
@@ -1811,7 +1816,7 @@ class Terrain {
 class TerrainManager {
     constructor(terrain) {
         this.terrain = terrain;
-        this.range = 3;
+        this.range = 2;
         this.createTasks = [];
         this.disposeTasks = [];
         this._lastRefreshPosition = new BABYLON.Vector3(Infinity, 0, Infinity);
@@ -2842,6 +2847,7 @@ class PlayerActionManager {
         }
     }
     equipAction() {
+        console.log("test");
         this.player.currentAction = this.linkedActions[this.currentActionIndex];
         if (this.player.currentAction) {
             this.playerActionView.onActionEquiped(this.currentActionIndex);
@@ -3704,7 +3710,7 @@ class PlayerActionTemplate {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof BrickMesh;
+                    return mesh instanceof Chunck || mesh instanceof BrickMesh;
                 });
                 if (hit && hit.pickedPoint) {
                     let n = hit.getNormal(true).scaleInPlace(0.05);
@@ -3724,17 +3730,13 @@ class PlayerActionTemplate {
                         brick.updateMesh();
                         brick.brickManager.saveToLocalStorage();
                     }
-                    else {
-                        //let chunckIJK = player.game.terrain.getChunckAndIJKAtPos(hit.pickedPoint.add(n), 0);
-                        //if (chunckIJK) {
-                        //    let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : player.controler.lastUsedPaintIndex);
-                        //    brick.position.copyFromFloats((chunckIJK.ijk.i + 0.5) * terrain.blockSizeIJ_m, (chunckIJK.ijk.k) * terrain.blockSizeK_m, (chunckIJK.ijk.j + 0.5) * terrain.blockSizeIJ_m).addInPlace(chunckIJK.chunck.position);
-                        //    brick.rotationQuaternion = rotationQuaternion.clone();
-                        //    brick.updateMesh();
-                        //    brick.chunck = chunckIJK.chunck;
-                        //    
-                        //    brick.brickManager.saveToLocalStorage();
-                        //}
+                    else if (hit.pickedMesh instanceof Chunck) {
+                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0);
+                        brick.position.copyFrom(hit.pickedPoint);
+                        brick.rotationQuaternion = rotationQuaternion.clone();
+                        brick.updateMesh();
+                        brick.construction = undefined;
+                        brick.brickManager.saveToLocalStorage();
                     }
                 }
             }
@@ -5826,8 +5828,8 @@ var PlayMode;
     PlayMode[PlayMode["Playing"] = 2] = "Playing";
 })(PlayMode || (PlayMode = {}));
 class BrainPlayer extends SubBrain {
-    constructor() {
-        super(...arguments);
+    constructor(brain) {
+        super(brain);
         this._targetQ = BABYLON.Quaternion.Identity();
         this._targetLook = BABYLON.Vector3.Zero();
         this.gamepadInControl = false;
@@ -5925,6 +5927,9 @@ class BrainPlayer extends SubBrain {
                 }
             }
         };
+        this.inventory = new PlayerInventory(this);
+        this.defaultAction = PlayerActionDefault.Create(this);
+        this.playerActionManager = new PlayerActionManager(this, this.game);
     }
     get currentAction() {
         return this._currentAction;
@@ -5954,6 +5959,7 @@ class BrainPlayer extends SubBrain {
         return this.game.scene;
     }
     initialize() {
+        this.playerActionManager.initialize();
         this.game.inputManager.addMappedKeyDownListener(KeyInput.PLAYER_ACTION, () => {
             if (this.playMode === PlayMode.Playing) {
                 if (this.currentAction) {

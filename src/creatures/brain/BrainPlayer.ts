@@ -60,7 +60,17 @@ class BrainPlayer extends SubBrain {
         return this.game.scene;
     }
 
+    constructor(brain: Brain) {
+        super(brain);
+        
+        this.inventory = new PlayerInventory(this);
+        this.defaultAction = PlayerActionDefault.Create(this);
+        this.playerActionManager = new PlayerActionManager(this, this.game);
+    }
+
     public initialize(): void {
+        this.playerActionManager.initialize();
+
         this.game.inputManager.addMappedKeyDownListener(KeyInput.PLAYER_ACTION, () => {
             if (this.playMode === PlayMode.Playing) {
                 if (this.currentAction) {

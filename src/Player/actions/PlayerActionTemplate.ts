@@ -82,7 +82,7 @@ class PlayerActionTemplate {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof BrickMesh;
+                        return mesh instanceof Chunck || mesh instanceof BrickMesh;
                     }
                 )
                 if (hit && hit.pickedPoint) {
@@ -104,17 +104,14 @@ class PlayerActionTemplate {
 
                         brick.brickManager.saveToLocalStorage();
                     }
-                    else {
-                        //let chunckIJK = player.game.terrain.getChunckAndIJKAtPos(hit.pickedPoint.add(n), 0);
-                        //if (chunckIJK) {
-                        //    let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : player.controler.lastUsedPaintIndex);
-                        //    brick.position.copyFromFloats((chunckIJK.ijk.i + 0.5) * terrain.blockSizeIJ_m, (chunckIJK.ijk.k) * terrain.blockSizeK_m, (chunckIJK.ijk.j + 0.5) * terrain.blockSizeIJ_m).addInPlace(chunckIJK.chunck.position);
-                        //    brick.rotationQuaternion = rotationQuaternion.clone();
-                        //    brick.updateMesh();
-                        //    brick.chunck = chunckIJK.chunck;
-                        //    
-                        //    brick.brickManager.saveToLocalStorage();
-                        //}
+                    else if (hit.pickedMesh instanceof Chunck) {
+                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0);
+                        brick.position.copyFrom(hit.pickedPoint);
+                        brick.rotationQuaternion = rotationQuaternion.clone();
+                        brick.updateMesh();
+                        brick.construction = undefined;
+                        
+                        brick.brickManager.saveToLocalStorage();
                     }
                 }
             }

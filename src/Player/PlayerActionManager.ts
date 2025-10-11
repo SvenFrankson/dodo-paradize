@@ -95,6 +95,7 @@ class PlayerActionManager {
     }
 
     public equipAction(): void {
+        console.log("test");
         this.player.currentAction = this.linkedActions[this.currentActionIndex];
         if (this.player.currentAction) {
             this.playerActionView.onActionEquiped(this.currentActionIndex);

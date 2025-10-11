@@ -269,6 +269,7 @@ class Game {
         this.inputManager = new Nabu.InputManager(this.canvas, this.configuration);
         this.configuration.initialize();
         this.configuration.saveToLocalStorage();
+        this.inputManager.initializeInputs(this.configuration);
         this.uiInputManager = new UserInterfaceInputManager(this);
         this.performanceWatcher = new PerformanceWatcher(this);
         this.analytics = new Analytics(this);
@@ -453,6 +454,12 @@ class Game {
         this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.3 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
+
+        this.inputManager.initialize();
+        
+        let playerBrain = (this.playerDodo.brain.subBrains[BrainMode.Player] as BrainPlayer);
+        let action = PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
+        playerBrain.playerActionManager.linkAction(action, 1);
 
         this.networkDodos = [];
         this.npcDodos = [];
