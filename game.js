@@ -988,12 +988,14 @@ class Game {
     setGameMode(mode) {
         this.gameMode = mode;
         if (this.gameMode === GameMode.Home) {
+            this.inputManager.temporaryNoPointerLock = true;
             document.querySelector("#home-page").style.display = "";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, -1000, 0));
             this.playerDodo.r = -4 * Math.PI / 6;
         }
         else if (this.gameMode === GameMode.Playing) {
+            this.inputManager.temporaryNoPointerLock = false;
             document.querySelector("#home-page").style.display = "none";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
@@ -3664,7 +3666,7 @@ class PlayerActionTemplate {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof BrickMesh;
+                    return mesh instanceof Chunck || mesh instanceof BrickMesh;
                 });
                 if (hit && hit.pickedPoint) {
                     let n = hit.getNormal(true).scaleInPlace(0.05);
@@ -3672,9 +3674,9 @@ class PlayerActionTemplate {
                         let root = hit.pickedMesh.brick.root;
                         if (root.mesh) {
                             let dp = hit.pickedPoint.add(n).subtract(root.position);
-                            //dp.x = terrain.blockSizeIJ_m * Math.round(dp.x / terrain.blockSizeIJ_m);
-                            //dp.y = (terrain.blockSizeK_m / 3) * Math.floor(dp.y / (terrain.blockSizeK_m / 3));
-                            //dp.z = terrain.blockSizeIJ_m * Math.round(dp.z / terrain.blockSizeIJ_m);
+                            dp.x = BRICK_S * Math.round(dp.x / BRICK_S);
+                            dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
+                            dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
                             previewMesh.position.copyFrom(dp).addInPlace(root.position);
                             previewMesh.parent = undefined;
                             previewMesh.isVisible = true;
@@ -3682,13 +3684,13 @@ class PlayerActionTemplate {
                         }
                     }
                     else {
-                        //let chunckIJK = player.game.terrain.getChunckAndIJKAtPos(hit.pickedPoint.add(n), 0);
-                        //if (chunckIJK) {
-                        //    previewMesh.position.copyFromFloats((chunckIJK.ijk.i + 0.5) * terrain.blockSizeIJ_m, (chunckIJK.ijk.k + 0.5 / 3) * terrain.blockSizeK_m, (chunckIJK.ijk.j + 0.5) * terrain.blockSizeIJ_m);
-                        //    previewMesh.parent = chunckIJK.chunck.mesh;
-                        //    previewMesh.isVisible = true;
-                        //    return;
-                        //}
+                        let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5));
+                        pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
+                        pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
+                        pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
+                        previewMesh.position.copyFrom(pos);
+                        previewMesh.isVisible = true;
+                        return;
                     }
                 }
             }
@@ -3713,15 +3715,15 @@ class PlayerActionTemplate {
                     return mesh instanceof Chunck || mesh instanceof BrickMesh;
                 });
                 if (hit && hit.pickedPoint) {
-                    let n = hit.getNormal(true).scaleInPlace(0.05);
+                    let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
                     if (hit.pickedMesh instanceof BrickMesh) {
                         let root = hit.pickedMesh.brick.root;
                         let aimedBrick = root.getBrickForFaceId(hit.faceId);
                         let rootPosition = root.position;
                         let dp = hit.pickedPoint.add(n).subtract(rootPosition);
-                        //dp.x = terrain.blockSizeIJ_m * Math.round(dp.x / terrain.blockSizeIJ_m);
-                        //dp.y = (terrain.blockSizeK_m / 3) * Math.floor(dp.y / (terrain.blockSizeK_m / 3));
-                        //dp.z = terrain.blockSizeIJ_m * Math.round(dp.z / terrain.blockSizeIJ_m);
+                        dp.x = BRICK_S * Math.round(dp.x / BRICK_S);
+                        dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
+                        dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
                         let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0);
                         brick.position.copyFrom(dp).addInPlace(rootPosition);
                         brick.rotationQuaternion = rotationQuaternion.clone();
@@ -3732,7 +3734,11 @@ class PlayerActionTemplate {
                     }
                     else if (hit.pickedMesh instanceof Chunck) {
                         let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0);
-                        brick.position.copyFrom(hit.pickedPoint);
+                        let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5));
+                        pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
+                        pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
+                        pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
+                        brick.position.copyFrom(pos);
                         brick.rotationQuaternion = rotationQuaternion.clone();
                         brick.updateMesh();
                         brick.construction = undefined;
@@ -6090,6 +6096,9 @@ class BrainPlayer extends SubBrain {
             else {
                 let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
                 this.dodo.animatedSpeed.scaleInPlace(fSpeed);
+            }
+            if (this.currentAction) {
+                this.currentAction.onUpdate();
             }
         }
         this._smoothedRotateXAxisInput = this._smoothedRotateXAxisInput * this._pointerSmoothness + this._rotateXAxisInput * (1 - this._pointerSmoothness);

@@ -302,6 +302,10 @@ class BrainPlayer extends SubBrain {
                 let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
                 this.dodo.animatedSpeed.scaleInPlace(fSpeed);
             }
+
+            if (this.currentAction) {
+                this.currentAction.onUpdate();
+            }
         }
 
         this._smoothedRotateXAxisInput = this._smoothedRotateXAxisInput * this._pointerSmoothness + this._rotateXAxisInput * (1 - this._pointerSmoothness);
