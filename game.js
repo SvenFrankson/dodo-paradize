@@ -1195,7 +1195,7 @@ class MiniatureFactory {
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.clearColor.copyFromFloats(0, 0, 0, 1);
         this.light = new BABYLON.HemisphericLight("miniature-light", new BABYLON.Vector3(-2, 3, -1).normalize(), this.scene);
-        this.camera = new BABYLON.ArcRotateCamera("miniature-camera", -Math.PI / 3, Math.PI / 3, 100, BABYLON.Vector3.Zero());
+        this.camera = new BABYLON.ArcRotateCamera("miniature-camera", -Math.PI / 6, Math.PI / 3, 100, BABYLON.Vector3.Zero());
         this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
         this.camera.orthoTop = 1;
         this.camera.orthoRight = 1;
@@ -1217,6 +1217,13 @@ class MiniatureFactory {
         });
         return new Promise(resolve => {
             requestAnimationFrame(() => {
+                let center = brick.getBoundingInfo();
+                this.camera.target.copyFrom(center.boundingBox.minimumWorld).addInPlace(center.boundingBox.maximumWorld).scaleInPlace(0.5);
+                let size = center.boundingBox.maximumWorld.subtract(center.boundingBox.minimumWorld).length();
+                this.camera.orthoTop = size * 0.5 + BRICK_S * 0.5;
+                this.camera.orthoRight = size * 0.5 + BRICK_S * 0.5;
+                this.camera.orthoBottom = -size * 0.5 - BRICK_S * 0.5;
+                this.camera.orthoLeft = -size * 0.5 - BRICK_S * 0.5;
                 BABYLON.ScreenshotTools.CreateScreenshot(this.engine, this.camera, 256, (data) => {
                     let img = document.createElement("img");
                     img.src = data;
