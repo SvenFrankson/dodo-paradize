@@ -143,11 +143,11 @@ class BrainPlayer extends SubBrain {
             }
         })
 
-        this.game.inputManager.addMappedKeyDownListener(KeyInput.INVENTORY_EQUIP_ITEM, () => {
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.INVENTORY_EQUIP_ITEM, async () => {
             if (this.playMode === PlayMode.Inventory) {
                 let item = this.game.playerInventoryView.getCurrentItem();
                 if (item) {
-                    let action = item.getPlayerAction(this);
+                    let action = await item.getPlayerAction(this);
                     this.playerActionManager.linkAction(action, this.playerActionManager.currentActionIndex);
                     if (this.playerActionManager.alwaysEquip) {
                         this.playerActionManager.equipAction();

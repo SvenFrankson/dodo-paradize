@@ -801,6 +801,8 @@ class Game {
         return this.scene;
     }
     async createScene() {
+        this.miniatureFactory = new MiniatureFactory(this);
+        this.miniatureFactory.initialize();
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.clearColor = BABYLON.Color4.FromHexString("#00000000");
         this.vertexDataLoader = new Mummu.VertexDataLoader(this.scene);
@@ -939,15 +941,9 @@ class Game {
         this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
-        this.inputManager.initialize();
         let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
-        let action = PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
-        playerBrain.playerActionManager.linkAction(action, 1);
         this.playerInventoryView.setInventory(playerBrain.inventory);
-        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick));
-        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick));
-        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick));
-        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick));
+        this.inputManager.initialize();
         this.networkDodos = [];
         this.npcDodos = [];
         for (let n = 0; n < 0; n++) {
@@ -990,7 +986,7 @@ class Game {
         }
         //this.performanceWatcher.showDebug();
     }
-    setGameMode(mode) {
+    async setGameMode(mode) {
         this.gameMode = mode;
         if (this.gameMode === GameMode.Home) {
             this.inputManager.temporaryNoPointerLock = true;
@@ -1006,6 +1002,13 @@ class Game {
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
             this.playerDodo.r = 0;
             this.networkManager.initialize();
+            let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
+            let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
+            playerBrain.playerActionManager.linkAction(action, 1);
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
         }
     }
     animate() {
@@ -1180,6 +1183,97 @@ requestAnimationFrame(async () => {
         createAndInit();
     }
 });
+class MiniatureFactory {
+    constructor(game) {
+        this.game = game;
+    }
+    initialize() {
+        let canvas = document.createElement("canvas");
+        canvas.width = 256;
+        canvas.height = 256;
+        this.engine = new BABYLON.Engine(canvas);
+        this.scene = new BABYLON.Scene(this.engine);
+        this.scene.clearColor.copyFromFloats(0, 0, 0, 1);
+        this.light = new BABYLON.HemisphericLight("miniature-light", new BABYLON.Vector3(-2, 3, -1).normalize(), this.scene);
+        this.camera = new BABYLON.ArcRotateCamera("miniature-camera", -Math.PI / 3, Math.PI / 3, 100, BABYLON.Vector3.Zero());
+        this.camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+        this.camera.orthoTop = 1;
+        this.camera.orthoRight = 1;
+        this.camera.orthoBottom = -1;
+        this.camera.orthoLeft = -1;
+        //this.debugDownloadScreenshot();
+    }
+    async makeBrickIconString(brickId) {
+        let canvas = await this.makeBrickIcon(brickId);
+        return canvas.toDataURL();
+    }
+    async makeBrickIcon(brickId) {
+        let brickIndex = Brick.BrickIdToIndex(brickId);
+        let brick = BABYLON.MeshBuilder.CreateBox("box", { size: 1 }, this.scene);
+        let template = await BrickTemplateManager.Instance.getTemplate(brickIndex);
+        template.vertexData.applyToMesh(brick);
+        this.engine.runRenderLoop(() => {
+            this.scene.render();
+        });
+        return new Promise(resolve => {
+            requestAnimationFrame(() => {
+                BABYLON.ScreenshotTools.CreateScreenshot(this.engine, this.camera, 256, (data) => {
+                    let img = document.createElement("img");
+                    img.src = data;
+                    img.onload = () => {
+                        let canvas = document.createElement("canvas");
+                        canvas.width = 256;
+                        canvas.height = 256;
+                        let context = canvas.getContext("2d");
+                        context.drawImage(img, 0, 0);
+                        brick.dispose();
+                        this.engine.stopRenderLoop();
+                        resolve(canvas);
+                        /*
+                        var tmpLink = document.createElement( 'a' );
+                        tmpLink.download = "test.png";
+                        tmpLink.href = canvas.toDataURL();
+                        
+                        document.body.appendChild( tmpLink );
+                        tmpLink.click();
+                        document.body.removeChild( tmpLink );
+                        */
+                    };
+                });
+            });
+        });
+    }
+    debugDownloadScreenshot() {
+        console.log("hop hip");
+        let box = BABYLON.MeshBuilder.CreateBox("box", { size: 1 }, this.scene);
+        this.engine.runRenderLoop(() => {
+            this.scene.render();
+        });
+        requestAnimationFrame(() => {
+            BABYLON.ScreenshotTools.CreateScreenshot(this.engine, this.camera, 256, (data) => {
+                console.log("hello");
+                let img = document.createElement("img");
+                img.src = data;
+                img.onload = () => {
+                    console.log("hoy hoy");
+                    let canvas = document.createElement("canvas");
+                    canvas.width = 256;
+                    canvas.height = 256;
+                    let context = canvas.getContext("2d");
+                    context.drawImage(img, 0, 0);
+                    var tmpLink = document.createElement('a');
+                    tmpLink.download = "test.png";
+                    tmpLink.href = canvas.toDataURL();
+                    document.body.appendChild(tmpLink);
+                    tmpLink.click();
+                    document.body.removeChild(tmpLink);
+                    box.dispose();
+                    this.engine.stopRenderLoop();
+                };
+            });
+        });
+    }
+}
 /// <reference path="../lib/peerjs.d.ts"/>
 class NetworkManager {
     constructor(game) {
@@ -1960,12 +2054,13 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
                 "specularPower"
             ]
         });
+        this.scene = scene;
         this._update = () => {
-            let camera = this.getScene().activeCamera;
+            let camera = this.scene.activeCamera;
             let direction = camera.getForwardRay().direction;
             this.setVector3("viewPositionW", camera.globalPosition);
             this.setVector3("viewDirectionW", direction);
-            let lights = this.getScene().lights;
+            let lights = this.scene.lights;
             for (let i = 0; i < lights.length; i++) {
                 let light = lights[i];
                 if (light instanceof BABYLON.HemisphericLight) {
@@ -2007,11 +2102,11 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
         this.setVector3("viewPositionW", BABYLON.Vector3.Zero());
         this.setVector3("viewDirectionW", BABYLON.Vector3.Up());
         this.setVector3("lightInvDirW", BABYLON.Vector3.Up());
-        this.getScene().onBeforeRenderObservable.add(this._update);
+        this.scene.onBeforeRenderObservable.add(this._update);
     }
     dispose(forceDisposeEffect, forceDisposeTextures, notBoundToMesh) {
         super.dispose(forceDisposeEffect, forceDisposeTextures, notBoundToMesh);
-        this.getScene().onBeforeRenderObservable.removeCallback(this._update);
+        this.scene.onBeforeRenderObservable.removeCallback(this._update);
     }
     get useVertexColor() {
         return this._useVertexColor;
@@ -2646,8 +2741,8 @@ class BrickMenuView extends HTMLElement {
         this._copyBrickBtn = document.createElement("button");
         this._copyBrickBtn.innerHTML = "COPY BRICK";
         categoriesContainer.appendChild(this._copyBrickBtn);
-        this._copyBrickBtn.onclick = () => {
-            this._player.currentAction = PlayerActionTemplate.CreateBrickAction(this._player, this._brick.index, this._brick.colorIndex);
+        this._copyBrickBtn.onclick = async () => {
+            this._player.currentAction = await PlayerActionTemplate.CreateBrickAction(this._player, this._brick.index, this._brick.colorIndex);
             this.hide(0.1);
         };
         this._copyWithChildrenBtn = document.createElement("button");
@@ -2894,7 +2989,7 @@ class PlayerActionManager {
             linkedItemNames: linkedActionsNames
         };
     }
-    deserializeInPlace(data) {
+    async deserializeInPlace(data) {
         if (data && data.linkedItemNames) {
             for (let i = 0; i < data.linkedItemNames.length; i++) {
                 let linkedItemName = data.linkedItemNames[i];
@@ -2905,7 +3000,7 @@ class PlayerActionManager {
                         this.linkAction(PlayerActionTemplate.CreatePaintAction(this.player, paintIndex), i);
                     }
                     else if (linkedItemName) {
-                        this.linkAction(PlayerActionTemplate.CreateBrickAction(this.player, linkedItemName), i);
+                        this.linkAction(await PlayerActionTemplate.CreateBrickAction(this.player, linkedItemName), i);
                     }
                 }
             }
@@ -3048,18 +3143,19 @@ var InventoryCategory;
     InventoryCategory[InventoryCategory["End"] = 4] = "End";
 })(InventoryCategory || (InventoryCategory = {}));
 class PlayerInventoryItem {
-    constructor(name, category) {
+    constructor(name, category, game) {
         this.count = 1;
+        this.getIcon = async () => { return ""; };
         this.name = name;
         this.category = category;
-        this.icon = "/datas/icons/empty.png";
-        if (this.category === InventoryCategory.Brick) {
-            this.icon = "/datas/icons/bricks/" + name + ".png";
-        }
+        this.getIcon = async () => {
+            console.log("getIcon " + name);
+            return game.miniatureFactory.makeBrickIconString(name);
+        };
     }
-    getPlayerAction(player) {
+    async getPlayerAction(player) {
         if (this.category === InventoryCategory.Brick) {
-            return PlayerActionTemplate.CreateBrickAction(player, this.name);
+            return await PlayerActionTemplate.CreateBrickAction(player, this.name);
         }
         else if (this.category === InventoryCategory.Paint) {
             let colorIndex = BRICK_COLORS.findIndex(c => { return c.name === this.name; });
@@ -3330,7 +3426,7 @@ class PlayerInventoryView extends HTMLElement {
     setInventory(inventory) {
         this.inventory = inventory;
     }
-    createPage() {
+    async createPage() {
         this._lines = [];
         for (let i = 0; i < this._containers.length; i++) {
             this._containers[i].innerHTML = "";
@@ -3346,7 +3442,7 @@ class PlayerInventoryView extends HTMLElement {
             this._lines[inventoryItem.category].push(line);
             let icon = document.createElement("img");
             icon.classList.add("inventory-icon");
-            icon.setAttribute("src", inventoryItem.icon);
+            icon.setAttribute("src", await inventoryItem.getIcon());
             icon.style.display = "inline-block";
             icon.style.verticalAlign = "top";
             icon.style.marginLeft = "1%";
@@ -3387,8 +3483,8 @@ class PlayerInventoryView extends HTMLElement {
             equipButton.style.paddingRight = "1.5%";
             equipButton.style.width = "15%";
             line.appendChild(equipButton);
-            equipButton.onclick = () => {
-                let action = inventoryItem.getPlayerAction(this.inventory.player);
+            equipButton.onclick = async () => {
+                let action = await inventoryItem.getPlayerAction(this.inventory.player);
                 this.inventory.player.playerActionManager.linkAction(action, this.inventory.player.playerActionManager.currentActionIndex);
                 if (this.inventory.player.playerActionManager.alwaysEquip) {
                     this.inventory.player.playerActionManager.equipAction();
@@ -3650,12 +3746,13 @@ class PlayerActionMoveBrick {
 var ACTIVE_DEBUG_PLAYER_ACTION = true;
 var ADD_BRICK_ANIMATION_DURATION = 1000;
 class PlayerActionTemplate {
-    static CreateBrickAction(player, brickId, colorIndex) {
+    static async CreateBrickAction(player, brickId, colorIndex) {
         let brickIndex = Brick.BrickIdToIndex(brickId);
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
         brickAction.backgroundColor = "#000000";
         let previewMesh;
-        brickAction.iconUrl = "/datas/icons/bricks/" + Brick.BrickIdToName(brickId) + ".png";
+        //brickAction.iconUrl = "/datas/icons/bricks/" + Brick.BrickIdToName(brickId) + ".png";
+        brickAction.iconUrl = await player.game.miniatureFactory.makeBrickIconString(brickId);
         let rotationQuaternion = BABYLON.Quaternion.Identity();
         brickAction.onUpdate = () => {
             let terrain = player.game.terrain;
@@ -6035,11 +6132,11 @@ class BrainPlayer extends SubBrain {
                 this.game.playerInventoryView.setCurrentCategory(this.game.playerInventoryView.nextCategory);
             }
         });
-        this.game.inputManager.addMappedKeyDownListener(KeyInput.INVENTORY_EQUIP_ITEM, () => {
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.INVENTORY_EQUIP_ITEM, async () => {
             if (this.playMode === PlayMode.Inventory) {
                 let item = this.game.playerInventoryView.getCurrentItem();
                 if (item) {
-                    let action = item.getPlayerAction(this);
+                    let action = await item.getPlayerAction(this);
                     this.playerActionManager.linkAction(action, this.playerActionManager.currentActionIndex);
                     if (this.playerActionManager.alwaysEquip) {
                         this.playerActionManager.equipAction();

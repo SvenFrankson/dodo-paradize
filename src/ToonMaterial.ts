@@ -3,7 +3,7 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
     private _whiteTexture: BABYLON.Texture;
     private _blackTexture: BABYLON.Texture;
 
-    constructor(name: string, scene: BABYLON.Scene) {
+    constructor(name: string, public scene: BABYLON.Scene) {
         super(
             name,
             scene,
@@ -61,20 +61,20 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
         this.setVector3("viewDirectionW", BABYLON.Vector3.Up());
         this.setVector3("lightInvDirW", BABYLON.Vector3.Up());
 
-        this.getScene().onBeforeRenderObservable.add(this._update);
+        this.scene.onBeforeRenderObservable.add(this._update);
     }
 
     public dispose(forceDisposeEffect?: boolean, forceDisposeTextures?: boolean, notBoundToMesh?: boolean): void {
         super.dispose(forceDisposeEffect, forceDisposeTextures, notBoundToMesh);
-        this.getScene().onBeforeRenderObservable.removeCallback(this._update);
+        this.scene.onBeforeRenderObservable.removeCallback(this._update);
     }
 
     private _update = () => {
-        let camera = this.getScene().activeCamera;
+        let camera = this.scene.activeCamera;
         let direction = camera.getForwardRay().direction;
         this.setVector3("viewPositionW", camera.globalPosition);
         this.setVector3("viewDirectionW", direction);
-        let lights = this.getScene().lights;
+        let lights = this.scene.lights;
         for (let i = 0; i < lights.length; i++) {
             let light = lights[i];
             if (light instanceof BABYLON.HemisphericLight) {

@@ -275,7 +275,7 @@ class PlayerInventoryView extends HTMLElement implements Nabu.IPage {
 
     private _lines: PlayerInventoryLine[][];
 
-    public createPage(): void {
+    public async createPage(): Promise<void> {
         this._lines = [];
 
         for (let i = 0; i < this._containers.length; i++) {
@@ -295,7 +295,7 @@ class PlayerInventoryView extends HTMLElement implements Nabu.IPage {
 
             let icon = document.createElement("img");
             icon.classList.add("inventory-icon");
-            icon.setAttribute("src", inventoryItem.icon);
+            icon.setAttribute("src", await inventoryItem.getIcon());
             icon.style.display = "inline-block";
             icon.style.verticalAlign = "top";
             icon.style.marginLeft = "1%";
@@ -340,8 +340,8 @@ class PlayerInventoryView extends HTMLElement implements Nabu.IPage {
             equipButton.style.width = "15%";
             line.appendChild(equipButton);
 
-            equipButton.onclick = () => {
-                let action = inventoryItem.getPlayerAction(this.inventory.player);
+            equipButton.onclick = async () => {
+                let action = await inventoryItem.getPlayerAction(this.inventory.player);
                 this.inventory.player.playerActionManager.linkAction(action, this.inventory.player.playerActionManager.currentActionIndex);
                 if (this.inventory.player.playerActionManager.alwaysEquip) {
                     this.inventory.player.playerActionManager.equipAction();

@@ -129,8 +129,8 @@ class BrickMenuView extends HTMLElement implements Nabu.IPage {
         this._copyBrickBtn = document.createElement("button");
         this._copyBrickBtn.innerHTML = "COPY BRICK";
         categoriesContainer.appendChild(this._copyBrickBtn);
-        this._copyBrickBtn.onclick = () => {
-            this._player.currentAction = PlayerActionTemplate.CreateBrickAction(this._player, this._brick.index, this._brick.colorIndex);
+        this._copyBrickBtn.onclick = async () => {
+            this._player.currentAction = await PlayerActionTemplate.CreateBrickAction(this._player, this._brick.index, this._brick.colorIndex);
             this.hide(0.1);
         }
 

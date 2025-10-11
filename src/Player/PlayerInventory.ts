@@ -8,23 +8,24 @@ enum InventoryCategory {
 
 class PlayerInventoryItem {
 
-    public icon: string;
     public name: string;
     public count: number = 1;
     public category: InventoryCategory;
 
-    constructor(name: string, category: InventoryCategory) {
+    constructor(name: string, category: InventoryCategory, game: Game) {
         this.name = name;
         this.category = category;
-        this.icon = "/datas/icons/empty.png";
-        if (this.category === InventoryCategory.Brick) {
-            this.icon = "/datas/icons/bricks/" + name + ".png";
-        }
+        this.getIcon = async () => {
+            console.log("getIcon " + name);
+            return game.miniatureFactory.makeBrickIconString(name)
+        };
     }
 
-    public getPlayerAction(player: BrainPlayer): PlayerAction {
+    public getIcon = async () => { return ""; };
+
+    public async getPlayerAction(player: BrainPlayer): Promise<PlayerAction> {
         if (this.category === InventoryCategory.Brick) {
-            return PlayerActionTemplate.CreateBrickAction(player, this.name);
+            return await PlayerActionTemplate.CreateBrickAction(player, this.name);
         }
         else if (this.category === InventoryCategory.Paint) {
             let colorIndex = BRICK_COLORS.findIndex(c => { return c.name === this.name; });

@@ -4,12 +4,13 @@ var ADD_BRICK_ANIMATION_DURATION = 1000;
 
 class PlayerActionTemplate {
 
-    public static CreateBrickAction(player: BrainPlayer, brickId: number | string, colorIndex?: number): PlayerAction {
+    public static async CreateBrickAction(player: BrainPlayer, brickId: number | string, colorIndex?: number): Promise<PlayerAction> {
         let brickIndex = Brick.BrickIdToIndex(brickId);
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
         brickAction.backgroundColor = "#000000";
         let previewMesh: BABYLON.Mesh;
-        brickAction.iconUrl = "/datas/icons/bricks/" + Brick.BrickIdToName(brickId) + ".png";
+        //brickAction.iconUrl = "/datas/icons/bricks/" + Brick.BrickIdToName(brickId) + ".png";
+        brickAction.iconUrl = await player.game.miniatureFactory.makeBrickIconString(brickId);
 
         let rotationQuaternion = BABYLON.Quaternion.Identity();
 

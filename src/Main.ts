@@ -232,6 +232,7 @@ class Game {
     public shadowGenerator: BABYLON.ShadowGenerator;
     public skybox: BABYLON.Mesh;
 
+    public miniatureFactory: MiniatureFactory;
     public noiseTexture: BABYLON.RawTexture3D;
     public vertexDataLoader: Mummu.VertexDataLoader;
 
@@ -276,6 +277,9 @@ class Game {
 	}
 
     public async createScene(): Promise<void> {
+        this.miniatureFactory = new MiniatureFactory(this);
+        this.miniatureFactory.initialize();
+
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.clearColor = BABYLON.Color4.FromHexString("#00000000");
 
@@ -455,18 +459,10 @@ class Game {
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
 
-        this.inputManager.initialize();
-        
         let playerBrain = (this.playerDodo.brain.subBrains[BrainMode.Player] as BrainPlayer);
-        let action = PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
-        playerBrain.playerActionManager.linkAction(action, 1);
-
         this.playerInventoryView.setInventory(playerBrain.inventory);
 
-        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick));
-        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick));
-        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick));
-        playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick));
+        this.inputManager.initialize();
 
         this.networkDodos = [];
         this.npcDodos = [];
@@ -520,7 +516,7 @@ class Game {
         //this.performanceWatcher.showDebug();
 	}
 
-    public setGameMode(mode: GameMode) {
+    public async setGameMode(mode: GameMode) {
         this.gameMode = mode;
         if (this.gameMode === GameMode.Home) {
             this.inputManager.temporaryNoPointerLock = true;
@@ -536,6 +532,16 @@ class Game {
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
             this.playerDodo.r = 0;
             this.networkManager.initialize();
+        
+            let playerBrain = (this.playerDodo.brain.subBrains[BrainMode.Player] as BrainPlayer);
+
+            let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
+            playerBrain.playerActionManager.linkAction(action, 1);
+
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
         }
     }
 

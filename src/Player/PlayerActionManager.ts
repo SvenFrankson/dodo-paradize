@@ -141,7 +141,7 @@ class PlayerActionManager {
         }
     }
 
-    public deserializeInPlace(data: IPlayerActionManagerData): void {
+    public async deserializeInPlace(data: IPlayerActionManagerData): Promise<void> {
         if (data && data.linkedItemNames) {
             for (let i = 0; i < data.linkedItemNames.length; i++) {
                 let linkedItemName = data.linkedItemNames[i];
@@ -152,7 +152,7 @@ class PlayerActionManager {
                         this.linkAction(PlayerActionTemplate.CreatePaintAction(this.player, paintIndex), i);
                     }
                     else if (linkedItemName) {
-                        this.linkAction(PlayerActionTemplate.CreateBrickAction(this.player, linkedItemName), i);
+                        this.linkAction(await PlayerActionTemplate.CreateBrickAction(this.player, linkedItemName), i);
                     }
                 }
             }
