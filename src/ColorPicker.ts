@@ -10,6 +10,7 @@ class ColorPicker extends HTMLElement implements Nabu.IPage {
     public titleElement: HTMLElement;
     private buttons: HTMLButtonElement[] = [];
     public metalMaterialButtons: HTMLDivElement;
+    public exterior: HTMLDivElement;
 
     private _loaded: boolean = false;
     public get loaded(): boolean {
@@ -63,6 +64,13 @@ class ColorPicker extends HTMLElement implements Nabu.IPage {
 
         this.metalMaterialButtons = document.createElement("div");
         container.appendChild(this.metalMaterialButtons);
+
+        this.exterior = document.createElement("div");
+        this.exterior.classList.add("color-picker-exterior");
+        this.appendChild(this.exterior);
+        this.exterior.onclick = () => {
+            this.hide();
+        }
 
         this._loaded = true;
     }

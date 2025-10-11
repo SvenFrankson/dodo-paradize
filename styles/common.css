@@ -1,0 +1,48 @@
+.panel {
+    border: 1px solid white;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #272b2e;
+    color: white;
+}
+
+color-picker {
+    position: fixed;
+    z-index: 2;
+    font-family: Roboto, Arial, Helvetica, sans-serif;
+    width: 235px;
+}
+
+color-picker .container {
+    margin: 0;
+}
+
+color-picker h2 {
+    font-size: 16px;
+    margin: 0;
+    margin-left: 15px;
+    font-weight: 300;
+}
+
+color-picker button {
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    margin: 2px;
+    border: none;
+    outline: 1px solid white;
+}
+
+color-picker button.selected {
+    outline: 3px solid white;
+}
+
+.color-picker-exterior {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100svh;
+    opacity: 0;
+    z-index: 1;
+}

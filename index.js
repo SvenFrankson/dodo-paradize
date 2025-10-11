@@ -129,7 +129,7 @@ function loadStep() {
 }
 
 async function doLoad() {
-    let stepsCount = 10;
+    let stepsCount = 11;
     if (USE_POKI_SDK) {
         stepsCount++;
     }
@@ -150,6 +150,9 @@ async function doLoad() {
     setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP++);
 
     await loadCSS("./styles/app.css");
+    setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP++);
+
+    await loadCSS("./styles/common.css");
     setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP++);
 
     if (USE_POKI_SDK) {

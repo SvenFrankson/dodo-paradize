@@ -119,6 +119,12 @@ class ColorPicker extends HTMLElement {
         container.appendChild(this.titleElement);
         this.metalMaterialButtons = document.createElement("div");
         container.appendChild(this.metalMaterialButtons);
+        this.exterior = document.createElement("div");
+        this.exterior.classList.add("color-picker-exterior");
+        this.appendChild(this.exterior);
+        this.exterior.onclick = () => {
+            this.hide();
+        };
         this._loaded = true;
     }
     initColorButtons(game) {
@@ -362,9 +368,10 @@ class HomeMenuCustomizeColorLine {
                 this.homeMenuPlate.game.colorPicker.setCurrentColorIndex(this.value);
                 this.homeMenuPlate.game.colorPicker.onColorIndexChanged = async (colorIndex) => {
                     this.setValue(colorIndex);
+                    this.homeMenuPlate.game.colorPicker.titleElement.innerHTML = this.line.querySelector(".label").innerHTML + " - " + this.toString(this.value);
                 };
                 this.homeMenuPlate.game.colorPicker.show();
-                this.homeMenuPlate.game.colorPicker.titleElement.innerHTML = this.line.querySelector(".label").innerHTML;
+                this.homeMenuPlate.game.colorPicker.titleElement.innerHTML = this.line.querySelector(".label").innerHTML + " - " + this.toString(this.value);
                 this.homeMenuPlate.game.colorPicker.targetIndex = this.index;
             }
         };
@@ -374,7 +381,12 @@ class HomeMenuCustomizeColorLine {
     }
     setValue(v, skipOnValueChangedCallback) {
         this._value = (v + this.maxValue) % this.maxValue;
-        this.valueElement.innerHTML = this.toString(this.value);
+        if (IsVertical) {
+            this.valueElement.innerHTML = "";
+        }
+        else {
+            this.valueElement.innerHTML = this.toString(this.value);
+        }
         this.valueElement.style.backgroundColor = DodoColors[this.value].color.toHexString();
         this.valueElement.style.color = DodoColors[this.value].textColor;
         if (!skipOnValueChangedCallback) {
@@ -514,6 +526,7 @@ function SDKGameplayStop() {
 var PlayerHasInteracted = false;
 var IsTouchScreen = -1;
 var IsMobile = -1;
+var IsVertical = false;
 var HasLocalStorage = false;
 function StorageGetItem(key) {
     if (USE_CG_SDK) {
@@ -700,9 +713,11 @@ class Game {
         this.screenRatio = rect.width / rect.height;
         if (this.screenRatio < 1) {
             document.body.classList.add("vertical");
+            IsVertical = true;
         }
         else {
             document.body.classList.remove("vertical");
+            IsVertical = false;
         }
         this.canvas.setAttribute("width", Math.floor(rect.width * this.performanceWatcher.devicePixelRatio).toFixed(0));
         this.canvas.setAttribute("height", Math.floor(rect.height * this.performanceWatcher.devicePixelRatio).toFixed(0));
@@ -1424,8 +1439,8 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 targetLook.y += this.player.position.y;
                 targetLook.z += this.player.position.z;
                 this.position.copyFrom(target);
-                if (document.body.classList.contains("vertical")) {
-                    this.position.x += 0.5;
+                if (IsVertical) {
+                    this.position.x += 0.4;
                 }
                 let dir = targetLook.subtract(this.position);
                 this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);

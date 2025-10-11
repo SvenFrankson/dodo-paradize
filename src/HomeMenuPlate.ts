@@ -47,7 +47,12 @@ class HomeMenuCustomizeColorLine {
     }
     public setValue(v: number, skipOnValueChangedCallback?: boolean) {
         this._value = (v + this.maxValue) % this.maxValue;
-        this.valueElement.innerHTML = this.toString(this.value);
+        if (IsVertical) {
+            this.valueElement.innerHTML = "";
+        }
+        else {
+            this.valueElement.innerHTML = this.toString(this.value);
+        }
         this.valueElement.style.backgroundColor = DodoColors[this.value].color.toHexString();
         this.valueElement.style.color = DodoColors[this.value].textColor;
         if (!skipOnValueChangedCallback) {
@@ -78,10 +83,11 @@ class HomeMenuCustomizeColorLine {
 
                 this.homeMenuPlate.game.colorPicker.onColorIndexChanged = async (colorIndex: number) => {
                     this.setValue(colorIndex);
+                    this.homeMenuPlate.game.colorPicker.titleElement.innerHTML = this.line.querySelector(".label").innerHTML + " - " + this.toString(this.value);
                 }
                 
                 this.homeMenuPlate.game.colorPicker.show();
-                this.homeMenuPlate.game.colorPicker.titleElement.innerHTML = this.line.querySelector(".label").innerHTML;
+                this.homeMenuPlate.game.colorPicker.titleElement.innerHTML = this.line.querySelector(".label").innerHTML + " - " + this.toString(this.value);
                 this.homeMenuPlate.game.colorPicker.targetIndex = this.index;
             }
         }

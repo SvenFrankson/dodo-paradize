@@ -65,6 +65,7 @@ function SDKGameplayStop(): void {
 var PlayerHasInteracted = false;
 var IsTouchScreen = -1;
 var IsMobile = - 1;
+var IsVertical = false;
 var HasLocalStorage = false;
 
 function StorageGetItem(key: string): string {
@@ -279,9 +280,11 @@ class Game {
         this.screenRatio = rect.width / rect.height;
         if (this.screenRatio < 1) {
             document.body.classList.add("vertical");
+            IsVertical = true;
         }
         else {
             document.body.classList.remove("vertical");
+            IsVertical = false;
         }
         this.canvas.setAttribute("width", Math.floor(rect.width * this.performanceWatcher.devicePixelRatio).toFixed(0));
         this.canvas.setAttribute("height", Math.floor(rect.height * this.performanceWatcher.devicePixelRatio).toFixed(0));

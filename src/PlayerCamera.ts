@@ -38,8 +38,8 @@ class PlayerCamera extends BABYLON.FreeCamera {
 
                 this.position.copyFrom(target);
                 
-                if (document.body.classList.contains("vertical")) {
-                    this.position.x += 0.5;
+                if (IsVertical) {
+                    this.position.x += 0.4;
                 }
 
                 let dir = targetLook.subtract(this.position);
