@@ -938,7 +938,7 @@ class Game {
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
-        this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("Player", this, { speed: 3, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
@@ -5480,11 +5480,11 @@ class Dodo extends Creature {
                 let spread = 0.2;
                 let animatedSpeedForward = BABYLON.Vector3.Dot(this.animatedSpeed, this.forward);
                 let animatedSpeedRight = BABYLON.Vector3.Dot(this.animatedSpeed, this.right);
-                spread += 0.15 * Math.abs(animatedSpeedRight) / (0.5 * this.speed);
                 let origin = new BABYLON.Vector3(xFactor * spread, 1, 0);
                 let up = BABYLON.Vector3.Up();
                 BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
-                origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.2)).addInPlace(this.right.scale(animatedSpeedRight * 0.2));
+                origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.4)).addInPlace(this.right.scale(animatedSpeedRight * 0.4));
+                //Mummu.DrawDebugPoint(origin, 5, BABYLON.Color3.Red());
                 let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0));
                 let pick = this._scene.pickWithRay(ray, (mesh => {
                     return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate;
@@ -5535,6 +5535,7 @@ class Dodo extends Creature {
         let maxBodyHeight = Math.sqrt(Math.max(0, totalLegLength * totalLegLength - halfFeetDistance * halfFeetDistance)) - this.hipPos.y;
         maxBodyHeight = Math.max(maxBodyHeight, this.foldedBodyHeight);
         this.bodyTargetPos.copyFrom(this.feet[0].position).addInPlace(this.feet[1].position).scaleInPlace(0.5);
+        this.bodyTargetPos.addInPlace(this.animatedSpeed.scale(0.2));
         this.bodyTargetPos.y += Math.min(this.bodyHeight, maxBodyHeight);
         //Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
         let pForce = this.bodyTargetPos.subtract(this.body.position);
@@ -5588,9 +5589,13 @@ class Dodo extends Creature {
         neck.copyFrom(this.feet[0].position.scale(f)).addInPlace(this.feet[1].position.scale(1 - f));
         neck.y += this.bodyHeight + 0.51793 - feetDeltaY * 0.25;
         neck.addInPlace(this.body.forward.scale(0.37652));
+        neck.copyFrom(this.body.absolutePosition);
+        neck.y = this.feet[0].position.y * (f) + this.feet[1].position.y * (1 - f);
+        neck.y += this.bodyHeight + 0.51793 - feetDeltaY * 0.25;
+        neck.addInPlace(this.body.forward.scale(0.37652));
         let headForce = neck.subtract(this.head.position);
-        headForce.scaleInPlace(60 * dt);
-        this.headVelocity.scaleInPlace(Nabu.Easing.smoothNSec(1 / dt, 0.3));
+        headForce.scaleInPlace(200 * dt);
+        this.headVelocity.scaleInPlace(Nabu.Easing.smoothNSec(1 / dt, 0.2));
         this.headVelocity.addInPlace(headForce);
         this.head.position.addInPlace(this.headVelocity.scale(dt));
         let forward = this.forward;

@@ -455,7 +455,7 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.brickManager = new BrickManager(this);
 
-        this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("Player", this, { speed: 3, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
 
