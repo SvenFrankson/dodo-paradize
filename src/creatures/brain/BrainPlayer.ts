@@ -183,6 +183,9 @@ class BrainPlayer extends SubBrain {
             else if (ev.code === "KeyD") {
                 this._moveXAxisInput = 0;
             }
+            else if (ev.code === "Space") {
+                this.dodo.jump();
+            }
         })
         this.game.canvas.addEventListener("pointerdown", this._onPointerDown)
         this.game.canvas.addEventListener("pointerup", this._pointerUp)

@@ -113,6 +113,9 @@ class Dodo extends Creature {
 
     public peerId: string = "";
     public gameId: number = -1;
+    public get isPlayerControlled(): boolean {
+        return this === this.game.playerDodo;
+    }
     public stepDuration: number = 0.2;
     public colors: BABYLON.Color3[] = [];
     public eyeColor: number = 0;
@@ -578,6 +581,9 @@ class Dodo extends Creature {
             let origin = foot.position.clone();
             let dist = BABYLON.Vector3.Distance(origin, target);
             let duration = this.stepDuration;
+            if (!this.isGrounded) {
+                duration *= 0.5;
+            }
             let originQ = foot.rotationQuaternion.clone();
             let t0 = performance.now() / 1000;
             let step = () => {
@@ -587,7 +593,14 @@ class Dodo extends Creature {
                     //f = Nabu.Easing.easeInSine(f);
                     BABYLON.Quaternion.SlerpToRef(originQ, targetQ, f, foot.rotationQuaternion);
                     BABYLON.Vector3.LerpToRef(origin, target, f, foot.position);
-                    foot.position.y += Math.min(dist, this.stepHeight) * Math.sin(f * Math.PI);
+                    if (this.isGrounded) {
+                        foot.position.y += Math.min(dist, this.stepHeight) * Math.sin(f * Math.PI);
+                    }
+                    else {
+                        let paddle = this.forward.clone();
+                        paddle.scaleInPlace(0.3 * Math.sin(f * Math.PI));
+                        foot.position.addInPlace(paddle);
+                    }
                     requestAnimationFrame(step);
                 }
                 else {
@@ -600,12 +613,13 @@ class Dodo extends Creature {
         });
     }
 
+    public isGrounded: boolean = false;
+    public jumping: boolean = false;
     public walking: number = 0;
     public footIndex: number = 0;
     public walk(): void {
-        if (this.walking === 0 && this.isAlive) {
+        if (this.walking === 0 && this.isAlive && !this.jumping) {
             let deltaPos = this.position.subtract(this.body.position);
-            deltaPos.y = 0;
             let doWalk = false;
             if (deltaPos.length() > 0) {
                 doWalk = true;
@@ -620,35 +634,58 @@ class Dodo extends Creature {
                 let spread = 0.2;
                 let animatedSpeedForward = BABYLON.Vector3.Dot(this.animatedSpeed, this.forward);
                 let animatedSpeedRight = BABYLON.Vector3.Dot(this.animatedSpeed, this.right);
-                let origin = new BABYLON.Vector3(xFactor * spread, 1, 0);
+                let origin = new BABYLON.Vector3(xFactor * spread, 0, 0);
                 let up = BABYLON.Vector3.Up();
                 BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
-                origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.4)).addInPlace(this.right.scale(animatedSpeedRight * 0.4));
 
-                //Mummu.DrawDebugPoint(origin, 5, BABYLON.Color3.Red());
+                if (!this.jumping) {
+                    origin.y += 1;
+                    if (this.isPlayerControlled) {
+                        let groundedOrigin = origin.clone();
+                        groundedOrigin.y = 0;
+                        let groundedBody = this.body.absolutePosition.clone();
+                        groundedBody.y = 0;
+                        let groundedDist = BABYLON.Vector3.Distance(groundedOrigin, groundedBody);
+                        if (groundedDist > 0.35) {
+                            let dir = groundedOrigin.subtract(groundedBody).normalize();
+                            origin.subtractInPlace(dir.scale(groundedDist - 0.35));
+                        }
+                    }
+                    
+                    origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.4)).addInPlace(this.right.scale(animatedSpeedRight * 0.4));
 
-                let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0));
-                let pick = this._scene.pickWithRay(ray, (mesh => {
-                    return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate;
-                }));
-                if (pick.hit) {
-                    origin = pick.pickedPoint;
-                    up = pick.getNormal(true, false);
+                    //Mummu.DrawDebugPoint(origin, 5, BABYLON.Color3.Red());
 
-                    let foot = this.feet[this.footIndex];
-                    if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
-                        this.walking = 1;
-                        let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
-                        foot.groundPos = origin;
-                        foot.groundUp = up;
-                        this.animateFoot(foot, origin.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
-                            this.walking = 0;
+                    let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1.5);
+                    let pick = this._scene.pickWithRay(ray, (mesh => {
+                        return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate;
+                    }));
+                    if (pick.hit) {
+                        origin = pick.pickedPoint;
+                        up = pick.getNormal(true, false);
+                        this.isGrounded = true;
+                        
+                        let foot = this.feet[this.footIndex];
+                        if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
+                            this.walking = 1;
+                            let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
+                            foot.groundPos = origin;
+                            foot.groundUp = up;
+                            this.animateFoot(foot, origin.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
+                                this.walking = 0;
+                                this.footIndex = (this.footIndex + 1) % 2;
+                            });
+                        }
+                        else {
                             this.footIndex = (this.footIndex + 1) % 2;
-                        });
+                        }
                     }
                     else {
-                        this.footIndex = (this.footIndex + 1) % 2;
+                        this.isGrounded = false;
                     }
+                }
+                else {
+                    this.isGrounded = false;
                 }
             }
         }
@@ -658,7 +695,22 @@ class Dodo extends Creature {
         return Math.abs(from.x - to.x) + Math.abs(from.z - to.z);
     }
 
+    private _jumpTimer: number = 0;
+    public jump(): void {
+        if (!this.jumping) {
+            this._jumpTimer = 0;
+            this.jumping = true;
+            this.isGrounded = false;
+            this.gravityVelocity = -5;
+            setTimeout(() => {
+                this.jumping = false;
+            }, 800);
+        }
+    }
+    private _jumpingFootTargets: BABYLON.Vector3[] = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
+
     private _lastR: number = 0;
+    public gravityVelocity: number = 0;
     public update(dt: number) {
         if (this.brain) {
             this.brain.update(dt);
@@ -674,25 +726,48 @@ class Dodo extends Creature {
         this._lastR = this.r;
         this.animatedRSpeed = dR / dt;
 
+        if (this.isGrounded) {
+            if (this.isPlayerControlled) {
+                this.position.y = Math.min(this.feet[0].position.y, this.feet[1].position.y);
+            }
+            this.gravityVelocity = 0;
+            this._jumpTimer = 0;
+        }
+        else {
+            this._jumpTimer += dt;
+
+            this._jumpingFootTargets[0].copyFromFloats(0.25, 0, 0.3 * Math.cos(this._jumpTimer * 8 * Math.PI));
+            this._jumpingFootTargets[1].copyFromFloats(- 0.25, 0, - 0.3 * Math.cos(this._jumpTimer * 8 * Math.PI));
+            BABYLON.Vector3.TransformCoordinatesToRef(this._jumpingFootTargets[0], this.getWorldMatrix(), this._jumpingFootTargets[0]); 
+            BABYLON.Vector3.TransformCoordinatesToRef(this._jumpingFootTargets[1], this.getWorldMatrix(), this._jumpingFootTargets[1]);
+            BABYLON.Vector3.LerpToRef(this.feet[0].position, this._jumpingFootTargets[0], 0.2, this.feet[0].position);
+            BABYLON.Vector3.LerpToRef(this.feet[1].position, this._jumpingFootTargets[1], 0.2, this.feet[1].position);
+            this.position.y -= this.gravityVelocity * dt;
+            this.gravityVelocity += 5 * dt;
+        }
         let f = 0.5;
-        let dy = this.feet[1].position.y - this.feet[0].position.y;
-        this.position.y = Math.min(this.feet[0].position.y, this.feet[1].position.y);
-        f += dy / this.stepHeight * 0.4;
-        f = Nabu.MinMax(f, 0.2, 0.8);
-        f = 0.5;
 
         let halfFeetDistance = BABYLON.Vector3.Distance(this.feet[0].position, this.feet[1].position) * 0.5;
         let totalLegLength = this.upperLegLength + this.lowerLegLength;
         let maxBodyHeight = Math.sqrt(Math.max(0, totalLegLength * totalLegLength - halfFeetDistance * halfFeetDistance)) - this.hipPos.y;
         maxBodyHeight = Math.max(maxBodyHeight, this.foldedBodyHeight);
         this.bodyTargetPos.copyFrom(this.feet[0].position).addInPlace(this.feet[1].position).scaleInPlace(0.5);
-        this.bodyTargetPos.addInPlace(this.animatedSpeed.scale(0.2));
-        this.bodyTargetPos.y += Math.min(this.bodyHeight, maxBodyHeight);
+        if (this.isGrounded) {
+            this.bodyTargetPos.addInPlace(this.animatedSpeed.scale(0.15));
+            this.bodyTargetPos.y += Math.min(this.bodyHeight, maxBodyHeight);
+        }
+        else {
+            this.bodyTargetPos.y += Math.min(0.5 * this.bodyHeight, maxBodyHeight);
+        }
 
         //Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
         
         let pForce = this.bodyTargetPos.subtract(this.body.position);
-        pForce.scaleInPlace(80 * dt);
+        let pForceValue = 80;
+        if (!this.isGrounded) {
+            pForceValue = 200;
+        }
+        pForce.scaleInPlace(pForceValue * dt);
 
         this.bodyVelocity.addInPlace(pForce);
         this.bodyVelocity.scaleInPlace(Nabu.Easing.smoothNSec(1 / dt, 0.2));
