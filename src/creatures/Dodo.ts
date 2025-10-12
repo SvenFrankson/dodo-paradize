@@ -255,9 +255,10 @@ class Dodo extends Creature {
         this.tailFeathers[2].scaling.scaleInPlace(0.8 + 0.4 * Math.random());BABYLON
 
         this.dodoCollider = new DodoCollider(this);
-        this.dodoCollider.parent = this.body;
-        BABYLON.CreateBoxVertexData({ width: 0.8, height: 1, depth: 1 }).applyToMesh(this.dodoCollider);
-        this.dodoCollider.visibility = 0;
+        this.dodoCollider.parent = this;
+        this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight, 0);
+        BABYLON.CreateSphereVertexData({ diameter: 0.8 }).applyToMesh(this.dodoCollider);
+        this.dodoCollider.visibility = 0.4;
 
         /*
         this.topEyelids = [
@@ -421,7 +422,15 @@ class Dodo extends Creature {
             Mummu.ColorizeVertexDataInPlace(clonedVertexData, this.colors[2], new BABYLON.Color3(1, 0, 0));
             return clonedVertexData;
         });
-        datas[0].applyToMesh(this.body);
+        let roboDatas = await this.game.vertexDataLoader.get("./datas/meshes/robododo.babylon");
+        roboDatas = roboDatas.map(vertexData => {
+            let clonedVertexData = Mummu.CloneVertexData(vertexData);
+            Mummu.ColorizeVertexDataInPlace(clonedVertexData, this.colors[0], new BABYLON.Color3(0, 1, 0));
+            Mummu.ColorizeVertexDataInPlace(clonedVertexData, this.colors[1], new BABYLON.Color3(0, 0, 1));
+            Mummu.ColorizeVertexDataInPlace(clonedVertexData, this.colors[2], new BABYLON.Color3(1, 0, 0));
+            return clonedVertexData;
+        });
+        roboDatas[0].applyToMesh(this.body);
 
         datas[3].applyToMesh(this.head);
 
@@ -438,10 +447,10 @@ class Dodo extends Creature {
         //datas[4].applyToMesh(this.bottomEyelids[0]);
         //datas[4].applyToMesh(this.bottomEyelids[1]);
 
-        datas[1].applyToMesh(this.upperLegs[0]);
+        roboDatas[1].applyToMesh(this.upperLegs[0]);
         datas[1].applyToMesh(this.upperLegs[1]);
 
-        datas[2].applyToMesh(this.lowerLegs[0]);
+        roboDatas[2].applyToMesh(this.lowerLegs[0]);
         datas[2].applyToMesh(this.lowerLegs[1]);
 
         await this.feet[0].instantiate();
@@ -648,7 +657,7 @@ class Dodo extends Creature {
                         let groundedDist = BABYLON.Vector3.Distance(groundedOrigin, groundedBody);
                         if (groundedDist > 0.35) {
                             let dir = groundedOrigin.subtract(groundedBody).normalize();
-                            origin.subtractInPlace(dir.scale(groundedDist - 0.35));
+                            //origin.subtractInPlace(dir.scale(groundedDist - 0.35));
                         }
                     }
                     
@@ -745,6 +754,7 @@ class Dodo extends Creature {
             this.position.y -= this.gravityVelocity * dt;
             this.gravityVelocity += 5 * dt;
         }
+
         let f = 0.5;
 
         let halfFeetDistance = BABYLON.Vector3.Distance(this.feet[0].position, this.feet[1].position) * 0.5;
@@ -777,6 +787,27 @@ class Dodo extends Creature {
 
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
+
+        console.log("tic");
+        for (let i = 0; i < this.game.brickManager.bricks.length; i++) {
+            let brick = this.game.brickManager.bricks.get(i);
+            if (brick && brick.root && brick.root.mesh) {
+                brick.root.mesh.freezeWorldMatrix();
+                let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, 0.4, brick.root.mesh, true);
+                if (col.hit) {
+                    console.log("tac");
+                    Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
+                    let delta = col.normal.scale(col.depth);
+                    this.position.addInPlace(delta);
+
+                    let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
+                    this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
+                    if (col.normal.y > 0.5) {
+                        this.gravityVelocity *= 0.5;
+                    }
+                }
+            }
+        }
 
         let right = this.feet[0].position.subtract(this.feet[1].position);
         right.normalize();

@@ -1,0 +1,121 @@
+Exporter version: 6.4.5, Blender version: 2.90.1
+========= Conversion from Blender to Babylon.js =========
+	Scene settings used :
+		Inline textures     :  false
+		Material Type       :  PBR
+		Positions Precision :  4
+		Normals Precision   :  3
+		UVs Precision       :  3
+		Vert Color Precision:  3
+		Mat Weight Precision:  2
+		Keep Z-up r-handed  :  no
+		Texture directory   :  C:\Users\svent\Documents\sven-frankson\dodo-paradize\datas\meshes\
+	Python World class constructor completed
+	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
+	processing begun of mesh:  0-body
+		processing begun of material:  Green
+		processing begun of material:  Dark
+		processing begun of multimaterial:  robododo.Multimaterial#0
+		num positions      :  162
+		num normals        :  162
+		num tangents       :  0
+		num uvs            :  324
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  240
+	processing begun of mesh:  1-upper-leg
+		processing begun of material:  Dark
+		registered as also a user of material:  Dark
+		num positions      :  78
+		num normals        :  78
+		num tangents       :  0
+		num uvs            :  156
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  72
+	processing begun of mesh:  2-lower-leg
+		processing begun of material:  Dark
+		registered as also a user of material:  Dark
+		num positions      :  43
+		num normals        :  43
+		num tangents       :  0
+		num uvs            :  86
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  32
+	processing begun of mesh:  3-head
+		processing begun of material:  Blue
+		processing begun of material:  Red
+		processing begun of multimaterial:  robododo.Multimaterial#1
+		num positions      :  267
+		num normals        :  267
+		num tangents       :  0
+		num uvs            :  534
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  264
+	processing begun of mesh:  4-eye
+		processing begun of material:  White
+		num positions      :  141
+		num normals        :  141
+		num tangents       :  0
+		num uvs            :  282
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  120
+	processing begun of node:  Empty
+	processing begun of node:  Empty.001
+	processing begun of mesh:  Cube
+		WARNING: No materials have been assigned: 
+		num positions      :  29
+		num normals        :  29
+		num tangents       :  0
+		num uvs            :  58
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  12
+	processing begun of mesh:  5-tail
+		processing begun of material:  Blue
+		registered as also a user of material:  Blue
+		num positions      :  9
+		num normals        :  9
+		num tangents       :  0
+		num uvs            :  18
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  13
+	processing begun of mesh:  6-tail-side
+		WARNING: No materials have been assigned: 
+		num positions      :  9
+		num normals        :  9
+		num tangents       :  0
+		num uvs            :  18
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  13
+	processing begun of mesh:  7-jaw
+		processing begun of material:  Blue
+		processing begun of material:  Red
+		registered as also a user of material:  Blue
+		registered as also a user of material:  Red
+		processing begun of multimaterial:  robododo.Multimaterial#2
+		num positions      :  18
+		num normals        :  18
+		num tangents       :  0
+		num uvs            :  36
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  32
+========= Writing of JSON file started =========
+	writing mesh:  0-body
+	writing mesh:  1-upper-leg
+	writing mesh:  2-lower-leg
+	writing mesh:  3-head
+	writing mesh:  4-eye
+	writing mesh:  Cube
+	writing mesh:  5-tail
+	writing mesh:  6-tail-side
+	writing mesh:  7-jaw
+========= Writing of JSON file completed =========
+========= end of processing =========
+elapsed time:  0 min, 0.0535 secs
