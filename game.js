@@ -377,6 +377,7 @@ class GameConfiguration extends Nabu.Configuration {
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_LEFT", KeyInput.MOVE_LEFT, "KeyA"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_BACK", KeyInput.MOVE_BACK, "KeyS"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_RIGHT", KeyInput.MOVE_RIGHT, "KeyD"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "JUMP", KeyInput.JUMP, "Space"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_0", KeyInput.ACTION_SLOT_0, "Digit0"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_1", KeyInput.ACTION_SLOT_1, "Digit1"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_2", KeyInput.ACTION_SLOT_2, "Digit2"),
@@ -943,6 +944,7 @@ class Game {
         this.playerDodo.brain.initialize();
         let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
         this.playerInventoryView.setInventory(playerBrain.inventory);
+        this.playerActionView.initialize(playerBrain);
         this.inputManager.initialize();
         this.networkDodos = [];
         this.npcDodos = [];
@@ -3035,6 +3037,7 @@ class PlayerActionView {
             let slotIndex = i;
             let tile = this.getTile(i);
             tile.onclick = () => {
+                console.log("tile onclick");
                 if (this.player.playerActionManager) {
                     if (slotIndex === this.player.playerActionManager.currentActionIndex) {
                         this.player.playerActionManager.toggleEquipAction();
@@ -6171,37 +6174,15 @@ class BrainPlayer extends SubBrain {
                 }
             }
         });
-        this.game.canvas.addEventListener("keydown", (ev) => {
-            if (ev.code === "KeyW") {
-                this._moveYAxisInput = 1;
-            }
-            else if (ev.code === "KeyS") {
-                this._moveYAxisInput = -1;
-            }
-            if (ev.code === "KeyA") {
-                this._moveXAxisInput = -1;
-            }
-            else if (ev.code === "KeyD") {
-                this._moveXAxisInput = 1;
-            }
-        });
-        this.game.canvas.addEventListener("keyup", (ev) => {
-            if (ev.code === "KeyW") {
-                this._moveYAxisInput = 0;
-            }
-            else if (ev.code === "KeyS") {
-                this._moveYAxisInput = 0;
-            }
-            if (ev.code === "KeyA") {
-                this._moveXAxisInput = 0;
-            }
-            else if (ev.code === "KeyD") {
-                this._moveXAxisInput = 0;
-            }
-            else if (ev.code === "Space") {
-                this.dodo.jump();
-            }
-        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_FORWARD, () => { this._moveYAxisInput = 1; });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_BACK, () => { this._moveYAxisInput = -1; });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_RIGHT, () => { this._moveXAxisInput = 1; });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_LEFT, () => { this._moveXAxisInput = -1; });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_FORWARD, () => { this._moveYAxisInput = 0; });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_BACK, () => { this._moveYAxisInput = 0; });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_RIGHT, () => { this._moveXAxisInput = 0; });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_LEFT, () => { this._moveXAxisInput = 0; });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.JUMP, () => { this.dodo.jump(); });
         this.game.canvas.addEventListener("pointerdown", this._onPointerDown);
         this.game.canvas.addEventListener("pointerup", this._pointerUp);
         this.game.canvas.addEventListener("pointermove", this._pointerMove);
