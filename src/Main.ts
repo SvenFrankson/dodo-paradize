@@ -521,14 +521,14 @@ class Game {
         if (this.gameMode === GameMode.Home) {
             this.inputManager.temporaryNoPointerLock = true;
             (document.querySelector("#ingame-ui") as HTMLDivElement).style.display = "none";
-            (document.querySelector("#home-page") as HTMLDivElement).style.display = "";
+            (document.querySelector("#home-page") as HTMLDivElement).style.display = "block";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, -1000, 0));
             this.playerDodo.r = - 4 * Math.PI / 6;
         }
         else if (this.gameMode === GameMode.Playing) {
             this.inputManager.temporaryNoPointerLock = false;
-            (document.querySelector("#ingame-ui") as HTMLDivElement).style.display = "";
+            (document.querySelector("#ingame-ui") as HTMLDivElement).style.display = "block";
             (document.querySelector("#home-page") as HTMLDivElement).style.display = "none";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));

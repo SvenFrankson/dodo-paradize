@@ -6,6 +6,8 @@
     color: white;
 }
 
+/* Color Picker */
+
 color-picker {
     position: fixed;
     z-index: 2;
@@ -46,3 +48,110 @@ color-picker button.selected {
     opacity: 0;
     z-index: 1;
 }
+
+/* Inventory */
+
+inventory-page.panel {
+    position: fixed;
+    top: calc((100vh - min(90svh, 90vw)) * 0.75);
+    left: calc((100vw - min(90svh, 90vw)) * 0.5);
+    padding-top: 30px;
+    width: min(80svh, 80vw);
+    height: min(80svh, 80vw);
+    font-family: Roboto;
+    color: white;
+}
+
+inventory-page .inventory-page-title {
+    font-size: 20px;
+    margin: 5px;
+    position: absolute;
+    left: min(20px);
+    top: min(-24px);
+    border: 2px solid white;
+    border-radius: 5px;
+    background-color: #272b2e;
+    padding-left: 20px;
+    padding-top: 8px;
+    padding-right: 20px;
+    padding-bottom: 5px;
+}
+
+inventory-page .container-frame {
+    height: 95%;
+    overflow-y: auto;
+    scrollbar-color: #272b2e rgba(255, 255, 255, 80%);
+    scrollbar-width: thin;
+    border: 1px solid white;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+inventory-page .category-btn {
+    font-size: 16px;
+    display: inline-block;
+    margin-right: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    width: 120px;
+    text-align: center;
+    border-left: 1px solid white;
+    border-top: 1px solid white;
+    border-right: 1px solid white;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+inventory-page .category-btn.active {
+    color: #272b2e;
+    background-color: white;
+    font-weight: bold;
+}
+
+inventory-page .line {
+    font-size: 16px;
+    height: 28px;
+    padding-top: 2px;
+    background-color: rgba(0, 0, 0, 10%);
+}
+
+inventory-page .line.highlit {
+    background-color: rgba(255, 255, 255, 20%);
+    outline: 1px solid white;
+}
+
+inventory-page .line .inventory-icon {
+    display: inline-block;
+    vertical-align: top;
+    margin-left: 2px;
+    margin-right: 2px;
+    height: 24px;
+    border: 1px solid white;
+    border-radius: 4px;
+}
+
+inventory-page .line .label {
+    display: inline-block;
+    margin-top: 3px;
+    width: 45%;
+}
+
+inventory-page .line .count-block {
+    display: inline-block;
+    margin-top: 3px;
+    width: 15%;
+}
+
+inventory-page .line .equip-button {
+    display: inline-block;
+    width: 15%;
+    vertical-align: top;
+    font-size: 16px;
+    height: 24px;
+    margin-top: 2px;
+    color: white;
+    background-color: #272b2e;
+    border: 1px solid white;
+    border-radius: 4px;
+}
+    

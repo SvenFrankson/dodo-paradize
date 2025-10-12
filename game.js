@@ -991,14 +991,14 @@ class Game {
         if (this.gameMode === GameMode.Home) {
             this.inputManager.temporaryNoPointerLock = true;
             document.querySelector("#ingame-ui").style.display = "none";
-            document.querySelector("#home-page").style.display = "";
+            document.querySelector("#home-page").style.display = "block";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, -1000, 0));
             this.playerDodo.r = -4 * Math.PI / 6;
         }
         else if (this.gameMode === GameMode.Playing) {
             this.inputManager.temporaryNoPointerLock = false;
-            document.querySelector("#ingame-ui").style.display = "";
+            document.querySelector("#ingame-ui").style.display = "block";
             document.querySelector("#home-page").style.display = "none";
             this.playerDodo.unfold();
             this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
@@ -3145,11 +3145,10 @@ class PlayerAction {
 }
 var InventoryCategory;
 (function (InventoryCategory) {
-    InventoryCategory[InventoryCategory["Block"] = 0] = "Block";
-    InventoryCategory[InventoryCategory["Brick"] = 1] = "Brick";
-    InventoryCategory[InventoryCategory["Paint"] = 2] = "Paint";
-    InventoryCategory[InventoryCategory["Ingredient"] = 3] = "Ingredient";
-    InventoryCategory[InventoryCategory["End"] = 4] = "End";
+    InventoryCategory[InventoryCategory["Brick"] = 0] = "Brick";
+    InventoryCategory[InventoryCategory["Paint"] = 1] = "Paint";
+    InventoryCategory[InventoryCategory["Ingredient"] = 2] = "Ingredient";
+    InventoryCategory[InventoryCategory["End"] = 3] = "End";
 })(InventoryCategory || (InventoryCategory = {}));
 class PlayerInventoryItem {
     constructor(name, category, game) {
@@ -3201,7 +3200,7 @@ class PlayerInventoryView extends HTMLElement {
         this._loaded = false;
         this._shown = false;
         this.currentPointers = [0, 0, 0];
-        this._currentCategory = InventoryCategory.Block;
+        this._currentCategory = InventoryCategory.Brick;
         this._timer = 0;
     }
     static get observedAttributes() {
@@ -3260,10 +3259,10 @@ class PlayerInventoryView extends HTMLElement {
     setCurrentCategory(cat) {
         this._currentCategory = cat;
         for (let i = 0; i < this._categoryBtns.length; i++) {
-            this._makeCategoryBtnInactive(this._categoryBtns[i]);
+            this._categoryBtns[i].classList.remove("active");
             this._containers[i].style.display = "none";
         }
-        this._makeCategoryBtnActive(this._categoryBtns[this._currentCategory]);
+        this._categoryBtns[this._currentCategory].classList.add("active");
         this._containers[this._currentCategory].style.display = "block";
     }
     getCurrentItem() {
@@ -3279,37 +3278,6 @@ class PlayerInventoryView extends HTMLElement {
     get nextCategory() {
         return (this._currentCategory + 1) % InventoryCategory.End;
     }
-    _makeCategoryBtnStyle(btn) {
-        btn.style.fontSize = "min(2svh, 2vw)";
-        btn.style.display = "inline-block";
-        btn.style.marginRight = "1%";
-        btn.style.paddingTop = "0.5%";
-        btn.style.paddingBottom = "0.5%";
-        btn.style.width = "20%";
-        btn.style.textAlign = "center";
-        btn.style.borderLeft = "2px solid white";
-        btn.style.borderTop = "2px solid white";
-        btn.style.borderRight = "2px solid white";
-        btn.style.borderTopLeftRadius = "10px";
-        btn.style.borderTopRightRadius = "10px";
-    }
-    _makeCategoryBtnActive(btn) {
-        btn.style.borderLeft = "2px solid white";
-        btn.style.borderTop = "2px solid white";
-        btn.style.borderRight = "2px solid white";
-        btn.style.color = "#272b2e";
-        btn.style.backgroundColor = "white";
-        btn.style.fontWeight = "bold";
-    }
-    _makeCategoryBtnInactive(btn) {
-        btn.style.borderLeft = "2px solid #7F7F7F";
-        btn.style.borderTop = "2px solid #7F7F7F";
-        btn.style.borderRight = "2px solid #7F7F7F";
-        btn.style.borderBottom = "";
-        btn.style.color = "#7F7F7F";
-        btn.style.backgroundColor = "";
-        btn.style.fontWeight = "";
-    }
     connectedCallback() {
         this.style.display = "none";
         this.style.opacity = "0";
@@ -3320,36 +3288,28 @@ class PlayerInventoryView extends HTMLElement {
         let categoriesContainer;
         categoriesContainer = document.createElement("div");
         this.appendChild(categoriesContainer);
-        this._categoryBlocksBtn = document.createElement("div");
-        this._categoryBlocksBtn.innerHTML = "BLOCKS";
-        categoriesContainer.appendChild(this._categoryBlocksBtn);
-        this._makeCategoryBtnStyle(this._categoryBlocksBtn);
-        this._categoryBlocksBtn.onclick = () => {
-            this.setCurrentCategory(InventoryCategory.Block);
-        };
         this._categoryBricksBtn = document.createElement("div");
+        this._categoryBricksBtn.classList.add("category-btn");
         this._categoryBricksBtn.innerHTML = "BRICKS";
         categoriesContainer.appendChild(this._categoryBricksBtn);
-        this._makeCategoryBtnStyle(this._categoryBricksBtn);
         this._categoryBricksBtn.onclick = () => {
             this.setCurrentCategory(InventoryCategory.Brick);
         };
         this._categoryPaintsBtn = document.createElement("div");
+        this._categoryPaintsBtn.classList.add("category-btn");
         this._categoryPaintsBtn.innerHTML = "PAINTS";
         categoriesContainer.appendChild(this._categoryPaintsBtn);
-        this._makeCategoryBtnStyle(this._categoryPaintsBtn);
         this._categoryPaintsBtn.onclick = () => {
             this.setCurrentCategory(InventoryCategory.Paint);
         };
         this._categoryIngredientsBtn = document.createElement("div");
+        this._categoryIngredientsBtn.classList.add("category-btn");
         this._categoryIngredientsBtn.innerHTML = "INGREDIENTS";
         categoriesContainer.appendChild(this._categoryIngredientsBtn);
-        this._makeCategoryBtnStyle(this._categoryIngredientsBtn);
         this._categoryIngredientsBtn.onclick = () => {
             this.setCurrentCategory(InventoryCategory.Ingredient);
         };
         this._categoryBtns = [
-            this._categoryBlocksBtn,
             this._categoryBricksBtn,
             this._categoryPaintsBtn,
             this._categoryIngredientsBtn,
@@ -3366,7 +3326,7 @@ class PlayerInventoryView extends HTMLElement {
         let a = document.createElement("a");
         a.href = "#home";
         this.appendChild(a);
-        this.setCurrentCategory(InventoryCategory.Block);
+        this.setCurrentCategory(InventoryCategory.Brick);
     }
     attributeChangedCallback(name, oldValue, newValue) { }
     async show(duration = 1) {
@@ -3452,45 +3412,18 @@ class PlayerInventoryView extends HTMLElement {
             let icon = document.createElement("img");
             icon.classList.add("inventory-icon");
             icon.setAttribute("src", await inventoryItem.getIcon());
-            icon.style.display = "inline-block";
-            icon.style.verticalAlign = "top";
-            icon.style.marginLeft = "1%";
-            icon.style.marginRight = "1%";
-            icon.style.marginTop = "0";
-            icon.style.marginBottom = "0";
-            icon.style.height = "85%";
-            icon.style.outline = "1px solid white";
-            icon.style.borderRadius = "4px";
             line.appendChild(icon);
             let label = document.createElement("div");
             label.classList.add("label");
             label.innerHTML = inventoryItem.name;
-            label.style.display = "inline-block";
-            label.style.marginLeft = "1%";
-            label.style.marginRight = "1%";
-            label.style.paddingLeft = "1.5%";
-            label.style.paddingRight = "1.5%";
-            label.style.width = "45%";
             line.appendChild(label);
             let countBlock = document.createElement("div");
             countBlock.classList.add("count-block");
             countBlock.innerHTML = inventoryItem.count.toFixed(0);
-            countBlock.style.display = "inline-block";
-            countBlock.style.marginLeft = "1%";
-            countBlock.style.marginRight = "1%";
-            countBlock.style.paddingLeft = "1.5%";
-            countBlock.style.paddingRight = "1.5%";
-            countBlock.style.width = "15%";
             line.appendChild(countBlock);
             let equipButton = document.createElement("button");
             equipButton.classList.add("equip-button");
             equipButton.innerHTML = "EQUIP";
-            equipButton.style.display = "inline-block";
-            equipButton.style.marginLeft = "1%";
-            equipButton.style.marginRight = "1%";
-            equipButton.style.paddingLeft = "1.5%";
-            equipButton.style.paddingRight = "1.5%";
-            equipButton.style.width = "15%";
             line.appendChild(equipButton);
             equipButton.onclick = async () => {
                 let action = await inventoryItem.getPlayerAction(this.inventory.player);
@@ -3500,7 +3433,6 @@ class PlayerInventoryView extends HTMLElement {
                 }
             };
         }
-        this.setPointer(0, InventoryCategory.Block);
         this.setPointer(0, InventoryCategory.Brick);
         this.setPointer(0, InventoryCategory.Ingredient);
     }

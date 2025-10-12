@@ -1,5 +1,4 @@
 enum InventoryCategory {
-    Block,
     Brick,
     Paint,
     Ingredient,
