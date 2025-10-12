@@ -35,6 +35,7 @@ class PlayerInventoryView extends HTMLElement implements Nabu.IPage {
     private _categoryPaintsBtn: HTMLDivElement;
     private _categoryIngredientsBtn: HTMLDivElement;
     private _categoryBtns: HTMLDivElement[];
+    public exterior: HTMLDivElement;
 
     private _onLoad: () => void;
     public get onLoad(): () => void {
@@ -157,17 +158,26 @@ class PlayerInventoryView extends HTMLElement implements Nabu.IPage {
         this.appendChild(a);
 
         this.setCurrentCategory(InventoryCategory.Brick);
+
+        this.exterior = document.createElement("div");
+        this.exterior.classList.add("inventory-exterior");
+        this.exterior.style.display = "none";
+        this.parentElement.appendChild(this.exterior);
+        this.exterior.onclick = () => {
+            this.hide();
+        }
     }
 
     public attributeChangedCallback(name: string, oldValue: string, newValue: string) {}
 
     public onNextHide: () => void;
 
-    public async show(duration: number = 1): Promise<void> {
+    public async show(duration: number = 0.2): Promise<void> {
         this.createPage();
         return new Promise<void>((resolve) => {
             if (!this._shown) {
                 this._shown = true;
+                this.exterior.style.display = "block";
                 this.style.display = "block";
                 let opacity0 = parseFloat(this.style.opacity);
                 let opacity1 = 1;
@@ -189,15 +199,17 @@ class PlayerInventoryView extends HTMLElement implements Nabu.IPage {
         });
     }
 
-    public async hide(duration: number = 1): Promise<void> {
+    public async hide(duration: number = 0.2): Promise<void> {
         if (duration === 0) {
             this._shown = false;
+            this.exterior.style.display = "none";
             this.style.display = "none";
             this.style.opacity = "0";
         } else {
             return new Promise<void>((resolve) => {
                 if (this._shown) {
                     this._shown = false;
+                    this.exterior.style.display = "none";
                     this.style.display = "block";
                     let opacity0 = parseFloat(this.style.opacity);
                     let opacity1 = 0;

@@ -60,6 +60,7 @@ inventory-page.panel {
     height: min(80svh, 80vw);
     font-family: Roboto;
     color: white;
+    z-index: 3;
 }
 
 inventory-page .inventory-page-title {
@@ -153,5 +154,15 @@ inventory-page .line .equip-button {
     background-color: #272b2e;
     border: 1px solid white;
     border-radius: 4px;
+}
+
+.inventory-exterior {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100svh;
+    opacity: 0;
+    z-index: 2;
 }
     
