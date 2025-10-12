@@ -461,6 +461,7 @@ class Game {
 
         let playerBrain = (this.playerDodo.brain.subBrains[BrainMode.Player] as BrainPlayer);
         this.playerInventoryView.setInventory(playerBrain.inventory);
+        this.playerActionView.initialize(playerBrain);
 
         this.inputManager.initialize();
 
