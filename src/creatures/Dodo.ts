@@ -658,7 +658,7 @@ class Dodo extends Creature {
 
                     let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1.5);
                     let pick = this._scene.pickWithRay(ray, (mesh => {
-                        return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate;
+                        return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate || mesh instanceof BrickMesh;
                     }));
                     if (pick.hit) {
                         origin = pick.pickedPoint;

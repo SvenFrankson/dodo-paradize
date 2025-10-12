@@ -3037,7 +3037,6 @@ class PlayerActionView {
             let slotIndex = i;
             let tile = this.getTile(i);
             tile.onclick = () => {
-                console.log("tile onclick");
                 if (this.player.playerActionManager) {
                     if (slotIndex === this.player.playerActionManager.currentActionIndex) {
                         this.player.playerActionManager.toggleEquipAction();
@@ -5530,7 +5529,7 @@ class Dodo extends Creature {
                     //Mummu.DrawDebugPoint(origin, 5, BABYLON.Color3.Red());
                     let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1.5);
                     let pick = this._scene.pickWithRay(ray, (mesh => {
-                        return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate;
+                        return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate || mesh instanceof BrickMesh;
                     }));
                     if (pick.hit) {
                         origin = pick.pickedPoint;
