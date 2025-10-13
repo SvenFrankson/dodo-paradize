@@ -41,48 +41,48 @@ var DodoColors = [
 */
 
 var DodoColors = [
-    { name: "Chinese Black", color: BABYLON.Color3.FromHexString("#10121c"), textColor: "black" },
-    { name: "Dark Purple", color: BABYLON.Color3.FromHexString("#2c1e31"), textColor: "black" },
-    { name: "Old Mauve", color: BABYLON.Color3.FromHexString("#6b2643"), textColor: "black" },
-    { name: "Amaranth Purple", color: BABYLON.Color3.FromHexString("#ac2847"), textColor: "black" },
-    { name: "Imperial Red", color: BABYLON.Color3.FromHexString("#ec273f"), textColor: "black" },
-    { name: "Chestnut", color: BABYLON.Color3.FromHexString("#94493a"), textColor: "black" },
-    { name: "Medium Vermilion", color: BABYLON.Color3.FromHexString("#de5d3a"), textColor: "black" },
-    { name: "Cadmium Orange", color: BABYLON.Color3.FromHexString("#e98537"), textColor: "black" },
-    { name: "Deep Saffron", color: BABYLON.Color3.FromHexString("#f3a833"), textColor: "black" },
-    { name: "Royal Brown", color: BABYLON.Color3.FromHexString("#4d3533"), textColor: "black" },
-    { name: "Coffee", color: BABYLON.Color3.FromHexString("#6e4c30"), textColor: "black" },
-    { name: "Metallic Bronze", color: BABYLON.Color3.FromHexString("#a26d3f"), textColor: "black" },
-    { name: "Peru", color: BABYLON.Color3.FromHexString("#ce9248"), textColor: "black" },
-    { name: "Earth Yellow", color: BABYLON.Color3.FromHexString("#dab163"), textColor: "black" },
-    { name: "Flax", color: BABYLON.Color3.FromHexString("#e8d282"), textColor: "black" },
-    { name: "Blond", color: BABYLON.Color3.FromHexString("#f7f3b7"), textColor: "black" },
-    { name: "Japanese Indigo", color: BABYLON.Color3.FromHexString("#1e4044"), textColor: "black" },
-    { name: "Bangladesh Green", color: BABYLON.Color3.FromHexString("#006554"), textColor: "black" },
-    { name: "Sea Green", color: BABYLON.Color3.FromHexString("#26854c"), textColor: "black" },
-    { name: "Apple", color: BABYLON.Color3.FromHexString("#5ab552"), textColor: "black" },
-    { name: "Kiwi", color: BABYLON.Color3.FromHexString("#9de64e"), textColor: "black" },
-    { name: "Dark Cyan", color: BABYLON.Color3.FromHexString("#008b8b"), textColor: "black" },
-    { name: "Forest Green", color: BABYLON.Color3.FromHexString("#62a477"), textColor: "black" },
-    { name: "Laurel Green", color: BABYLON.Color3.FromHexString("#a6cb96"), textColor: "black" },
-    { name: "Tea Green", color: BABYLON.Color3.FromHexString("#d3eed3"), textColor: "black" },
-    { name: "American Blue", color: BABYLON.Color3.FromHexString("#3e3b65"), textColor: "black" },
-    { name: "Violet-Blue", color: BABYLON.Color3.FromHexString("#3859b3"), textColor: "black" },
-    { name: "Bleu De France", color: BABYLON.Color3.FromHexString("#3388de"), textColor: "black" },
-    { name: "Picton Blue", color: BABYLON.Color3.FromHexString("#36c5f4"), textColor: "black" },
-    { name: "Aquamarine", color: BABYLON.Color3.FromHexString("#6dead6"), textColor: "black" },
-    { name: "Dark Blue-Gray", color: BABYLON.Color3.FromHexString("#5e5b8c"), textColor: "black" },
-    { name: "Purple Mountain", color: BABYLON.Color3.FromHexString("#8c78a5"), textColor: "black" },
-    { name: "Pastel Purple", color: BABYLON.Color3.FromHexString("#b0a7b8"), textColor: "black" },
-    { name: "Soap", color: BABYLON.Color3.FromHexString("#deceed"), textColor: "black" },
-    { name: "Sugar Plum", color: BABYLON.Color3.FromHexString("#9a4d76"), textColor: "black" },
-    { name: "Sky Magenta", color: BABYLON.Color3.FromHexString("#c878af"), textColor: "black" },
-    { name: "Pale Violet", color: BABYLON.Color3.FromHexString("#cc99ff"), textColor: "black" },
-    { name: "Begonia", color: BABYLON.Color3.FromHexString("#fa6e79"), textColor: "black" },
-    { name: "Baker-Miller Pink", color: BABYLON.Color3.FromHexString("#ffa2ac"), textColor: "black" },
-    { name: "Light Red", color: BABYLON.Color3.FromHexString("#ffd1d5"), textColor: "black" },
-    { name: "Misty Rose", color: BABYLON.Color3.FromHexString("#f6e8e0"), textColor: "black" },
-    { name: "White", color: BABYLON.Color3.FromHexString("#ffffff"), textColor: "black" }
+    { name: "Chinese Black", color: BABYLON.Color3.FromHexString("#10121c"), textColor: "black", hex: "#000000" },
+    { name: "Dark Purple", color: BABYLON.Color3.FromHexString("#2c1e31"), textColor: "black", hex: "#000000" },
+    { name: "Old Mauve", color: BABYLON.Color3.FromHexString("#6b2643"), textColor: "black", hex: "#000000" },
+    { name: "Amaranth Purple", color: BABYLON.Color3.FromHexString("#ac2847"), textColor: "black", hex: "#000000" },
+    { name: "Imperial Red", color: BABYLON.Color3.FromHexString("#ec273f"), textColor: "black", hex: "#000000" },
+    { name: "Chestnut", color: BABYLON.Color3.FromHexString("#94493a"), textColor: "black", hex: "#000000" },
+    { name: "Medium Vermilion", color: BABYLON.Color3.FromHexString("#de5d3a"), textColor: "black", hex: "#000000" },
+    { name: "Cadmium Orange", color: BABYLON.Color3.FromHexString("#e98537"), textColor: "black", hex: "#000000" },
+    { name: "Deep Saffron", color: BABYLON.Color3.FromHexString("#f3a833"), textColor: "black", hex: "#000000" },
+    { name: "Royal Brown", color: BABYLON.Color3.FromHexString("#4d3533"), textColor: "black", hex: "#000000" },
+    { name: "Coffee", color: BABYLON.Color3.FromHexString("#6e4c30"), textColor: "black", hex: "#000000" },
+    { name: "Metallic Bronze", color: BABYLON.Color3.FromHexString("#a26d3f"), textColor: "black", hex: "#000000" },
+    { name: "Peru", color: BABYLON.Color3.FromHexString("#ce9248"), textColor: "black", hex: "#000000" },
+    { name: "Earth Yellow", color: BABYLON.Color3.FromHexString("#dab163"), textColor: "black", hex: "#000000" },
+    { name: "Flax", color: BABYLON.Color3.FromHexString("#e8d282"), textColor: "black", hex: "#000000" },
+    { name: "Blond", color: BABYLON.Color3.FromHexString("#f7f3b7"), textColor: "black", hex: "#000000" },
+    { name: "Japanese Indigo", color: BABYLON.Color3.FromHexString("#1e4044"), textColor: "black", hex: "#000000" },
+    { name: "Bangladesh Green", color: BABYLON.Color3.FromHexString("#006554"), textColor: "black", hex: "#000000" },
+    { name: "Sea Green", color: BABYLON.Color3.FromHexString("#26854c"), textColor: "black", hex: "#000000" },
+    { name: "Apple", color: BABYLON.Color3.FromHexString("#5ab552"), textColor: "black", hex: "#000000" },
+    { name: "Kiwi", color: BABYLON.Color3.FromHexString("#9de64e"), textColor: "black", hex: "#000000" },
+    { name: "Dark Cyan", color: BABYLON.Color3.FromHexString("#008b8b"), textColor: "black", hex: "#000000" },
+    { name: "Forest Green", color: BABYLON.Color3.FromHexString("#62a477"), textColor: "black", hex: "#000000" },
+    { name: "Laurel Green", color: BABYLON.Color3.FromHexString("#a6cb96"), textColor: "black", hex: "#000000" },
+    { name: "Tea Green", color: BABYLON.Color3.FromHexString("#d3eed3"), textColor: "black", hex: "#000000" },
+    { name: "American Blue", color: BABYLON.Color3.FromHexString("#3e3b65"), textColor: "black", hex: "#000000" },
+    { name: "Violet-Blue", color: BABYLON.Color3.FromHexString("#3859b3"), textColor: "black", hex: "#000000" },
+    { name: "Bleu De France", color: BABYLON.Color3.FromHexString("#3388de"), textColor: "black", hex: "#000000" },
+    { name: "Picton Blue", color: BABYLON.Color3.FromHexString("#36c5f4"), textColor: "black", hex: "#000000" },
+    { name: "Aquamarine", color: BABYLON.Color3.FromHexString("#6dead6"), textColor: "black", hex: "#000000" },
+    { name: "Dark Blue-Gray", color: BABYLON.Color3.FromHexString("#5e5b8c"), textColor: "black", hex: "#000000" },
+    { name: "Purple Mountain", color: BABYLON.Color3.FromHexString("#8c78a5"), textColor: "black", hex: "#000000" },
+    { name: "Pastel Purple", color: BABYLON.Color3.FromHexString("#b0a7b8"), textColor: "black", hex: "#000000" },
+    { name: "Soap", color: BABYLON.Color3.FromHexString("#deceed"), textColor: "black", hex: "#000000" },
+    { name: "Sugar Plum", color: BABYLON.Color3.FromHexString("#9a4d76"), textColor: "black", hex: "#000000" },
+    { name: "Sky Magenta", color: BABYLON.Color3.FromHexString("#c878af"), textColor: "black", hex: "#000000" },
+    { name: "Pale Violet", color: BABYLON.Color3.FromHexString("#cc99ff"), textColor: "black", hex: "#000000" },
+    { name: "Begonia", color: BABYLON.Color3.FromHexString("#fa6e79"), textColor: "black", hex: "#000000" },
+    { name: "Baker-Miller Pink", color: BABYLON.Color3.FromHexString("#ffa2ac"), textColor: "black", hex: "#000000" },
+    { name: "Light Red", color: BABYLON.Color3.FromHexString("#ffd1d5"), textColor: "black", hex: "#000000" },
+    { name: "Misty Rose", color: BABYLON.Color3.FromHexString("#f6e8e0"), textColor: "black", hex: "#000000" },
+    { name: "White", color: BABYLON.Color3.FromHexString("#ffffff"), textColor: "black", hex: "#000000" }
 ]
 
 DodoColors.forEach(c => {
@@ -93,6 +93,7 @@ DodoColors.forEach(c => {
     else {
         c.textColor = "black";
     }
+    c.hex = c.color.toHexString();
 })
 
 var DodoEyes = [
@@ -365,7 +366,7 @@ class Dodo extends Creature {
         context.fillRect(0, 0, 256, 256);
 
         context.beginPath();
-        context.fillStyle = DodoColors[this.eyeColor].color.toHexString();
+        context.fillStyle = DodoColors[this.eyeColor].hex;
         context.arc(128, 128, 64, 0, 2 * Math.PI);
         context.closePath();
         context.fill();

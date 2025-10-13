@@ -53,7 +53,7 @@ class HomeMenuCustomizeColorLine {
         else {
             this.valueElement.innerHTML = this.toString(this.value);
         }
-        this.valueElement.style.backgroundColor = DodoColors[this.value].color.toHexString();
+        this.valueElement.style.backgroundColor = DodoColors[this.value].hex;
         this.valueElement.style.color = DodoColors[this.value].textColor;
         if (!skipOnValueChangedCallback) {
             this.onValueChanged(this.value);

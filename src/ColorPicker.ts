@@ -83,7 +83,7 @@ class ColorPicker extends HTMLElement implements Nabu.IPage {
             let dodoColor = DodoColors[i];
             let colorbutton = document.createElement("button");
             colorbutton.setAttribute("title", dodoColor.name);
-            colorbutton.style.backgroundColor = dodoColor.color.toHexString();
+            colorbutton.style.backgroundColor = dodoColor.hex;
             
             this.metalMaterialButtons.appendChild(colorbutton);
             
