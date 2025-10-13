@@ -134,13 +134,3 @@ var BRICK_LIST = [
     "brick-quarter_7x7",
     "brick-quarter_8x8",
 ]
-
-var BRICK_COLORS = [
-    { name: "White", hex: "#FFFFFF" },
-    { name: "Black", hex: "#05131D" },
-    { name: "Reddish Brown", hex: "#582A12" },
-    { name: "Sand Green", hex: "#A0BCAC" },
-    { name: "Rust", hex: "#B31004" },
-    { name: "Tan", hex: "#E4CD9E" },
-    { name: "Dark Bluish Gray", hex: "#6C6E68" }
-]

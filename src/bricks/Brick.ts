@@ -142,13 +142,13 @@ class Brick extends BABYLON.TransformNode {
             this.mesh.position = this.position;
             this.mesh.rotationQuaternion = this.rotationQuaternion;
 
-            /*
             let brickMaterial = new BABYLON.StandardMaterial("brick-material");
             brickMaterial.specularColor.copyFromFloats(0, 0, 0);
-            brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
-            brickMaterial.invertNormalMapX = true;
+            //brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
+            //brickMaterial.invertNormalMapX = true;
             //brickMaterial.diffuseTexture = new BABYLON.Texture("./datas/textures/red-white-squares.png");
 
+            /*
             let steelMaterial = new ToonMaterial("steel", this.mesh._scene);
             steelMaterial.setDiffuse(BABYLON.Color3.FromHexString("#868b8a"));
             steelMaterial.setSpecularIntensity(1);
@@ -165,7 +165,7 @@ class Brick extends BABYLON.TransformNode {
             logoMaterial.setUseFlatSpecular(true);
             */
 
-            //this.mesh.material = steelMaterial;
+            this.mesh.material = this.brickManager.game.defaultToonMaterial;
             this.mesh.computeWorldMatrix(true);
             this.mesh.refreshBoundingInfo();
         }
@@ -198,7 +198,7 @@ class Brick extends BABYLON.TransformNode {
         let template = await BrickTemplateManager.Instance.getTemplate(this.index);
         let vData = Mummu.CloneVertexData(template.vertexData);
         let colors = [];
-        let color = BABYLON.Color3.FromHexString(BRICK_COLORS[this.colorIndex].hex);
+        let color = BABYLON.Color3.FromHexString(DodoColors[this.colorIndex].hex);
         for (let i = 0; i < vData.positions.length / 3; i++) {
             colors.push(color.r, color.g, color.b, 1);
         }

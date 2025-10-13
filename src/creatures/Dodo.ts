@@ -257,8 +257,8 @@ class Dodo extends Creature {
 
         this.dodoCollider = new DodoCollider(this);
         this.dodoCollider.parent = this;
-        this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight, 0);
-        BABYLON.CreateSphereVertexData({ diameter: 0.8 }).applyToMesh(this.dodoCollider);
+        this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight + 0.05, 0);
+        BABYLON.CreateSphereVertexData({ diameter: 2 * BRICK_S }).applyToMesh(this.dodoCollider);
         this.dodoCollider.visibility = 0.4;
 
         /*
@@ -789,14 +789,12 @@ class Dodo extends Creature {
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
 
-        console.log("tic");
         for (let i = 0; i < this.game.brickManager.bricks.length; i++) {
             let brick = this.game.brickManager.bricks.get(i);
             if (brick && brick.root && brick.root.mesh) {
                 brick.root.mesh.freezeWorldMatrix();
-                let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, 0.4, brick.root.mesh, true);
+                let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
                 if (col.hit) {
-                    console.log("tac");
                     Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
                     let delta = col.normal.scale(col.depth);
                     this.position.addInPlace(delta);

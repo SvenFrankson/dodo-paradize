@@ -175,8 +175,8 @@ class PlayerActionTemplate {
     }
 
     public static CreatePaintAction(player: BrainPlayer, paintIndex: number): PlayerAction {
-        let paintAction = new PlayerAction("paint_" + BRICK_COLORS[paintIndex].name, player);
-        paintAction.backgroundColor = BRICK_COLORS[paintIndex].hex;
+        let paintAction = new PlayerAction("paint_" + DodoColors[paintIndex].name, player);
+        paintAction.backgroundColor = DodoColors[paintIndex].hex;
         paintAction.iconUrl = "/datas/icons/paintbrush.svg";
 
         let brush: BABYLON.Mesh;
@@ -227,7 +227,7 @@ class PlayerActionTemplate {
             tip = new BABYLON.Mesh("tip");
             tip.parent = brush;
             let tipMaterial = new BABYLON.StandardMaterial("tip-material");
-            tipMaterial.diffuseColor = BABYLON.Color3.FromHexString(BRICK_COLORS[paintIndex].hex);
+            tipMaterial.diffuseColor = BABYLON.Color3.FromHexString(DodoColors[paintIndex].hex);
             tip.material = tipMaterial;
             let vDatas = await player.game.vertexDataLoader.get("./datas/meshes/paintbrush.babylon");
             if (brush && !brush.isDisposed()) {
@@ -244,15 +244,15 @@ class PlayerActionTemplate {
 
         paintAction.onWheel = (e: WheelEvent) => {
             if (e.deltaY > 0) {
-                paintIndex = (paintIndex + BRICK_COLORS.length - 1) % BRICK_COLORS.length;
+                paintIndex = (paintIndex + DodoColors.length - 1) % DodoColors.length;
                 if (tip && !tip.isDisposed() && tip.material instanceof BABYLON.StandardMaterial) {
-                    tip.material.diffuseColor = BABYLON.Color3.FromHexString(BRICK_COLORS[paintIndex].hex);
+                    tip.material.diffuseColor = BABYLON.Color3.FromHexString(DodoColors[paintIndex].hex);
                 }
             }
             else if (e.deltaY < 0) {
-                paintIndex = (paintIndex + 1) % BRICK_COLORS.length;
+                paintIndex = (paintIndex + 1) % DodoColors.length;
                 if (tip && !tip.isDisposed() && tip.material instanceof BABYLON.StandardMaterial) {
-                    tip.material.diffuseColor = BABYLON.Color3.FromHexString(BRICK_COLORS[paintIndex].hex);
+                    tip.material.diffuseColor = BABYLON.Color3.FromHexString(DodoColors[paintIndex].hex);
                 }
             }
         }

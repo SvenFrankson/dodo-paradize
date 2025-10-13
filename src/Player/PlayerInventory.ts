@@ -27,7 +27,7 @@ class PlayerInventoryItem {
             return await PlayerActionTemplate.CreateBrickAction(player, this.name);
         }
         else if (this.category === InventoryCategory.Paint) {
-            let colorIndex = BRICK_COLORS.findIndex(c => { return c.name === this.name; });
+            let colorIndex = DodoColors.findIndex(c => { return c.name === this.name; });
             if (colorIndex >= 0) {
                 return PlayerActionTemplate.CreatePaintAction(player, colorIndex);
             }

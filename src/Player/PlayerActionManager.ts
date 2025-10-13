@@ -148,7 +148,7 @@ class PlayerActionManager {
                 if (linkedItemName) {
                     if (linkedItemName.startsWith("paint_")) {
                         let paintName = linkedItemName.replace("paint_", "");
-                        let paintIndex = BRICK_COLORS.findIndex(c => { return c.name === paintName; });
+                        let paintIndex = DodoColors.findIndex(c => { return c.name === paintName; });
                         this.linkAction(PlayerActionTemplate.CreatePaintAction(this.player, paintIndex), i);
                     }
                     else if (linkedItemName) {

@@ -276,7 +276,7 @@ class BrainPlayer extends SubBrain {
             if (inputForce > 1) {
                 moveInput.normalize();
             }
-            let dir = this.dodo.right.scale(moveInput.x * 0.5).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.5)));
+            let dir = this.dodo.right.scale(moveInput.x * 0.75).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.75)));
             if (dir.lengthSquared() > 0) {
                 let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.2);
                 BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, dir.scale(this.dodo.speed), 1 - fSpeed, this.dodo.animatedSpeed);

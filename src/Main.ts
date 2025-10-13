@@ -541,6 +541,10 @@ class Game {
             let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
             playerBrain.playerActionManager.linkAction(action, 1);
 
+            
+            let paintAction = await PlayerActionTemplate.CreatePaintAction(playerBrain, Math.floor(Math.random() * DodoColors.length));
+            playerBrain.playerActionManager.linkAction(paintAction, 2);
+
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));

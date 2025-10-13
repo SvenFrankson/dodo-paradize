@@ -1009,6 +1009,8 @@ class Game {
             let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
             let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
             playerBrain.playerActionManager.linkAction(action, 1);
+            let paintAction = await PlayerActionTemplate.CreatePaintAction(playerBrain, Math.floor(Math.random() * DodoColors.length));
+            playerBrain.playerActionManager.linkAction(paintAction, 2);
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));
@@ -3007,7 +3009,7 @@ class PlayerActionManager {
                 if (linkedItemName) {
                     if (linkedItemName.startsWith("paint_")) {
                         let paintName = linkedItemName.replace("paint_", "");
-                        let paintIndex = BRICK_COLORS.findIndex(c => { return c.name === paintName; });
+                        let paintIndex = DodoColors.findIndex(c => { return c.name === paintName; });
                         this.linkAction(PlayerActionTemplate.CreatePaintAction(this.player, paintIndex), i);
                     }
                     else if (linkedItemName) {
@@ -3168,7 +3170,7 @@ class PlayerInventoryItem {
             return await PlayerActionTemplate.CreateBrickAction(player, this.name);
         }
         else if (this.category === InventoryCategory.Paint) {
-            let colorIndex = BRICK_COLORS.findIndex(c => { return c.name === this.name; });
+            let colorIndex = DodoColors.findIndex(c => { return c.name === this.name; });
             if (colorIndex >= 0) {
                 return PlayerActionTemplate.CreatePaintAction(player, colorIndex);
             }
@@ -3848,8 +3850,8 @@ class PlayerActionTemplate {
         return brickAction;
     }
     static CreatePaintAction(player, paintIndex) {
-        let paintAction = new PlayerAction("paint_" + BRICK_COLORS[paintIndex].name, player);
-        paintAction.backgroundColor = BRICK_COLORS[paintIndex].hex;
+        let paintAction = new PlayerAction("paint_" + DodoColors[paintIndex].name, player);
+        paintAction.backgroundColor = DodoColors[paintIndex].hex;
         paintAction.iconUrl = "/datas/icons/paintbrush.svg";
         let brush;
         let tip;
@@ -3891,7 +3893,7 @@ class PlayerActionTemplate {
             tip = new BABYLON.Mesh("tip");
             tip.parent = brush;
             let tipMaterial = new BABYLON.StandardMaterial("tip-material");
-            tipMaterial.diffuseColor = BABYLON.Color3.FromHexString(BRICK_COLORS[paintIndex].hex);
+            tipMaterial.diffuseColor = BABYLON.Color3.FromHexString(DodoColors[paintIndex].hex);
             tip.material = tipMaterial;
             let vDatas = await player.game.vertexDataLoader.get("./datas/meshes/paintbrush.babylon");
             if (brush && !brush.isDisposed()) {
@@ -3906,15 +3908,15 @@ class PlayerActionTemplate {
         };
         paintAction.onWheel = (e) => {
             if (e.deltaY > 0) {
-                paintIndex = (paintIndex + BRICK_COLORS.length - 1) % BRICK_COLORS.length;
+                paintIndex = (paintIndex + DodoColors.length - 1) % DodoColors.length;
                 if (tip && !tip.isDisposed() && tip.material instanceof BABYLON.StandardMaterial) {
-                    tip.material.diffuseColor = BABYLON.Color3.FromHexString(BRICK_COLORS[paintIndex].hex);
+                    tip.material.diffuseColor = BABYLON.Color3.FromHexString(DodoColors[paintIndex].hex);
                 }
             }
             else if (e.deltaY < 0) {
-                paintIndex = (paintIndex + 1) % BRICK_COLORS.length;
+                paintIndex = (paintIndex + 1) % DodoColors.length;
                 if (tip && !tip.isDisposed() && tip.material instanceof BABYLON.StandardMaterial) {
-                    tip.material.diffuseColor = BABYLON.Color3.FromHexString(BRICK_COLORS[paintIndex].hex);
+                    tip.material.diffuseColor = BABYLON.Color3.FromHexString(DodoColors[paintIndex].hex);
                 }
             }
         };
@@ -4026,13 +4028,12 @@ class Brick extends BABYLON.TransformNode {
             this.mesh.layerMask |= 0x20000000;
             this.mesh.position = this.position;
             this.mesh.rotationQuaternion = this.rotationQuaternion;
-            /*
             let brickMaterial = new BABYLON.StandardMaterial("brick-material");
             brickMaterial.specularColor.copyFromFloats(0, 0, 0);
-            brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
-            brickMaterial.invertNormalMapX = true;
+            //brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
+            //brickMaterial.invertNormalMapX = true;
             //brickMaterial.diffuseTexture = new BABYLON.Texture("./datas/textures/red-white-squares.png");
-
+            /*
             let steelMaterial = new ToonMaterial("steel", this.mesh._scene);
             steelMaterial.setDiffuse(BABYLON.Color3.FromHexString("#868b8a"));
             steelMaterial.setSpecularIntensity(1);
@@ -4048,7 +4049,7 @@ class Brick extends BABYLON.TransformNode {
             logoMaterial.setUseLightFromPOV(true);
             logoMaterial.setUseFlatSpecular(true);
             */
-            //this.mesh.material = steelMaterial;
+            this.mesh.material = this.brickManager.game.defaultToonMaterial;
             this.mesh.computeWorldMatrix(true);
             this.mesh.refreshBoundingInfo();
         }
@@ -4077,7 +4078,7 @@ class Brick extends BABYLON.TransformNode {
         let template = await BrickTemplateManager.Instance.getTemplate(this.index);
         let vData = Mummu.CloneVertexData(template.vertexData);
         let colors = [];
-        let color = BABYLON.Color3.FromHexString(BRICK_COLORS[this.colorIndex].hex);
+        let color = BABYLON.Color3.FromHexString(DodoColors[this.colorIndex].hex);
         for (let i = 0; i < vData.positions.length / 3; i++) {
             colors.push(color.r, color.g, color.b, 1);
         }
@@ -4355,15 +4356,6 @@ var BRICK_LIST = [
     "brick-quarter_6x6",
     "brick-quarter_7x7",
     "brick-quarter_8x8",
-];
-var BRICK_COLORS = [
-    { name: "White", hex: "#FFFFFF" },
-    { name: "Black", hex: "#05131D" },
-    { name: "Reddish Brown", hex: "#582A12" },
-    { name: "Sand Green", hex: "#A0BCAC" },
-    { name: "Rust", hex: "#B31004" },
-    { name: "Tan", hex: "#E4CD9E" },
-    { name: "Dark Bluish Gray", hex: "#6C6E68" }
 ];
 class BrickManager {
     constructor(game) {
@@ -5172,8 +5164,8 @@ class Dodo extends Creature {
         BABYLON;
         this.dodoCollider = new DodoCollider(this);
         this.dodoCollider.parent = this;
-        this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight, 0);
-        BABYLON.CreateSphereVertexData({ diameter: 0.8 }).applyToMesh(this.dodoCollider);
+        this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight + 0.05, 0);
+        BABYLON.CreateSphereVertexData({ diameter: 2 * BRICK_S }).applyToMesh(this.dodoCollider);
         this.dodoCollider.visibility = 0.4;
         /*
         this.topEyelids = [
@@ -5640,14 +5632,12 @@ class Dodo extends Creature {
         //} 
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
-        console.log("tic");
         for (let i = 0; i < this.game.brickManager.bricks.length; i++) {
             let brick = this.game.brickManager.bricks.get(i);
             if (brick && brick.root && brick.root.mesh) {
                 brick.root.mesh.freezeWorldMatrix();
-                let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, 0.4, brick.root.mesh, true);
+                let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
                 if (col.hit) {
-                    console.log("tac");
                     Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
                     let delta = col.normal.scale(col.depth);
                     this.position.addInPlace(delta);
@@ -6228,7 +6218,7 @@ class BrainPlayer extends SubBrain {
             if (inputForce > 1) {
                 moveInput.normalize();
             }
-            let dir = this.dodo.right.scale(moveInput.x * 0.5).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.5)));
+            let dir = this.dodo.right.scale(moveInput.x * 0.75).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.75)));
             if (dir.lengthSquared() > 0) {
                 let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.2);
                 BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, dir.scale(this.dodo.speed), 1 - fSpeed, this.dodo.animatedSpeed);
