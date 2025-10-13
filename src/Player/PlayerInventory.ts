@@ -14,10 +14,16 @@ class PlayerInventoryItem {
     constructor(name: string, category: InventoryCategory, game: Game) {
         this.name = name;
         this.category = category;
-        this.getIcon = async () => {
-            console.log("getIcon " + name);
-            return game.miniatureFactory.makeBrickIconString(name)
-        };
+        if (this.category === InventoryCategory.Brick) {
+            this.getIcon = async () => {
+                return game.miniatureFactory.makeBrickIconString(name)
+            };
+        }
+        if (this.category === InventoryCategory.Paint) {
+            this.getIcon = async () => {
+                return game.miniatureFactory.makePaintIconString(name)
+            };
+        }
     }
 
     public getIcon = async () => { return ""; };

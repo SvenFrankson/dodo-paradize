@@ -32,6 +32,17 @@ class MiniatureFactory {
         return canvas.toDataURL();
     }
 
+    public async makePaintIconString(colorId: number | string): Promise<string> {
+        let index = DodoColorIdToIndex(colorId);
+        let canvas = document.createElement("canvas");
+        canvas.width = 2;
+        canvas.height = 2;
+        let context = canvas.getContext("2d");
+        context.fillStyle = DodoColors[index].hex;
+        context.fillRect(0, 0, 2, 2);
+        return canvas.toDataURL();
+    }
+
     public async makeBrickIcon(brickId: number | string): Promise<HTMLCanvasElement> {
         let brickIndex = Brick.BrickIdToIndex(brickId);
         let brick = BABYLON.MeshBuilder.CreateBox("box", { size: 1 }, this.scene);

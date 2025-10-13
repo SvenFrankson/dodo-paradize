@@ -96,6 +96,24 @@ DodoColors.forEach(c => {
     c.hex = c.color.toHexString();
 })
 
+function DodoColorIdToIndex(colorID: number | string): number {
+        if (typeof(colorID) === "number") {
+            return colorID;
+        }
+        else {
+            return DodoColors.findIndex(color => { return color.name === colorID });
+        }
+    }
+
+function DodoColorIdToName(colorID: number | string): string {
+    if (typeof(colorID) === "string") {
+        return colorID;
+    }
+    else {
+        return DodoColors[colorID].name;
+    }
+}
+
 var DodoEyes = [
     { name: "Blue", file: "datas/textures/eye_0.png" },
     { name: "Green", file: "datas/textures/eye_1.png" },

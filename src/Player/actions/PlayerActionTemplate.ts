@@ -229,10 +229,10 @@ class PlayerActionTemplate {
             let tipMaterial = new BABYLON.StandardMaterial("tip-material");
             tipMaterial.diffuseColor = BABYLON.Color3.FromHexString(DodoColors[paintIndex].hex);
             tip.material = tipMaterial;
-            let vDatas = await player.game.vertexDataLoader.get("./datas/meshes/paintbrush.babylon");
+            //let vDatas = await player.game.vertexDataLoader.get("./datas/meshes/paintbrush.babylon");
             if (brush && !brush.isDisposed()) {
-                vDatas[0].applyToMesh(brush);
-                vDatas[1].applyToMesh(tip);
+                //vDatas[0].applyToMesh(brush);
+                //vDatas[1].applyToMesh(tip);
             }
         }
 

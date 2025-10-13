@@ -1009,12 +1009,13 @@ class Game {
             let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
             let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
             playerBrain.playerActionManager.linkAction(action, 1);
-            let paintAction = await PlayerActionTemplate.CreatePaintAction(playerBrain, Math.floor(Math.random() * DodoColors.length));
-            playerBrain.playerActionManager.linkAction(paintAction, 2);
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
+            for (let i = 0; i < DodoColors.length; i++) {
+                playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
+            }
         }
     }
     animate() {
@@ -1211,6 +1212,16 @@ class MiniatureFactory {
     }
     async makeBrickIconString(brickId) {
         let canvas = await this.makeBrickIcon(brickId);
+        return canvas.toDataURL();
+    }
+    async makePaintIconString(colorId) {
+        let index = DodoColorIdToIndex(colorId);
+        let canvas = document.createElement("canvas");
+        canvas.width = 2;
+        canvas.height = 2;
+        let context = canvas.getContext("2d");
+        context.fillStyle = DodoColors[index].hex;
+        context.fillRect(0, 0, 2, 2);
         return canvas.toDataURL();
     }
     async makeBrickIcon(brickId) {
@@ -3160,10 +3171,16 @@ class PlayerInventoryItem {
         this.getIcon = async () => { return ""; };
         this.name = name;
         this.category = category;
-        this.getIcon = async () => {
-            console.log("getIcon " + name);
-            return game.miniatureFactory.makeBrickIconString(name);
-        };
+        if (this.category === InventoryCategory.Brick) {
+            this.getIcon = async () => {
+                return game.miniatureFactory.makeBrickIconString(name);
+            };
+        }
+        if (this.category === InventoryCategory.Paint) {
+            this.getIcon = async () => {
+                return game.miniatureFactory.makePaintIconString(name);
+            };
+        }
     }
     async getPlayerAction(player) {
         if (this.category === InventoryCategory.Brick) {
@@ -3895,10 +3912,10 @@ class PlayerActionTemplate {
             let tipMaterial = new BABYLON.StandardMaterial("tip-material");
             tipMaterial.diffuseColor = BABYLON.Color3.FromHexString(DodoColors[paintIndex].hex);
             tip.material = tipMaterial;
-            let vDatas = await player.game.vertexDataLoader.get("./datas/meshes/paintbrush.babylon");
+            //let vDatas = await player.game.vertexDataLoader.get("./datas/meshes/paintbrush.babylon");
             if (brush && !brush.isDisposed()) {
-                vDatas[0].applyToMesh(brush);
-                vDatas[1].applyToMesh(tip);
+                //vDatas[0].applyToMesh(brush);
+                //vDatas[1].applyToMesh(tip);
             }
         };
         paintAction.onUnequip = () => {
@@ -5049,6 +5066,22 @@ DodoColors.forEach(c => {
     }
     c.hex = c.color.toHexString();
 });
+function DodoColorIdToIndex(colorID) {
+    if (typeof (colorID) === "number") {
+        return colorID;
+    }
+    else {
+        return DodoColors.findIndex(color => { return color.name === colorID; });
+    }
+}
+function DodoColorIdToName(colorID) {
+    if (typeof (colorID) === "string") {
+        return colorID;
+    }
+    else {
+        return DodoColors[colorID].name;
+    }
+}
 var DodoEyes = [
     { name: "Blue", file: "datas/textures/eye_0.png" },
     { name: "Green", file: "datas/textures/eye_1.png" },
