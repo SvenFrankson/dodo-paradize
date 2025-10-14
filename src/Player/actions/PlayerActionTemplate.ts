@@ -95,19 +95,22 @@ class PlayerActionTemplate {
                         pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
                         pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
                         pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0);
+                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0);
                         brick.position.copyFrom(pos);
                         brick.r = r;
                         brick.setParent(aimedBrick);
                         brick.computeWorldMatrix(true);
                         brick.updateMesh();
 
-                        brick.brickManager.saveToLocalStorage();
+                        //brick.brickManager.saveToLocalStorage();
+                        let data = root.construction.serialize();
+                        console.log(data);
+                        window.localStorage.setItem("test-serialize-construction", data);
                     }
                     else if (hit.pickedMesh instanceof Chunck) {
                         let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
                         let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
-                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
+                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
                         let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5)).subtractInPlace(construction.position);
                         brick.posI = Math.round(pos.x / BRICK_S);
                         brick.posJ = Math.round(pos.z / BRICK_S);
@@ -116,7 +119,10 @@ class PlayerActionTemplate {
                         brick.construction = construction;
                         brick.updateMesh();
                         
-                        brick.brickManager.saveToLocalStorage();
+                        //brick.brickManager.saveToLocalStorage();
+                        let data = brick.construction.serialize();
+                        console.log(data);
+                        window.localStorage.setItem("test-serialize-construction", data);
                     }
                 }
             }
@@ -211,7 +217,6 @@ class PlayerActionTemplate {
                         aimedBrick.colorIndex = paintIndex;
                         //player.lastUsedPaintIndex = paintIndex;
                         aimedBrick.updateMesh();
-                        aimedBrick.brickManager.saveToLocalStorage();
                     }
                 }
             }

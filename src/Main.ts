@@ -250,7 +250,6 @@ class Game {
     public playerInventoryView: PlayerInventoryView;
     public terrain: Terrain;
     public terrainManager: TerrainManager;
-    public brickManager: BrickManager;
     public playerDodo: Dodo;
     public networkDodos: Dodo[];
     public npcDodos: Dodo[];
@@ -453,7 +452,6 @@ class Game {
 
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
-        this.brickManager = new BrickManager(this);
 
         this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
@@ -548,6 +546,11 @@ class Game {
 
             for (let i = 0; i < DodoColors.length; i++) {
                 playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
+            }
+
+            let debugConstruction = this.terrainManager.getOrCreateConstruction(-1, -1);
+            if (window.localStorage.getItem("test-serialize-construction")) {
+                debugConstruction.deserialize(window.localStorage.getItem("test-serialize-construction"));
             }
         }
     }

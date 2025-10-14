@@ -807,24 +807,25 @@ class Dodo extends Creature {
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
 
-        for (let i = 0; i < this.game.brickManager.bricks.length; i++) {
-            let brick = this.game.brickManager.bricks.get(i);
-            if (brick && brick.root && brick.root.mesh) {
-                brick.root.mesh.freezeWorldMatrix();
-                let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
-                if (col.hit) {
-                    Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
-                    let delta = col.normal.scale(col.depth);
-                    this.position.addInPlace(delta);
+        this.game.terrainManager.constructions.forEach(construction => {
+            construction.bricks.forEach(brick => {
+                if (brick && brick.root && brick.root.mesh) {
+                    brick.root.mesh.freezeWorldMatrix();
+                    let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
+                    if (col.hit) {
+                        Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
+                        let delta = col.normal.scale(col.depth);
+                        this.position.addInPlace(delta);
 
-                    let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
-                    this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
-                    if (col.normal.y > 0.5) {
-                        this.gravityVelocity *= 0.5;
+                        let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
+                        this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
+                        if (col.normal.y > 0.5) {
+                            this.gravityVelocity *= 0.5;
+                        }
                     }
                 }
-            }
-        }
+            })
+        })
 
         let right = this.feet[0].position.subtract(this.feet[1].position);
         right.normalize();

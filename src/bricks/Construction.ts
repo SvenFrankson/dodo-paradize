@@ -2,7 +2,7 @@ class Construction extends BABYLON.Mesh {
 
     public static LENGTH: number = BRICKS_PER_CONSTRUCTION * BRICK_S;
 
-    public bricks: Brick[] = [];
+    public bricks: Nabu.UniqueList<Brick> = new Nabu.UniqueList<Brick>();
 
     public mesh: BABYLON.Mesh;
 
@@ -20,5 +20,27 @@ class Construction extends BABYLON.Mesh {
 
     public async instantiate(): Promise<void> {
         
+    }
+
+    public serialize(): string {
+        let bricks = [];
+        for (let i = 0; i < this.bricks.length; i++) {
+            bricks.push(this.bricks.get(i).serialize());
+        }
+
+        return JSON.stringify(bricks);
+    }
+
+    public deserialize(dataString: string): void {
+        console.log("deserialize");
+        let data: IBrickData[] = JSON.parse(dataString);
+        console.log(data);
+
+        for (let i = 0; i < data.length; i++) {
+            console.log("brick " + i.toFixed(0));
+            let brick = Brick.Deserialize(data[i], this);
+            brick.updateMesh();
+            this.bricks.push(brick);
+        }
     }
 }

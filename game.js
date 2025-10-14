@@ -938,7 +938,6 @@ class Game {
         this.homeMenuPlate = new HomeMenuPlate(this);
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
-        this.brickManager = new BrickManager(this);
         this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
@@ -1015,6 +1014,10 @@ class Game {
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
             for (let i = 0; i < DodoColors.length; i++) {
                 playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
+            }
+            let debugConstruction = this.terrainManager.getOrCreateConstruction(-1, -1);
+            if (window.localStorage.getItem("test-serialize-construction")) {
+                debugConstruction.deserialize(window.localStorage.getItem("test-serialize-construction"));
             }
         }
     }
@@ -2771,7 +2774,6 @@ class BrickMenuView extends HTMLElement {
             if (this._brick) {
                 this._brick.root.anchored = !this._brick.root.anchored;
             }
-            this._brick.brickManager.saveToLocalStorage();
             this.hide(0.1);
         };
         this._copyBrickBtn = document.createElement("button");
@@ -3667,7 +3669,6 @@ class PlayerActionMoveBrick {
                             let aimedBrick = root.getBrickForFaceId(hit.faceId);
                             brick.setParent(aimedBrick);
                             brick.updateMesh();
-                            brick.brickManager.saveToLocalStorage();
                         }
                         else {
                             let root = hit.pickedMesh.brick.root;
@@ -3676,7 +3677,6 @@ class PlayerActionMoveBrick {
                             brick.root.position.copyFrom(dp);
                             brick.root.position.addInPlace(rootPosition);
                             brick.construction = root.construction;
-                            brick.brickManager.saveToLocalStorage();
                         }
                     }
                     else {
@@ -3809,18 +3809,21 @@ class PlayerActionTemplate {
                         pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
                         pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
                         pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0);
+                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0);
                         brick.position.copyFrom(pos);
                         brick.r = r;
                         brick.setParent(aimedBrick);
                         brick.computeWorldMatrix(true);
                         brick.updateMesh();
-                        brick.brickManager.saveToLocalStorage();
+                        //brick.brickManager.saveToLocalStorage();
+                        let data = root.construction.serialize();
+                        console.log(data);
+                        window.localStorage.setItem("test-serialize-construction", data);
                     }
                     else if (hit.pickedMesh instanceof Chunck) {
                         let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
                         let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
-                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
+                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
                         let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5)).subtractInPlace(construction.position);
                         brick.posI = Math.round(pos.x / BRICK_S);
                         brick.posJ = Math.round(pos.z / BRICK_S);
@@ -3828,7 +3831,10 @@ class PlayerActionTemplate {
                         brick.absoluteR = r;
                         brick.construction = construction;
                         brick.updateMesh();
-                        brick.brickManager.saveToLocalStorage();
+                        //brick.brickManager.saveToLocalStorage();
+                        let data = brick.construction.serialize();
+                        console.log(data);
+                        window.localStorage.setItem("test-serialize-construction", data);
                     }
                 }
             }
@@ -3907,7 +3913,6 @@ class PlayerActionTemplate {
                         aimedBrick.colorIndex = paintIndex;
                         //player.lastUsedPaintIndex = paintIndex;
                         aimedBrick.updateMesh();
-                        aimedBrick.brickManager.saveToLocalStorage();
                     }
                 }
             }
@@ -3958,14 +3963,14 @@ class BrickMesh extends BABYLON.Mesh {
     }
 }
 class Brick extends BABYLON.TransformNode {
-    constructor(brickManager, arg1, colorIndex, construction) {
+    constructor(arg1, colorIndex, construction) {
         super("brick");
-        this.brickManager = brickManager;
         this.colorIndex = colorIndex;
         this.anchored = false;
         this.index = Brick.BrickIdToIndex(arg1);
         if (construction) {
             this.construction = construction;
+            this.construction.bricks.push(this);
             this.parent = this.construction;
         }
     }
@@ -4001,10 +4006,10 @@ class Brick extends BABYLON.TransformNode {
         if (node instanceof Brick) {
             this.anchored = false;
             this.construction = node.construction;
-            this.brickManager.unregisterBrick(this);
+            this.construction.bricks.remove(this);
         }
         else {
-            this.brickManager.registerBrick(this);
+            this.construction.bricks.push(this);
         }
         return super.setParent(node, preserveScalingSign, updatePivot);
     }
@@ -4063,11 +4068,10 @@ class Brick extends BABYLON.TransformNode {
     }
     dispose() {
         if (this.isRoot) {
-            this.brickManager.unregisterBrick(this);
+            this.construction.bricks.remove(this);
             if (this.mesh) {
                 this.mesh.dispose();
             }
-            this.brickManager.saveToLocalStorage();
         }
         else {
             let root = this.root;
@@ -4076,10 +4080,8 @@ class Brick extends BABYLON.TransformNode {
         }
     }
     cloneWithChildren() {
-        let clone = new Brick(this.brickManager, this.index, this.colorIndex, this.construction);
         let data = this.serialize();
-        clone.deserialize(data);
-        return clone;
+        return Brick.Deserialize(data, this.construction);
     }
     posWorldToLocal(pos) {
         let matrix = this.getWorldMatrix().invert();
@@ -4125,7 +4127,7 @@ class Brick extends BABYLON.TransformNode {
             logoMaterial.setUseLightFromPOV(true);
             logoMaterial.setUseFlatSpecular(true);
             */
-            this.mesh.material = this.brickManager.game.defaultToonMaterial;
+            this.mesh.material = this.construction.terrain.game.defaultToonMaterial;
             this.mesh.computeWorldMatrix(true);
             this.mesh.refreshBoundingInfo();
         }
@@ -4249,23 +4251,29 @@ class Brick extends BABYLON.TransformNode {
         }
         return data;
     }
-    deserialize(data) {
-        this.index = data.id;
-        this.colorIndex = isFinite(data.col) ? data.col : 0;
-        this.posI = data.i;
-        this.posJ = data.j;
-        this.posK = data.k;
-        this.r = data.r;
-        console.log(this.position);
+    static Deserialize(data, parent) {
+        let brick;
+        if (parent instanceof Construction) {
+            brick = new Brick(data.id, isFinite(data.col) ? data.col : 0, parent);
+        }
+        else {
+            brick = new Brick(data.id, isFinite(data.col) ? data.col : 0);
+            brick.parent = parent;
+            brick.construction = parent.construction;
+        }
+        brick.posI = data.i;
+        brick.posJ = data.j;
+        brick.posK = data.k;
+        brick.r = data.r;
         if (data.anc) {
-            this.anchored = true;
+            brick.anchored = true;
         }
         if (data.c) {
             for (let i = 0; i < data.c.length; i++) {
-                let child = new Brick(this.brickManager, 0, 0);
-                child.deserialize(data.c[i]);
+                Brick.Deserialize(data.c[i], brick);
             }
         }
+        return brick;
     }
 }
 Brick.depthColors = [
@@ -4410,52 +4418,6 @@ var BRICK_LIST = [
     "brick-quarter_7x7",
     "brick-quarter_8x8",
 ];
-class BrickManager {
-    constructor(game) {
-        this.game = game;
-        this.bricks = new Nabu.UniqueList();
-    }
-    registerBrick(brick) {
-        this.bricks.push(brick);
-        console.log("BrickManager holds " + this.bricks.length + " bricks");
-    }
-    unregisterBrick(brick) {
-        this.bricks.remove(brick);
-        console.log("BrickManager holds " + this.bricks.length + " bricks");
-    }
-    serialize() {
-        let data = {
-            bricks: []
-        };
-        for (let i = 0; i < this.bricks.length; i++) {
-            data.bricks[i] = this.bricks.get(i).serialize();
-        }
-        return data;
-    }
-    deserialize(data, construction) {
-        while (this.bricks.length > 0) {
-            this.bricks.get(0).dispose();
-        }
-        for (let i = 0; i < data.bricks.length; i++) {
-            let brick = new Brick(this, 0, 0, construction);
-            brick.deserialize(data.bricks[i]);
-            brick.updateMesh();
-        }
-    }
-    saveToLocalStorage() {
-        let data = this.serialize();
-        window.localStorage.setItem("brick-manager", JSON.stringify(data));
-    }
-    loadFromLocalStorage(construction) {
-        let dataString = window.localStorage.getItem("brick-manager");
-        if (dataString) {
-            let data = JSON.parse(dataString);
-            if (data) {
-                this.deserialize(data, construction);
-            }
-        }
-    }
-}
 class BrickTemplateManager {
     constructor(vertexDataLoader) {
         this.vertexDataLoader = vertexDataLoader;
@@ -4961,7 +4923,7 @@ class Construction extends BABYLON.Mesh {
         this.i = i;
         this.j = j;
         this.terrain = terrain;
-        this.bricks = [];
+        this.bricks = new Nabu.UniqueList();
         this.position.copyFromFloats(this.i * Construction.LENGTH, 0, this.j * Construction.LENGTH);
     }
     static worldPosToIJ(pos) {
@@ -4970,6 +4932,24 @@ class Construction extends BABYLON.Mesh {
         return { i: i, j: j };
     }
     async instantiate() {
+    }
+    serialize() {
+        let bricks = [];
+        for (let i = 0; i < this.bricks.length; i++) {
+            bricks.push(this.bricks.get(i).serialize());
+        }
+        return JSON.stringify(bricks);
+    }
+    deserialize(dataString) {
+        console.log("deserialize");
+        let data = JSON.parse(dataString);
+        console.log(data);
+        for (let i = 0; i < data.length; i++) {
+            console.log("brick " + i.toFixed(0));
+            let brick = Brick.Deserialize(data[i], this);
+            brick.updateMesh();
+            this.bricks.push(brick);
+        }
     }
 }
 Construction.LENGTH = BRICKS_PER_CONSTRUCTION * BRICK_S;
@@ -5706,23 +5686,24 @@ class Dodo extends Creature {
         //} 
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
-        for (let i = 0; i < this.game.brickManager.bricks.length; i++) {
-            let brick = this.game.brickManager.bricks.get(i);
-            if (brick && brick.root && brick.root.mesh) {
-                brick.root.mesh.freezeWorldMatrix();
-                let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
-                if (col.hit) {
-                    Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
-                    let delta = col.normal.scale(col.depth);
-                    this.position.addInPlace(delta);
-                    let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
-                    this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
-                    if (col.normal.y > 0.5) {
-                        this.gravityVelocity *= 0.5;
+        this.game.terrainManager.constructions.forEach(construction => {
+            construction.bricks.forEach(brick => {
+                if (brick && brick.root && brick.root.mesh) {
+                    brick.root.mesh.freezeWorldMatrix();
+                    let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
+                    if (col.hit) {
+                        Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
+                        let delta = col.normal.scale(col.depth);
+                        this.position.addInPlace(delta);
+                        let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
+                        this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
+                        if (col.normal.y > 0.5) {
+                            this.gravityVelocity *= 0.5;
+                        }
                     }
                 }
-            }
-        }
+            });
+        });
         let right = this.feet[0].position.subtract(this.feet[1].position);
         right.normalize();
         right.addInPlace(this.right.scale(2 + 2 * this.animatedSpeed.length() / this.speed));

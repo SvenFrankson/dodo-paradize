@@ -75,8 +75,6 @@ class PlayerActionMoveBrick {
                             let aimedBrick = root.getBrickForFaceId(hit.faceId);
                             brick.setParent(aimedBrick);
                             brick.updateMesh();
-                            
-                            brick.brickManager.saveToLocalStorage();
                         }
                         else {
                             let root = hit.pickedMesh.brick.root;
@@ -85,8 +83,6 @@ class PlayerActionMoveBrick {
                             brick.root.position.copyFrom(dp);
                             brick.root.position.addInPlace(rootPosition);
                             brick.construction = root.construction;
-                            
-                            brick.brickManager.saveToLocalStorage();
                         }
                     }
                     else {

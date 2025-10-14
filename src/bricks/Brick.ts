@@ -70,10 +70,10 @@ class Brick extends BABYLON.TransformNode {
         if (node instanceof Brick) {
             this.anchored = false;
             this.construction = node.construction;
-            this.brickManager.unregisterBrick(this);
+            this.construction.bricks.remove(this);
         }
         else {
-            this.brickManager.registerBrick(this);
+            this.construction.bricks.push(this);
         }
         return super.setParent(node, preserveScalingSign, updatePivot);
     }
@@ -136,25 +136,25 @@ class Brick extends BABYLON.TransformNode {
         }
     }
 
-    constructor(brickManager: BrickManager, index: number, colorIndex: number, construction?: Construction);
-    constructor(brickManager: BrickManager, brickName: string, colorIndex: number, construction?: Construction);
-    constructor(brickManager: BrickManager, brickId: number | string, colorIndex: number, construction?: Construction);
-    constructor(public brickManager: BrickManager, arg1: any, public colorIndex: number, construction?: Construction) {
+    constructor(index: number, colorIndex: number, construction?: Construction);
+    constructor(brickName: string, colorIndex: number, construction?: Construction);
+    constructor(brickId: number | string, colorIndex: number, construction?: Construction);
+    constructor(arg1: any, public colorIndex: number, construction?: Construction) {
         super("brick");
         this.index = Brick.BrickIdToIndex(arg1);
         if (construction) {
             this.construction = construction;
+            this.construction.bricks.push(this);
             this.parent = this.construction;
         }
     }
 
     public dispose(): void {
         if (this.isRoot) {
-            this.brickManager.unregisterBrick(this);
+            this.construction.bricks.remove(this);
             if (this.mesh) {
                 this.mesh.dispose();
             }
-            this.brickManager.saveToLocalStorage();
         }
         else {
             let root = this.root;
@@ -164,10 +164,8 @@ class Brick extends BABYLON.TransformNode {
     }
 
     public cloneWithChildren(): Brick {
-        let clone = new Brick(this.brickManager, this.index, this.colorIndex, this.construction);
         let data = this.serialize();
-        clone.deserialize(data);
-        return clone;
+        return Brick.Deserialize(data, this.construction);
     }
 
     public posWorldToLocal(pos: BABYLON.Vector3): BABYLON.Vector3 {
@@ -218,7 +216,7 @@ class Brick extends BABYLON.TransformNode {
             logoMaterial.setUseFlatSpecular(true);
             */
 
-            this.mesh.material = this.brickManager.game.defaultToonMaterial;
+            this.mesh.material = this.construction.terrain.game.defaultToonMaterial;
             this.mesh.computeWorldMatrix(true);
             this.mesh.refreshBoundingInfo();
         }
@@ -362,24 +360,32 @@ class Brick extends BABYLON.TransformNode {
         return data;
     }
 
-    public deserialize(data: IBrickData): void {
-        this.index = data.id;
-        this.colorIndex = isFinite(data.col) ? data.col : 0;
-        this.posI = data.i;
-        this.posJ = data.j;
-        this.posK = data.k;
-        this.r = data.r;
-        console.log(this.position);
+    public static Deserialize(data: IBrickData, parent: Construction | Brick): Brick {
+        let brick: Brick;
+        if (parent instanceof Construction) {
+            brick = new Brick(data.id, isFinite(data.col) ? data.col : 0, parent);
+        }
+        else {
+            brick = new Brick(data.id, isFinite(data.col) ? data.col : 0);
+            brick.parent = parent;
+            brick.construction = parent.construction;
+        }
+        
+        brick.posI = data.i;
+        brick.posJ = data.j;
+        brick.posK = data.k;
+        brick.r = data.r;
 
         if (data.anc) {
-            this.anchored = true;
+            brick.anchored = true;
         }
         if (data.c) {
             for (let i = 0; i < data.c.length; i++) {
-                let child = new Brick(this.brickManager, 0, 0);
-                child.deserialize(data.c[i]);
+                Brick.Deserialize(data.c[i], brick);
             }
         }
+
+        return brick;
     }
 }
 

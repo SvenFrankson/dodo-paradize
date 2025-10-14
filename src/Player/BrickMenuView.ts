@@ -122,7 +122,6 @@ class BrickMenuView extends HTMLElement implements Nabu.IPage {
             if (this._brick) {
                 this._brick.root.anchored = !this._brick.root.anchored;
             }
-            this._brick.brickManager.saveToLocalStorage();
             this.hide(0.1);
         }
 
