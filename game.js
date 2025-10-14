@@ -928,7 +928,6 @@ class Game {
         this.defaultToonMaterial.setUseVertexColor(true);
         this.defaultToonMaterial.setDiffuseSharpness(-1);
         this.defaultToonMaterial.setDiffuseCount(2);
-        BABYLON.MeshBuilder.CreateBox("debug", { width: 0.01, height: 1000, depth: 0.01 });
         this.networkManager = new NetworkManager(this);
         this.colorPicker = document.querySelector("color-picker");
         this.colorPicker.initColorButtons(this);
@@ -2091,7 +2090,8 @@ class TerrainManager {
             let construction = this.constructions.find(construction => { return construction.i === task.i && construction.j === task.j; });
             if (!construction) {
                 construction = this.getOrCreateConstruction(task.i, task.j);
-                construction.buildFromLocalStorage();
+                //construction.buildFromLocalStorage();
+                construction.buildFromServer();
                 this.constructions.push(construction);
             }
         }
@@ -3883,6 +3883,7 @@ class PlayerActionTemplate {
                         brick.computeWorldMatrix(true);
                         brick.updateMesh();
                         root.construction.saveToLocalStorage();
+                        root.construction.saveToServer();
                     }
                     else if (hit.pickedMesh instanceof Chunck) {
                         let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
@@ -3896,6 +3897,7 @@ class PlayerActionTemplate {
                         brick.construction = construction;
                         brick.updateMesh();
                         brick.construction.saveToLocalStorage();
+                        brick.construction.saveToServer();
                     }
                 }
             }
@@ -3975,6 +3977,7 @@ class PlayerActionTemplate {
                         //player.lastUsedPaintIndex = paintIndex;
                         aimedBrick.updateMesh();
                         root.construction.saveToLocalStorage();
+                        root.construction.saveToServer();
                     }
                 }
             }
@@ -4290,49 +4293,81 @@ class Brick extends BABYLON.TransformNode {
         return mergedData;
     }
     serialize() {
-        let data = {
-            id: this.index,
-            col: this.colorIndex
-        };
-        data.i = this.posI;
-        data.j = this.posJ;
-        data.k = this.posK;
-        data.r = this.r;
-        if (this.anchored) {
-            data.anc = this.anchored;
-        }
-        let children = this.getChildTransformNodes(true);
+        let s = "";
+        s += this.index.toString(16).padStart(3, "0").substring(0, 3);
+        s += this.colorIndex.toString(16).padStart(2, "0").substring(0, 2);
+        s += (this.posI + 64).toString(16).padStart(2, "0").substring(0, 2);
+        s += (this.posJ + 64).toString(16).padStart(2, "0").substring(0, 2);
+        s += (this.posK + 64).toString(16).padStart(2, "0").substring(0, 2);
+        s += this.r.toString(16).padStart(1, "0").substring(0, 1);
+        let children = this.getChildTransformNodes(true).filter(n => { return n instanceof Brick; });
         if (children.length > 0) {
-            data.c = [];
-        }
-        for (let i = 0; i < children.length; i++) {
-            let child = children[i];
-            if (child instanceof Brick) {
-                data.c[i] = child.serialize();
+            s += "[";
+            for (let i = 0; i < children.length; i++) {
+                let child = children[i];
+                s += child.serialize();
+                if (i < children.length - 1) {
+                    s += ",";
+                }
             }
+            s += "]";
         }
-        return data;
+        return s;
     }
     static Deserialize(data, parent) {
+        console.log("Brick.Deserialize '" + data + "'");
         let brick;
+        let id = parseInt(data.substring(0, 3), 16);
+        let colorIndex = parseInt(data.substring(3, 5), 16);
+        let posI = parseInt(data.substring(5, 7), 16) - 64;
+        let posJ = parseInt(data.substring(7, 9), 16) - 64;
+        let posK = parseInt(data.substring(9, 11), 16) - 64;
+        let r = parseInt(data.substring(11, 12), 16);
         if (parent instanceof Construction) {
-            brick = new Brick(data.id, isFinite(data.col) ? data.col : 0, parent);
+            brick = new Brick(id, colorIndex, parent);
         }
         else {
-            brick = new Brick(data.id, isFinite(data.col) ? data.col : 0);
+            brick = new Brick(id, colorIndex);
             brick.parent = parent;
             brick.construction = parent.construction;
         }
-        brick.posI = data.i;
-        brick.posJ = data.j;
-        brick.posK = data.k;
-        brick.r = data.r;
-        if (data.anc) {
-            brick.anchored = true;
-        }
-        if (data.c) {
-            for (let i = 0; i < data.c.length; i++) {
-                Brick.Deserialize(data.c[i], brick);
+        brick.posI = posI;
+        brick.posJ = posJ;
+        brick.posK = posK;
+        brick.r = r;
+        if (data[12] === "[") {
+            let directChildIndexes = [];
+            let closeIndex = 12;
+            let nestedOpen = 1;
+            let done = false;
+            while (!done && closeIndex < data.length) {
+                closeIndex++;
+                let c = data[closeIndex];
+                if (c === "[") {
+                    nestedOpen++;
+                }
+                else if (c === "]") {
+                    nestedOpen--;
+                    if (nestedOpen === 0) {
+                        directChildIndexes.push(closeIndex);
+                        done = true;
+                    }
+                }
+                else if (c === "," && nestedOpen === 1) {
+                    directChildIndexes.push(closeIndex);
+                }
+            }
+            let childrenDatas = data.substring(13, closeIndex);
+            console.log("childrenDatas '" + childrenDatas + "'");
+            console.log("directChildIndexes " + directChildIndexes.toString());
+            for (let i = 0; i < directChildIndexes.length; i++) {
+                let c0 = 13;
+                if (i > 0) {
+                    c0 = directChildIndexes[i - 1] + 1;
+                }
+                let c1 = directChildIndexes[i];
+                console.log("c0c1 " + c0.toFixed(0) + " " + c1.toFixed(0));
+                Brick.Deserialize(data.substring(c0, c1), brick);
             }
         }
         return brick;
@@ -4986,7 +5021,11 @@ class Construction extends BABYLON.Mesh {
         this.j = j;
         this.terrain = terrain;
         this.bricks = new Nabu.UniqueList();
+        this.barycenter = BABYLON.Vector3.Zero();
         this.position.copyFromFloats(this.i * Construction.SIZE_m, 0, this.j * Construction.SIZE_m);
+        this.barycenter.copyFrom(this.position);
+        this.barycenter.x += Construction.SIZE_m * 0.5;
+        this.barycenter.z += Construction.SIZE_m * 0.5;
     }
     static worldPosToIJ(pos) {
         let i = Math.floor((pos.x) / Construction.SIZE_m);
@@ -4994,6 +5033,78 @@ class Construction extends BABYLON.Mesh {
         return { i: i, j: j };
     }
     async instantiate() {
+    }
+    showLimits() {
+        if (this.limits) {
+            this.limits.dispose();
+        }
+        let min = new BABYLON.Vector3(-BRICK_S * 0.5, 0, -BRICK_S * 0.5);
+        let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
+        this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.DOUBLESIDE });
+        let material = new BABYLON.StandardMaterial("limit-material");
+        material.specularColor.copyFromFloats(0, 0, 0);
+        material.diffuseColor.copyFromFloats(0, 1, 1);
+        this.limits.material = material;
+        this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
+        this.limits.visibility = 0.3;
+        this.limits.parent = this;
+        for (let i = 0; i <= 1; i++) {
+            for (let j = 0; j <= 1; j++) {
+                let corner = BABYLON.MeshBuilder.CreateBox("corner", { width: 0.03, height: 256, depth: 0.03 });
+                corner.position.x = (i - 0.5) * Construction.SIZE_m;
+                corner.position.z = (j - 0.5) * Construction.SIZE_m;
+                corner.parent = this.limits;
+            }
+        }
+    }
+    hideLimits() {
+        if (this.limits) {
+            this.limits.dispose();
+        }
+    }
+    async saveToServer() {
+        let constructionData = {
+            i: this.i,
+            j: this.j,
+            content: this.serialize()
+        };
+        let dataString = JSON.stringify(constructionData);
+        try {
+            const response = await fetch(SHARE_SERVICE_PATH + "set_construction", {
+                method: "POST",
+                mode: "cors",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: dataString,
+            });
+            let responseText = await response.text();
+            console.log("Construction.saveToServer" + responseText);
+        }
+        catch (e) {
+            console.error(e);
+            ScreenLoger.Log("saveToServer error");
+            ScreenLoger.Log(e);
+        }
+    }
+    async buildFromServer() {
+        try {
+            const response = await fetch(SHARE_SERVICE_PATH + "get_construction/" + this.i.toFixed(0) + "/" + this.j.toFixed(0), {
+                method: "GET",
+                mode: "cors"
+            });
+            let responseText = await response.text();
+            console.log(responseText);
+            if (responseText) {
+                let response = JSON.parse(responseText);
+                this.deserialize(response.content);
+            }
+        }
+        catch (e) {
+            console.error(e);
+            ScreenLoger.Log("buildFromServer error");
+            ScreenLoger.Log(e);
+        }
     }
     saveToLocalStorage() {
         window.localStorage.setItem("construction_" + this.i.toFixed(0) + "_" + this.j.toFixed(0), this.serialize());
@@ -5194,6 +5305,8 @@ class Dodo extends Creature {
         this.stepDuration = 0.2;
         this.colors = [];
         this.eyeColor = 0;
+        this.currentChuncks = [[undefined, undefined, undefined], [undefined, undefined, undefined], [undefined, undefined, undefined]];
+        this.currentConstructions = [[undefined, undefined, undefined], [undefined, undefined, undefined], [undefined, undefined, undefined]];
         this.targetLook = BABYLON.Vector3.Zero();
         this.bodyTargetPos = BABYLON.Vector3.Zero();
         this.bodyVelocity = BABYLON.Vector3.Zero();
@@ -5226,6 +5339,7 @@ class Dodo extends Creature {
         this._jumpingFootTargets = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
         this._lastR = 0;
         this.gravityVelocity = 0;
+        this._constructionRange = { di0: 0, di1: 0, dj0: 0, dj1: 0 };
         this.name = "Dodo_" + Math.floor(Math.random() * 10000).toFixed(0);
         this.peerId = name;
         this.colors = [];
@@ -5291,7 +5405,7 @@ class Dodo extends Creature {
         this.dodoCollider.parent = this;
         this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight + 0.05, 0);
         BABYLON.CreateSphereVertexData({ diameter: 2 * BRICK_S }).applyToMesh(this.dodoCollider);
-        this.dodoCollider.visibility = 0.4;
+        this.dodoCollider.visibility = 0;
         /*
         this.topEyelids = [
             Dodo.OutlinedMesh("topEyelidR"),
@@ -5757,24 +5871,29 @@ class Dodo extends Creature {
         //} 
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
-        this.game.terrainManager.constructions.forEach(construction => {
-            construction.bricks.forEach(brick => {
-                if (brick && brick.root && brick.root.mesh) {
-                    brick.root.mesh.freezeWorldMatrix();
-                    let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
-                    if (col.hit) {
-                        Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
-                        let delta = col.normal.scale(col.depth);
-                        this.position.addInPlace(delta);
-                        let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
-                        this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
-                        if (col.normal.y > 0.5) {
-                            this.gravityVelocity *= 0.5;
+        this.updateConstructionDIDJRange();
+        for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
+            for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
+                let construction = this.getCurrentConstruction(di, dj);
+                if (construction) {
+                    construction.bricks.forEach(brick => {
+                        if (brick && brick.root && brick.root.mesh) {
+                            let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
+                            if (col.hit) {
+                                Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
+                                let delta = col.normal.scale(col.depth);
+                                this.position.addInPlace(delta);
+                                let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
+                                this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
+                                if (col.normal.y > 0.5) {
+                                    this.gravityVelocity *= 0.5;
+                                }
+                            }
                         }
-                    }
+                    });
                 }
-            });
-        });
+            }
+        }
         let right = this.feet[0].position.subtract(this.feet[1].position);
         right.normalize();
         right.addInPlace(this.right.scale(2 + 2 * this.animatedSpeed.length() / this.speed));
@@ -5866,6 +5985,75 @@ class Dodo extends Creature {
         */
         this.feet[0].update(dt);
         this.feet[1].update(dt);
+        if (this.needUpdateCurrentConstruction()) {
+            this.updateCurrentConstruction();
+        }
+    }
+    updateConstructionDIDJRange() {
+        this._constructionRange.di0 = 0;
+        this._constructionRange.di1 = 0;
+        this._constructionRange.dj0 = 0;
+        this._constructionRange.dj1 = 0;
+        let center = this.currentConstructions[1][1];
+        if (center) {
+            let dx = Math.abs(this.position.x - center.position.x);
+            if (dx < Construction.SIZE_m * 0.1) {
+                this._constructionRange.di0--;
+            }
+            if (dx > Construction.SIZE_m * 0.9) {
+                this._constructionRange.di1++;
+            }
+            let dz = Math.abs(this.position.z - center.position.z);
+            if (dz < Construction.SIZE_m * 0.15) {
+                this._constructionRange.dj0--;
+            }
+            if (dz > Construction.SIZE_m * 0.85) {
+                this._constructionRange.dj1++;
+            }
+        }
+    }
+    needUpdateCurrentConstruction() {
+        let center = this.currentConstructions[1][1];
+        if (!center) {
+            return true;
+        }
+        let dx = Math.abs(this.position.x - center.barycenter.x);
+        let dz = Math.abs(this.position.z - center.barycenter.z);
+        if (dx > Construction.SIZE_m * 0.5 * 1.1) {
+            return true;
+        }
+        if (dz > Construction.SIZE_m * 0.5 * 1.1) {
+            return true;
+        }
+    }
+    getCurrentConstruction(di, dj) {
+        if (!this.currentConstructions[1 + di][1 + dj]) {
+            let center = this.currentConstructions[1][1];
+            if (!center) {
+                this.updateCurrentConstruction();
+                center = this.currentConstructions[1][1];
+            }
+            if (center) {
+                this.currentConstructions[1 + di][1 + dj] = this.game.terrainManager.getConstruction(center.i + di, center.j + dj);
+            }
+        }
+        return this.currentConstructions[1 + di][1 + dj];
+    }
+    updateCurrentConstruction() {
+        if (this.currentConstructions[1][1]) {
+            this.currentConstructions[1][1].hideLimits();
+        }
+        let iConstruction = Math.floor(this.position.x / Construction.SIZE_m);
+        let jConstruction = Math.floor(this.position.z / Construction.SIZE_m);
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                this.currentConstructions[i][j] = undefined;
+            }
+        }
+        this.currentConstructions[1][1] = this.game.terrainManager.getConstruction(iConstruction, jConstruction);
+        if (this.currentConstructions[1][1]) {
+            this.currentConstructions[1][1].showLimits();
+        }
     }
     async eyeBlink(eyeIndex = -1) {
         let eyeIndexes = [0, 1];

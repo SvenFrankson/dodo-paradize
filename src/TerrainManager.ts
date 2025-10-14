@@ -183,7 +183,8 @@ class TerrainManager {
             let construction = this.constructions.find(construction => { return construction.i === task.i && construction.j === task.j });
             if (!construction) {
                 construction = this.getOrCreateConstruction(task.i, task.j);
-                construction.buildFromLocalStorage();
+                //construction.buildFromLocalStorage();
+                construction.buildFromServer();
                 this.constructions.push(construction);
             }
         }

@@ -142,6 +142,8 @@ class Dodo extends Creature {
     public brain: Brain;
 
     public dodoCollider: DodoCollider;
+    public currentChuncks: Chunck[][] = [[undefined, undefined, undefined], [undefined, undefined, undefined], [undefined, undefined, undefined]];
+    public currentConstructions: Construction[][] = [[undefined, undefined, undefined], [undefined, undefined, undefined], [undefined, undefined, undefined]];
 
     public targetLook: BABYLON.Vector3 = BABYLON.Vector3.Zero();
 
@@ -277,7 +279,7 @@ class Dodo extends Creature {
         this.dodoCollider.parent = this;
         this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight + 0.05, 0);
         BABYLON.CreateSphereVertexData({ diameter: 2 * BRICK_S }).applyToMesh(this.dodoCollider);
-        this.dodoCollider.visibility = 0.4;
+        this.dodoCollider.visibility = 0;
 
         /*
         this.topEyelids = [
@@ -688,6 +690,7 @@ class Dodo extends Creature {
                     let pick = this._scene.pickWithRay(ray, (mesh => {
                         return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate || mesh instanceof BrickMesh;
                     }));
+
                     if (pick.hit) {
                         origin = pick.pickedPoint;
                         up = pick.getNormal(true, false);
@@ -807,25 +810,30 @@ class Dodo extends Creature {
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
 
-        this.game.terrainManager.constructions.forEach(construction => {
-            construction.bricks.forEach(brick => {
-                if (brick && brick.root && brick.root.mesh) {
-                    brick.root.mesh.freezeWorldMatrix();
-                    let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
-                    if (col.hit) {
-                        Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
-                        let delta = col.normal.scale(col.depth);
-                        this.position.addInPlace(delta);
+        this.updateConstructionDIDJRange();
+        for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
+            for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
+                let construction = this.getCurrentConstruction(di, dj);
+                if (construction) {
+                    construction.bricks.forEach(brick => {
+                        if (brick && brick.root && brick.root.mesh) {
+                            let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
+                            if (col.hit) {
+                                Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
+                                let delta = col.normal.scale(col.depth);
+                                this.position.addInPlace(delta);
 
-                        let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
-                        this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
-                        if (col.normal.y > 0.5) {
-                            this.gravityVelocity *= 0.5;
+                                let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
+                                this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
+                                if (col.normal.y > 0.5) {
+                                    this.gravityVelocity *= 0.5;
+                                }
+                            }
                         }
-                    }
+                    })
                 }
-            })
-        })
+            }
+        }
 
         let right = this.feet[0].position.subtract(this.feet[1].position);
         right.normalize();
@@ -939,6 +947,85 @@ class Dodo extends Creature {
         */
         this.feet[0].update(dt);
         this.feet[1].update(dt);
+
+        if (this.needUpdateCurrentConstruction()) {
+            this.updateCurrentConstruction();
+        }
+    }
+
+    private _constructionRange: { di0: number, di1: number, dj0: number, dj1: number } = { di0: 0, di1: 0, dj0: 0, dj1: 0 }
+    public updateConstructionDIDJRange(): void {
+        this._constructionRange.di0 = 0;
+        this._constructionRange.di1 = 0;
+        this._constructionRange.dj0 = 0;
+        this._constructionRange.dj1 = 0;
+
+        let center = this.currentConstructions[1][1];
+        if (center) {
+            let dx = Math.abs(this.position.x - center.position.x);
+            if (dx < Construction.SIZE_m * 0.1) {
+                this._constructionRange.di0--;
+            }
+            if (dx > Construction.SIZE_m * 0.9) {
+                this._constructionRange.di1++;
+            }
+
+            let dz = Math.abs(this.position.z - center.position.z);
+            if (dz < Construction.SIZE_m * 0.15) {
+                this._constructionRange.dj0--;
+            }
+            if (dz > Construction.SIZE_m * 0.85) {
+                this._constructionRange.dj1++;
+            }
+        }
+    }
+
+    public needUpdateCurrentConstruction(): boolean {
+        let center = this.currentConstructions[1][1];
+        if (!center) {
+            return true;
+        }
+
+        let dx = Math.abs(this.position.x - center.barycenter.x);
+        let dz = Math.abs(this.position.z - center.barycenter.z);
+
+        if (dx > Construction.SIZE_m * 0.5 * 1.1) {
+            return true;
+        }
+        if (dz > Construction.SIZE_m * 0.5 * 1.1) {
+            return true;
+        }
+    }
+
+    public getCurrentConstruction(di: number, dj: number): Construction {
+        if (!this.currentConstructions[1 + di][1 + dj]) {
+            let center = this.currentConstructions[1][1];
+            if (!center) {
+                this.updateCurrentConstruction();
+                center = this.currentConstructions[1][1];
+            }
+            if (center) {
+                this.currentConstructions[1 + di][1 + dj] = this.game.terrainManager.getConstruction(center.i + di, center.j + dj);
+            }
+        }
+        return this.currentConstructions[1 + di][1 + dj];
+    }
+
+    public updateCurrentConstruction(): void {
+        if (this.currentConstructions[1][1]) {
+            this.currentConstructions[1][1].hideLimits();
+        }
+        let iConstruction = Math.floor(this.position.x / Construction.SIZE_m);
+        let jConstruction = Math.floor(this.position.z / Construction.SIZE_m);
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                this.currentConstructions[i][j] = undefined;
+            }
+        }
+        this.currentConstructions[1][1] = this.game.terrainManager.getConstruction(iConstruction, jConstruction);
+        if (this.currentConstructions[1][1]) {
+            this.currentConstructions[1][1].showLimits();
+        }
     }
 
     public async eyeBlink(eyeIndex: number = -1): Promise<void> {

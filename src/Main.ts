@@ -436,8 +436,6 @@ class Game {
         this.defaultToonMaterial.setDiffuseSharpness(-1);
         this.defaultToonMaterial.setDiffuseCount(2);
 
-        BABYLON.MeshBuilder.CreateBox("debug", { width: 0.01, height: 1000, depth: 0.01 });
-
         this.networkManager = new NetworkManager(this);
 
         this.colorPicker = document.querySelector("color-picker");

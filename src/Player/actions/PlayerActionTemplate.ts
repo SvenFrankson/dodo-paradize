@@ -103,6 +103,7 @@ class PlayerActionTemplate {
                         brick.updateMesh();
 
                         root.construction.saveToLocalStorage();
+                        root.construction.saveToServer();
                     }
                     else if (hit.pickedMesh instanceof Chunck) {
                         let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
@@ -117,6 +118,7 @@ class PlayerActionTemplate {
                         brick.updateMesh();
                         
                         brick.construction.saveToLocalStorage();
+                        brick.construction.saveToServer();
                     }
                 }
             }
@@ -213,6 +215,7 @@ class PlayerActionTemplate {
                         aimedBrick.updateMesh();
                         
                         root.construction.saveToLocalStorage();
+                        root.construction.saveToServer();
                     }
                 }
             }

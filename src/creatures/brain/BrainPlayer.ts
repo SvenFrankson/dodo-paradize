@@ -269,7 +269,6 @@ class BrainPlayer extends SubBrain {
     }
 
     public update(dt: number): void {
-        
         if (this.game.gameMode === GameMode.Playing) {
             let moveInput = new BABYLON.Vector2(this._moveXAxisInput, this._moveYAxisInput);
             let inputForce = moveInput.length();

@@ -331,57 +331,87 @@ class Brick extends BABYLON.TransformNode {
         return mergedData;
     }
 
-    public serialize(): IBrickData {
-        let data: IBrickData = {
-            id: this.index,
-            col: this.colorIndex
-        }
+    public serialize(): string {
+        let s = "";
+        s += this.index.toString(16).padStart(3, "0").substring(0, 3);
+        s += this.colorIndex.toString(16).padStart(2, "0").substring(0, 2);
+        s += (this.posI + 64).toString(16).padStart(2, "0").substring(0, 2);
+        s += (this.posJ + 64).toString(16).padStart(2, "0").substring(0, 2);
+        s += (this.posK + 64).toString(16).padStart(2, "0").substring(0, 2);
+        s += this.r.toString(16).padStart(1, "0").substring(0, 1);
 
-        data.i = this.posI;
-        data.j = this.posJ;
-        data.k = this.posK;
-        data.r = this.r
-
-        if (this.anchored) {
-            data.anc = this.anchored;
-        }
-
-        let children = this.getChildTransformNodes(true);
+        let children = this.getChildTransformNodes(true).filter(n => { return n instanceof Brick; }) as Brick[];
         if (children.length > 0) {
-            data.c = [];
-        }
-        for (let i = 0; i < children.length; i++) {
-            let child = children[i];
-            if (child instanceof Brick) {
-                data.c[i] = child.serialize();
+            s += "[";
+            for (let i = 0; i < children.length; i++) {
+                let child = children[i];
+                s += child.serialize();
+                if (i < children.length - 1) {
+                    s += ",";
+                }
             }
+            s += "]";
         }
-
-        return data;
+        
+        return s;
     }
 
-    public static Deserialize(data: IBrickData, parent: Construction | Brick): Brick {
+    public static Deserialize(data: string, parent: Construction | Brick): Brick {
+        console.log("Brick.Deserialize '" + data + "'")
         let brick: Brick;
+        let id = parseInt(data.substring(0, 3), 16);
+        let colorIndex = parseInt(data.substring(3, 5), 16);
+        let posI = parseInt(data.substring(5, 7), 16) - 64;
+        let posJ = parseInt(data.substring(7, 9), 16) - 64;
+        let posK = parseInt(data.substring(9, 11), 16) - 64;
+        let r = parseInt(data.substring(11, 12), 16);
         if (parent instanceof Construction) {
-            brick = new Brick(data.id, isFinite(data.col) ? data.col : 0, parent);
+            brick = new Brick(id, colorIndex, parent);
         }
         else {
-            brick = new Brick(data.id, isFinite(data.col) ? data.col : 0);
+            brick = new Brick(id, colorIndex);
             brick.parent = parent;
             brick.construction = parent.construction;
         }
         
-        brick.posI = data.i;
-        brick.posJ = data.j;
-        brick.posK = data.k;
-        brick.r = data.r;
+        brick.posI = posI;
+        brick.posJ = posJ;
+        brick.posK = posK;
+        brick.r = r;
 
-        if (data.anc) {
-            brick.anchored = true;
-        }
-        if (data.c) {
-            for (let i = 0; i < data.c.length; i++) {
-                Brick.Deserialize(data.c[i], brick);
+        if (data[12] === "[") {
+            let directChildIndexes = [];
+            let closeIndex = 12;
+            let nestedOpen = 1;
+            let done = false;
+            while (!done && closeIndex < data.length) {
+                closeIndex++;
+                let c = data[closeIndex];
+                if (c === "[") {
+                    nestedOpen++;
+                }
+                else if (c === "]") {
+                    nestedOpen--;
+                    if (nestedOpen === 0) {
+                        directChildIndexes.push(closeIndex);
+                        done = true;
+                    }
+                }
+                else if (c === "," && nestedOpen === 1) {
+                    directChildIndexes.push(closeIndex);
+                }
+            }
+            let childrenDatas = data.substring(13, closeIndex);
+            console.log("childrenDatas '" + childrenDatas + "'");
+            console.log("directChildIndexes " + directChildIndexes.toString())
+            for (let i = 0; i < directChildIndexes.length; i++) {
+                let c0 = 13;
+                if (i > 0) {
+                    c0 = directChildIndexes[i - 1] + 1;
+                }
+                let c1 = directChildIndexes[i];
+                console.log("c0c1 " + c0.toFixed(0) + " " + c1.toFixed(0));
+                Brick.Deserialize(data.substring(c0, c1), brick);
             }
         }
 
@@ -399,9 +429,5 @@ interface IBrickData {
     i?: number;
     j?: number;
     k?: number;
-    qx?: number;
-    qy?: number;
-    qz?: number;
-    qw?: number;
     c?: IBrickData[];
 }
