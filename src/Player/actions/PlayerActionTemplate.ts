@@ -102,10 +102,7 @@ class PlayerActionTemplate {
                         brick.computeWorldMatrix(true);
                         brick.updateMesh();
 
-                        //brick.brickManager.saveToLocalStorage();
-                        let data = root.construction.serialize();
-                        console.log(data);
-                        window.localStorage.setItem("test-serialize-construction", data);
+                        root.construction.saveToLocalStorage();
                     }
                     else if (hit.pickedMesh instanceof Chunck) {
                         let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
@@ -119,10 +116,7 @@ class PlayerActionTemplate {
                         brick.construction = construction;
                         brick.updateMesh();
                         
-                        //brick.brickManager.saveToLocalStorage();
-                        let data = brick.construction.serialize();
-                        console.log(data);
-                        window.localStorage.setItem("test-serialize-construction", data);
+                        brick.construction.saveToLocalStorage();
                     }
                 }
             }
@@ -217,6 +211,8 @@ class PlayerActionTemplate {
                         aimedBrick.colorIndex = paintIndex;
                         //player.lastUsedPaintIndex = paintIndex;
                         aimedBrick.updateMesh();
+                        
+                        root.construction.saveToLocalStorage();
                     }
                 }
             }

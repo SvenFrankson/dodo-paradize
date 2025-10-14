@@ -1015,10 +1015,6 @@ class Game {
             for (let i = 0; i < DodoColors.length; i++) {
                 playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
             }
-            let debugConstruction = this.terrainManager.getOrCreateConstruction(-1, -1);
-            if (window.localStorage.getItem("test-serialize-construction")) {
-                debugConstruction.deserialize(window.localStorage.getItem("test-serialize-construction"));
-            }
         }
     }
     animate() {
@@ -1945,10 +1941,13 @@ class TerrainManager {
     constructor(terrain) {
         this.terrain = terrain;
         this.range = 2;
-        this.createTasks = [];
-        this.disposeTasks = [];
+        this.createChunckTasks = [];
+        this.disposeChunckTasks = [];
+        this.createConstructionTasks = [];
+        this.disposeConstructionTasks = [];
         this.constructions = [];
-        this._lastRefreshPosition = new BABYLON.Vector3(Infinity, 0, Infinity);
+        this._lastRefreshChunckPosition = new BABYLON.Vector3(Infinity, 0, Infinity);
+        this._lastRefreshConstructionPosition = new BABYLON.Vector3(Infinity, 0, Infinity);
         this._lock = false;
     }
     get game() {
@@ -1965,29 +1964,29 @@ class TerrainManager {
         }
         return construction;
     }
-    addCreateTask(i, j) {
-        let disposeTaskIndex = this.disposeTasks.findIndex(t => { return t.i === i && t.j === j; });
+    addCreateChunckTask(i, j) {
+        let disposeTaskIndex = this.disposeChunckTasks.findIndex(t => { return t.i === i && t.j === j; });
         if (disposeTaskIndex >= 0) {
-            this.disposeTasks.splice(disposeTaskIndex, 1);
+            this.disposeChunckTasks.splice(disposeTaskIndex, 1);
         }
         if (!this.terrain.chuncks.array.find(chunck => { return chunck.i === i && chunck.j === j; })) {
-            if (!this.createTasks.find(t => { return t.i === i && t.j === j; })) {
-                this.createTasks.push({ i: i, j: j });
+            if (!this.createChunckTasks.find(t => { return t.i === i && t.j === j; })) {
+                this.createChunckTasks.push({ i: i, j: j });
             }
         }
     }
-    addDisposeTask(i, j) {
-        let createTaskIndex = this.createTasks.findIndex(t => { return t.i === i && t.j === j; });
+    addDisposeChunckTask(i, j) {
+        let createTaskIndex = this.createChunckTasks.findIndex(t => { return t.i === i && t.j === j; });
         if (createTaskIndex >= 0) {
-            this.createTasks.splice(createTaskIndex, 1);
+            this.createChunckTasks.splice(createTaskIndex, 1);
         }
         if (this.terrain.chuncks.array.find(chunck => { return chunck.i === i && chunck.j === j; })) {
-            if (!this.disposeTasks.find(t => { return t.i === i && t.j === j; })) {
-                this.disposeTasks.push({ i: i, j: j });
+            if (!this.disposeChunckTasks.find(t => { return t.i === i && t.j === j; })) {
+                this.disposeChunckTasks.push({ i: i, j: j });
             }
         }
     }
-    refreshTaskList() {
+    refreshChunckTaskList() {
         let position = this.game.camera.globalPosition.clone();
         position.y = 0;
         let iCenter = Math.floor(position.x / this.terrain.chunckSize_m);
@@ -1998,7 +1997,7 @@ class TerrainManager {
                 let cz = (j + 0.5) * this.terrain.chunckSize_m;
                 let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
                 if (d < this.range * this.terrain.chunckSize_m) {
-                    this.addCreateTask(i, j);
+                    this.addCreateChunckTask(i, j);
                 }
             }
         }
@@ -2007,10 +2006,57 @@ class TerrainManager {
             let cz = (chunck.j + 0.5) * this.terrain.chunckSize_m;
             let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
             if (d > (this.range + 1) * this.terrain.chunckSize_m) {
-                this.addDisposeTask(chunck.i, chunck.j);
+                this.addDisposeChunckTask(chunck.i, chunck.j);
             }
         });
-        this._lastRefreshPosition = position;
+        this._lastRefreshChunckPosition = position;
+    }
+    addCreateConstructionTask(i, j) {
+        let disposeTaskIndex = this.disposeConstructionTasks.findIndex(t => { return t.i === i && t.j === j; });
+        if (disposeTaskIndex >= 0) {
+            this.disposeConstructionTasks.splice(disposeTaskIndex, 1);
+        }
+        if (!this.constructions.find(construction => { return construction.i === i && construction.j === j; })) {
+            if (!this.createConstructionTasks.find(t => { return t.i === i && t.j === j; })) {
+                this.createConstructionTasks.push({ i: i, j: j });
+            }
+        }
+    }
+    addDisposeConstructionTask(i, j) {
+        let createTaskIndex = this.createConstructionTasks.findIndex(t => { return t.i === i && t.j === j; });
+        if (createTaskIndex >= 0) {
+            this.createConstructionTasks.splice(createTaskIndex, 1);
+        }
+        if (this.constructions.find(construction => { return construction.i === i && construction.j === j; })) {
+            if (!this.disposeConstructionTasks.find(t => { return t.i === i && t.j === j; })) {
+                this.disposeConstructionTasks.push({ i: i, j: j });
+            }
+        }
+    }
+    refreshConstructionTaskList() {
+        let position = this.game.camera.globalPosition.clone();
+        position.y = 0;
+        let iCenter = Math.floor(position.x / Construction.SIZE_m);
+        let jCenter = Math.floor(position.z / Construction.SIZE_m);
+        for (let i = iCenter - 4; i <= iCenter + 4; i++) {
+            for (let j = jCenter - 4; j <= jCenter + 4; j++) {
+                let cx = (i + 0.5) * Construction.SIZE_m;
+                let cz = (j + 0.5) * Construction.SIZE_m;
+                let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
+                if (d < this.range * Construction.SIZE_m) {
+                    this.addCreateConstructionTask(i, j);
+                }
+            }
+        }
+        this.constructions.forEach(construction => {
+            let cx = (construction.i + 0.5) * Construction.SIZE_m;
+            let cz = (construction.j + 0.5) * Construction.SIZE_m;
+            let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
+            if (d > (this.range + 1) * Construction.SIZE_m) {
+                this.addDisposeConstructionTask(construction.i, construction.j);
+            }
+        });
+        this._lastRefreshConstructionPosition = position;
     }
     async update() {
         if (this._lock) {
@@ -2018,23 +2064,44 @@ class TerrainManager {
         }
         this._lock = true;
         let position = this.game.camera.globalPosition;
-        if (Math.abs(position.x - this._lastRefreshPosition.x) > this.terrain.chunckSize_m * 0.25 || Math.abs(position.z - this._lastRefreshPosition.z) > this.terrain.chunckSize_m * 0.25) {
-            this.refreshTaskList();
+        if (Math.abs(position.x - this._lastRefreshChunckPosition.x) > this.terrain.chunckSize_m * 0.25 || Math.abs(position.z - this._lastRefreshChunckPosition.z) > this.terrain.chunckSize_m * 0.25) {
+            this.refreshChunckTaskList();
         }
-        if (this.createTasks.length > 0) {
-            let task = this.createTasks.pop();
+        if (Math.abs(position.x - this._lastRefreshConstructionPosition.x) > this.terrain.chunckSize_m * 0.25 || Math.abs(position.z - this._lastRefreshConstructionPosition.z) > this.terrain.chunckSize_m * 0.25) {
+            this.refreshConstructionTaskList();
+        }
+        if (this.createChunckTasks.length > 0) {
+            let task = this.createChunckTasks.pop();
             let chunck = this.terrain.chuncks.array.find(chunck => { return chunck.i === task.i && chunck.j === task.j; });
             if (!chunck) {
                 chunck = await this.terrain.generateChunck(task.i, task.j);
                 this.terrain.chuncks.push(chunck);
             }
         }
-        else if (this.disposeTasks.length > 0) {
-            let task = this.disposeTasks.pop();
+        else if (this.disposeChunckTasks.length > 0) {
+            let task = this.disposeChunckTasks.pop();
             let chunck = this.terrain.chuncks.array.find(chunck => { return chunck.i === task.i && chunck.j === task.j; });
             if (chunck) {
                 this.terrain.chuncks.remove(chunck);
                 chunck.dispose();
+            }
+        }
+        if (this.createConstructionTasks.length > 0) {
+            let task = this.createConstructionTasks.pop();
+            let construction = this.constructions.find(construction => { return construction.i === task.i && construction.j === task.j; });
+            if (!construction) {
+                construction = this.getOrCreateConstruction(task.i, task.j);
+                construction.buildFromLocalStorage();
+                this.constructions.push(construction);
+            }
+        }
+        else if (this.disposeConstructionTasks.length > 0) {
+            let task = this.disposeConstructionTasks.pop();
+            let constructionIndex = this.constructions.findIndex(construction => { return construction.i === task.i && construction.j === task.j; });
+            if (constructionIndex != -1) {
+                let construction = this.constructions[constructionIndex];
+                this.constructions.splice(constructionIndex, 1);
+                construction.dispose();
             }
         }
         this._lock = false;
@@ -3815,10 +3882,7 @@ class PlayerActionTemplate {
                         brick.setParent(aimedBrick);
                         brick.computeWorldMatrix(true);
                         brick.updateMesh();
-                        //brick.brickManager.saveToLocalStorage();
-                        let data = root.construction.serialize();
-                        console.log(data);
-                        window.localStorage.setItem("test-serialize-construction", data);
+                        root.construction.saveToLocalStorage();
                     }
                     else if (hit.pickedMesh instanceof Chunck) {
                         let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
@@ -3831,10 +3895,7 @@ class PlayerActionTemplate {
                         brick.absoluteR = r;
                         brick.construction = construction;
                         brick.updateMesh();
-                        //brick.brickManager.saveToLocalStorage();
-                        let data = brick.construction.serialize();
-                        console.log(data);
-                        window.localStorage.setItem("test-serialize-construction", data);
+                        brick.construction.saveToLocalStorage();
                     }
                 }
             }
@@ -3913,6 +3974,7 @@ class PlayerActionTemplate {
                         aimedBrick.colorIndex = paintIndex;
                         //player.lastUsedPaintIndex = paintIndex;
                         aimedBrick.updateMesh();
+                        root.construction.saveToLocalStorage();
                     }
                 }
             }
@@ -4924,14 +4986,23 @@ class Construction extends BABYLON.Mesh {
         this.j = j;
         this.terrain = terrain;
         this.bricks = new Nabu.UniqueList();
-        this.position.copyFromFloats(this.i * Construction.LENGTH, 0, this.j * Construction.LENGTH);
+        this.position.copyFromFloats(this.i * Construction.SIZE_m, 0, this.j * Construction.SIZE_m);
     }
     static worldPosToIJ(pos) {
-        let i = Math.floor((pos.x) / Construction.LENGTH);
-        let j = Math.floor((pos.z) / Construction.LENGTH);
+        let i = Math.floor((pos.x) / Construction.SIZE_m);
+        let j = Math.floor((pos.z) / Construction.SIZE_m);
         return { i: i, j: j };
     }
     async instantiate() {
+    }
+    saveToLocalStorage() {
+        window.localStorage.setItem("construction_" + this.i.toFixed(0) + "_" + this.j.toFixed(0), this.serialize());
+    }
+    buildFromLocalStorage() {
+        let dataString = window.localStorage.getItem("construction_" + this.i.toFixed(0) + "_" + this.j.toFixed(0));
+        if (dataString) {
+            this.deserialize(dataString);
+        }
     }
     serialize() {
         let bricks = [];
@@ -4952,7 +5023,7 @@ class Construction extends BABYLON.Mesh {
         }
     }
 }
-Construction.LENGTH = BRICKS_PER_CONSTRUCTION * BRICK_S;
+Construction.SIZE_m = BRICKS_PER_CONSTRUCTION * BRICK_S;
 var LifeState;
 (function (LifeState) {
     LifeState[LifeState["Folded"] = 0] = "Folded";

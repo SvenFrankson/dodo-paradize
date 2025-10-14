@@ -547,11 +547,6 @@ class Game {
             for (let i = 0; i < DodoColors.length; i++) {
                 playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
             }
-
-            let debugConstruction = this.terrainManager.getOrCreateConstruction(-1, -1);
-            if (window.localStorage.getItem("test-serialize-construction")) {
-                debugConstruction.deserialize(window.localStorage.getItem("test-serialize-construction"));
-            }
         }
     }
 
