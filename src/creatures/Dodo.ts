@@ -449,7 +449,7 @@ class Dodo extends Creature {
             Mummu.ColorizeVertexDataInPlace(clonedVertexData, this.colors[2], new BABYLON.Color3(1, 0, 0));
             return clonedVertexData;
         });
-        roboDatas[0].applyToMesh(this.body);
+        datas[0].applyToMesh(this.body);
 
         datas[3].applyToMesh(this.head);
 
@@ -466,10 +466,10 @@ class Dodo extends Creature {
         //datas[4].applyToMesh(this.bottomEyelids[0]);
         //datas[4].applyToMesh(this.bottomEyelids[1]);
 
-        roboDatas[1].applyToMesh(this.upperLegs[0]);
+        datas[1].applyToMesh(this.upperLegs[0]);
         datas[1].applyToMesh(this.upperLegs[1]);
 
-        roboDatas[2].applyToMesh(this.lowerLegs[0]);
+        datas[2].applyToMesh(this.lowerLegs[0]);
         datas[2].applyToMesh(this.lowerLegs[1]);
 
         await this.feet[0].instantiate();

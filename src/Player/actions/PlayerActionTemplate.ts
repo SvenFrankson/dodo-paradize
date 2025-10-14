@@ -39,12 +39,11 @@ class PlayerActionTemplate {
                     if (hit.pickedMesh instanceof BrickMesh) {
                         let root = hit.pickedMesh.brick.root;
                         if (root.mesh) {
-                            let dp = hit.pickedPoint.add(n).subtract(root.position);
-                            dp.x = BRICK_S * Math.round(dp.x / BRICK_S);
-                            dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
-                            dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
-                            previewMesh.position.copyFrom(dp).addInPlace(root.position);
-                            previewMesh.parent = undefined;
+                            let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5));
+                            pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
+                            pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
+                            pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
+                            previewMesh.position.copyFrom(pos);
                             previewMesh.isVisible = true;
                             return;
                         }
@@ -67,7 +66,6 @@ class PlayerActionTemplate {
         }
 
         brickAction.onPointerDown = () => {
-            let terrain = player.game.terrain;
             if (player.playMode === PlayMode.Playing) {
                 let x: number;
                 let y: number;
@@ -91,30 +89,30 @@ class PlayerActionTemplate {
                     if (hit.pickedMesh instanceof BrickMesh) {
                         let root = hit.pickedMesh.brick.root;
                         let aimedBrick = root.getBrickForFaceId(hit.faceId);
-                        let rootPosition = root.position;
-                        let dp = hit.pickedPoint.add(n).subtract(rootPosition);
+                        let dp = hit.pickedPoint.add(n).subtract(aimedBrick.absolutePosition);
                         dp.x = BRICK_S * Math.round(dp.x / BRICK_S);
                         dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
                         dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
-                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0);
-                        brick.position.copyFrom(dp).addInPlace(rootPosition);
+                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0, aimedBrick);
+                        brick.position.copyFrom(dp);
+                        console.log(dp);
                         brick.rotationQuaternion = rotationQuaternion.clone();
                         brick.computeWorldMatrix(true);
-                        brick.setParent(aimedBrick);
                         brick.updateMesh();
 
                         brick.brickManager.saveToLocalStorage();
                     }
                     else if (hit.pickedMesh instanceof Chunck) {
-                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0);
-                        let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5));
-                        pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
-                        pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                        pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                        brick.position.copyFrom(pos);
+                        let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
+                        let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
+                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
+                        let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5)).subtractInPlace(construction.position);
+                        brick.posI = Math.round(pos.x / BRICK_S);
+                        brick.posJ = Math.round(pos.z / BRICK_S);
+                        brick.posK = Math.floor(pos.y / BRICK_H);
                         brick.rotationQuaternion = rotationQuaternion.clone();
+                        brick.construction = construction;
                         brick.updateMesh();
-                        brick.construction = undefined;
                         
                         brick.brickManager.saveToLocalStorage();
                     }

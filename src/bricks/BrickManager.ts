@@ -32,13 +32,13 @@ class BrickManager {
         return data;
     }
 
-    public deserialize(data: IBrickManagerData): void {
+    public deserialize(data: IBrickManagerData, construction: Construction): void {
         while (this.bricks.length > 0) {
             this.bricks.get(0).dispose();
         }
 
         for (let i = 0; i < data.bricks.length; i++) {
-            let brick = new Brick(this, 0, 0);
+            let brick = new Brick(this, 0, 0, construction);
             brick.deserialize(data.bricks[i]);
             brick.updateMesh();
         }
@@ -49,12 +49,12 @@ class BrickManager {
         window.localStorage.setItem("brick-manager", JSON.stringify(data));
     }
 
-    public loadFromLocalStorage(): void {
+    public loadFromLocalStorage(construction: Construction): void {
         let dataString = window.localStorage.getItem("brick-manager");
         if (dataString) {
             let data = JSON.parse(dataString);
             if (data) {
-                this.deserialize(data);
+                this.deserialize(data, construction);
             }
         }
     }

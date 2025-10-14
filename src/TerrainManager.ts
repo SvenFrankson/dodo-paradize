@@ -13,6 +13,20 @@ class TerrainManager {
     public createTasks: IJ[] = [];
     public disposeTasks: IJ[] = [];
 
+    public constructions: Construction[] = [];
+    
+    public getConstruction(i: number, j: number): Construction {
+        return this.constructions.find(c => { return c.i === i && c.j === j; });
+    }
+    public getOrCreateConstruction(i: number, j: number): Construction {
+        let construction = this.getConstruction(i, j);
+        if (!construction) {
+            construction = new Construction(i, j, this.terrain);
+            this.constructions.push(construction);
+        }
+        return construction;
+    }
+
     constructor(public terrain: Terrain) {
 
     }

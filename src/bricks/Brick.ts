@@ -77,17 +77,41 @@ class Brick extends BABYLON.TransformNode {
         return super.setParent(node, preserveScalingSign, updatePivot);
     }
 
-    constructor(brickManager: BrickManager, index: number, colorIndex: number, parent?: Brick);
-    constructor(brickManager: BrickManager, brickName: string, colorIndex: number, parent?: Brick);
-    constructor(brickManager: BrickManager, brickId: number | string, colorIndex: number, parent?: Brick);
-    constructor(public brickManager: BrickManager, arg1: any, public colorIndex: number, parent?: Brick) {
+    public get posI(): number {
+        return Math.round(this.position.x / BRICK_S)
+    }
+    public set posI(v: number) {
+        this.position.x = v * BRICK_S;
+    }
+
+    public get posJ(): number {
+        return Math.round(this.position.z / BRICK_S)
+    }
+    public set posJ(v: number) {
+        this.position.z = v * BRICK_S;
+    }
+
+    public get posK(): number {
+        return Math.round(this.position.y / BRICK_H)
+    }
+    public set posK(v: number) {
+        this.position.y = v * BRICK_H;
+    }
+
+    constructor(brickManager: BrickManager, index: number, colorIndex: number, parent: Brick | Construction);
+    constructor(brickManager: BrickManager, brickName: string, colorIndex: number, parent: Brick | Construction);
+    constructor(brickManager: BrickManager, brickId: number | string, colorIndex: number, parent: Brick | Construction);
+    constructor(public brickManager: BrickManager, arg1: any, public colorIndex: number, parent: Brick | Construction) {
         super("brick");
         this.rotationQuaternion = BABYLON.Quaternion.Identity();
         this.index = Brick.BrickIdToIndex(arg1);
-        if (parent) {
+        if (parent instanceof Brick) {
             this.parent = parent;
+            this.construction = parent.construction;
         }
         else {
+            this.parent = parent;
+            this.construction = parent;
             this.brickManager.registerBrick(this);
         }
     }
@@ -108,7 +132,7 @@ class Brick extends BABYLON.TransformNode {
     }
 
     public cloneWithChildren(): Brick {
-        let clone = new Brick(this.brickManager, this.index, this.colorIndex);
+        let clone = new Brick(this.brickManager, this.index, this.colorIndex, this.construction);
         let data = this.serialize();
         clone.deserialize(data);
         return clone;
@@ -139,7 +163,7 @@ class Brick extends BABYLON.TransformNode {
         if (!this.mesh) {
             this.mesh = new BrickMesh(this);
             this.mesh.layerMask |= 0x20000000;
-            this.mesh.position = this.position;
+            this.mesh.position = this.position.add(this.construction.position);
             this.mesh.rotationQuaternion = this.rotationQuaternion;
 
             let brickMaterial = new BABYLON.StandardMaterial("brick-material");
@@ -283,24 +307,12 @@ class Brick extends BABYLON.TransformNode {
     public serialize(): IBrickData {
         let data: IBrickData = {
             id: this.index,
-            col: this.colorIndex/*,
-            qx: this.rotationQuaternion.x,
-            qy: this.rotationQuaternion.y,
-            qz: this.rotationQuaternion.z,
-            qw: this.rotationQuaternion.w,*/
+            col: this.colorIndex
         }
 
-        if (this.isRoot) {
-            data.x = this.position.x;
-            data.y = this.position.y;
-            data.z = this.position.z;
-        }
-        else {
-            data.p = [];
-            data.p[0] = Math.round(this.position.x / BRICK_S);
-            data.p[1] = Math.round(this.position.y / BRICK_H);
-            data.p[2] = Math.round(this.position.z / BRICK_S);
-        }
+        data.i = this.posI;
+        data.j = this.posJ;
+        data.k = this.posK;
 
         let dir = BABYLON.Vector3.Forward().applyRotationQuaternion(this.rotationQuaternion);
         let a = Mummu.AngleFromToAround(BABYLON.Axis.Z, dir, BABYLON.Axis.Y);
@@ -328,12 +340,9 @@ class Brick extends BABYLON.TransformNode {
     public deserialize(data: IBrickData): void {
         this.index = data.id;
         this.colorIndex = isFinite(data.col) ? data.col : 0;
-        if (data.p) {
-            this.position.copyFromFloats(data.p[0] * BRICK_S, data.p[1] * BRICK_H, data.p[2] * BRICK_S);
-        }
-        else {
-            this.position.copyFromFloats(data.x, data.y, data.z);
-        }
+        this.posI = data.i;
+        this.posJ = data.j;
+        this.posK = data.k;
         console.log(this.position);
 
         if (isFinite(data.d)) {
@@ -361,11 +370,10 @@ interface IBrickData {
     id: number;
     col: number;
     anc?: boolean;
-    p?: number[];
     d?: number;
-    x?: number;
-    y?: number;
-    z?: number;
+    i?: number;
+    j?: number;
+    k?: number;
     qx?: number;
     qy?: number;
     qz?: number;
