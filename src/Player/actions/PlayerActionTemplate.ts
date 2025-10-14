@@ -12,7 +12,7 @@ class PlayerActionTemplate {
         //brickAction.iconUrl = "/datas/icons/bricks/" + Brick.BrickIdToName(brickId) + ".png";
         brickAction.iconUrl = await player.game.miniatureFactory.makeBrickIconString(brickId);
 
-        let rotationQuaternion = BABYLON.Quaternion.Identity();
+        let r = 0;
 
         brickAction.onUpdate = () => {
             let terrain = player.game.terrain;
@@ -44,6 +44,7 @@ class PlayerActionTemplate {
                             pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
                             pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
                             previewMesh.position.copyFrom(pos);
+                            previewMesh.rotation.y = Math.PI * 0.5 * r;
                             previewMesh.isVisible = true;
                             return;
                         }
@@ -54,6 +55,7 @@ class PlayerActionTemplate {
                         pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
                         pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
                         previewMesh.position.copyFrom(pos);
+                        previewMesh.rotation.y = Math.PI * 0.5 * r;
                         previewMesh.isVisible = true;
                         return;
                     }
@@ -89,14 +91,14 @@ class PlayerActionTemplate {
                     if (hit.pickedMesh instanceof BrickMesh) {
                         let root = hit.pickedMesh.brick.root;
                         let aimedBrick = root.getBrickForFaceId(hit.faceId);
-                        let dp = hit.pickedPoint.add(n).subtract(aimedBrick.absolutePosition);
-                        dp.x = BRICK_S * Math.round(dp.x / BRICK_S);
-                        dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
-                        dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
-                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0, aimedBrick);
-                        brick.position.copyFrom(dp);
-                        console.log(dp);
-                        brick.rotationQuaternion = rotationQuaternion.clone();
+                        let pos = hit.pickedPoint.add(n);
+                        pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
+                        pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
+                        pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
+                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0);
+                        brick.position.copyFrom(pos);
+                        brick.r = r;
+                        brick.setParent(aimedBrick);
                         brick.computeWorldMatrix(true);
                         brick.updateMesh();
 
@@ -110,7 +112,7 @@ class PlayerActionTemplate {
                         brick.posI = Math.round(pos.x / BRICK_S);
                         brick.posJ = Math.round(pos.z / BRICK_S);
                         brick.posK = Math.floor(pos.y / BRICK_H);
-                        brick.rotationQuaternion = rotationQuaternion.clone();
+                        brick.absoluteR = r;
                         brick.construction = construction;
                         brick.updateMesh();
                         
@@ -121,8 +123,7 @@ class PlayerActionTemplate {
         }
 
         let rotateBrick = () => {
-            let quat = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, Math.PI / 2);
-            quat.multiplyToRef(rotationQuaternion, rotationQuaternion);
+            r = (r + 1) % 4;
         }
 
         brickAction.onEquip = () => {
@@ -134,7 +135,7 @@ class PlayerActionTemplate {
             previewMat.alpha = 0.5;
             previewMat.specularColor.copyFromFloats(1, 1, 1);
             previewMesh.material = previewMat;
-            previewMesh.rotationQuaternion = rotationQuaternion;
+            previewMesh.rotation.y = Math.PI * 0.5;
             BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
                 template.vertexData.applyToMesh(previewMesh);
             });

@@ -3737,7 +3737,7 @@ class PlayerActionTemplate {
         let previewMesh;
         //brickAction.iconUrl = "/datas/icons/bricks/" + Brick.BrickIdToName(brickId) + ".png";
         brickAction.iconUrl = await player.game.miniatureFactory.makeBrickIconString(brickId);
-        let rotationQuaternion = BABYLON.Quaternion.Identity();
+        let r = 0;
         brickAction.onUpdate = () => {
             let terrain = player.game.terrain;
             if (player.playMode === PlayMode.Playing) {
@@ -3764,6 +3764,7 @@ class PlayerActionTemplate {
                             pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
                             pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
                             previewMesh.position.copyFrom(pos);
+                            previewMesh.rotation.y = Math.PI * 0.5 * r;
                             previewMesh.isVisible = true;
                             return;
                         }
@@ -3774,6 +3775,7 @@ class PlayerActionTemplate {
                         pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
                         pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
                         previewMesh.position.copyFrom(pos);
+                        previewMesh.rotation.y = Math.PI * 0.5 * r;
                         previewMesh.isVisible = true;
                         return;
                     }
@@ -3803,14 +3805,14 @@ class PlayerActionTemplate {
                     if (hit.pickedMesh instanceof BrickMesh) {
                         let root = hit.pickedMesh.brick.root;
                         let aimedBrick = root.getBrickForFaceId(hit.faceId);
-                        let dp = hit.pickedPoint.add(n).subtract(aimedBrick.absolutePosition);
-                        dp.x = BRICK_S * Math.round(dp.x / BRICK_S);
-                        dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
-                        dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
-                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0, aimedBrick);
-                        brick.position.copyFrom(dp);
-                        console.log(dp);
-                        brick.rotationQuaternion = rotationQuaternion.clone();
+                        let pos = hit.pickedPoint.add(n);
+                        pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
+                        pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
+                        pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
+                        let brick = new Brick(player.game.brickManager, brickIndex, isFinite(colorIndex) ? colorIndex : 0);
+                        brick.position.copyFrom(pos);
+                        brick.r = r;
+                        brick.setParent(aimedBrick);
                         brick.computeWorldMatrix(true);
                         brick.updateMesh();
                         brick.brickManager.saveToLocalStorage();
@@ -3823,7 +3825,7 @@ class PlayerActionTemplate {
                         brick.posI = Math.round(pos.x / BRICK_S);
                         brick.posJ = Math.round(pos.z / BRICK_S);
                         brick.posK = Math.floor(pos.y / BRICK_H);
-                        brick.rotationQuaternion = rotationQuaternion.clone();
+                        brick.absoluteR = r;
                         brick.construction = construction;
                         brick.updateMesh();
                         brick.brickManager.saveToLocalStorage();
@@ -3832,8 +3834,7 @@ class PlayerActionTemplate {
             }
         };
         let rotateBrick = () => {
-            let quat = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, Math.PI / 2);
-            quat.multiplyToRef(rotationQuaternion, rotationQuaternion);
+            r = (r + 1) % 4;
         };
         brickAction.onEquip = () => {
             brickIndex = Brick.BrickIdToIndex(brickId);
@@ -3844,7 +3845,7 @@ class PlayerActionTemplate {
             previewMat.alpha = 0.5;
             previewMat.specularColor.copyFromFloats(1, 1, 1);
             previewMesh.material = previewMat;
-            previewMesh.rotationQuaternion = rotationQuaternion;
+            previewMesh.rotation.y = Math.PI * 0.5;
             BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
                 template.vertexData.applyToMesh(previewMesh);
             });
@@ -3957,21 +3958,15 @@ class BrickMesh extends BABYLON.Mesh {
     }
 }
 class Brick extends BABYLON.TransformNode {
-    constructor(brickManager, arg1, colorIndex, parent) {
+    constructor(brickManager, arg1, colorIndex, construction) {
         super("brick");
         this.brickManager = brickManager;
         this.colorIndex = colorIndex;
         this.anchored = false;
-        this.rotationQuaternion = BABYLON.Quaternion.Identity();
         this.index = Brick.BrickIdToIndex(arg1);
-        if (parent instanceof Brick) {
-            this.parent = parent;
-            this.construction = parent.construction;
-        }
-        else {
-            this.parent = parent;
-            this.construction = parent;
-            this.brickManager.registerBrick(this);
+        if (construction) {
+            this.construction = construction;
+            this.parent = this.construction;
         }
     }
     get isRoot() {
@@ -4005,6 +4000,7 @@ class Brick extends BABYLON.TransformNode {
     setParent(node, preserveScalingSign, updatePivot) {
         if (node instanceof Brick) {
             this.anchored = false;
+            this.construction = node.construction;
             this.brickManager.unregisterBrick(this);
         }
         else {
@@ -4029,6 +4025,41 @@ class Brick extends BABYLON.TransformNode {
     }
     set posK(v) {
         this.position.y = v * BRICK_H;
+    }
+    get r() {
+        let r = Math.round(this.rotation.y / (Math.PI * 0.5));
+        while (r < 0) {
+            r += 4;
+        }
+        while (r >= 4) {
+            r -= 4;
+        }
+        return r;
+    }
+    set r(v) {
+        this.rotation.y = v * Math.PI * 0.5;
+    }
+    get absoluteR() {
+        if (this.isRoot) {
+            return this.r;
+        }
+        let absR = this.parent.absoluteR + this.r;
+        while (absR < 0) {
+            absR += 4;
+        }
+        while (absR >= 4) {
+            absR -= 4;
+        }
+        return absR;
+    }
+    set absoluteR(v) {
+        if (this.isRoot) {
+            this.r = v;
+        }
+        else {
+            let parentAbsoluteRotation = this.parent.absoluteR;
+            this.r = v - parentAbsoluteRotation;
+        }
     }
     dispose() {
         if (this.isRoot) {
@@ -4069,13 +4100,10 @@ class Brick extends BABYLON.TransformNode {
         this.subMeshInfos = [];
         await this.generateMeshVertexData(vDatas, this.subMeshInfos);
         let data = Brick.MergeVertexDatas(this.subMeshInfos, ...vDatas);
-        Mummu.TranslateVertexDataInPlace(data, this.absolutePosition.scale(-1));
-        Mummu.RotateVertexDataInPlace(data, this.absoluteRotationQuaternion.invert());
         if (!this.mesh) {
             this.mesh = new BrickMesh(this);
             this.mesh.layerMask |= 0x20000000;
-            this.mesh.position = this.position.add(this.construction.position);
-            this.mesh.rotationQuaternion = this.rotationQuaternion;
+            this.mesh.parent = this.construction;
             let brickMaterial = new BABYLON.StandardMaterial("brick-material");
             brickMaterial.specularColor.copyFromFloats(0, 0, 0);
             //brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
@@ -4147,8 +4175,8 @@ class Brick extends BABYLON.TransformNode {
             uvs[2 * i + 1] = sina * u + cosa * v + dV;
         }
         vData.uvs = uvs;
-        Mummu.RotateVertexDataInPlace(vData, this.absoluteRotationQuaternion);
-        Mummu.TranslateVertexDataInPlace(vData, this.absolutePosition);
+        Mummu.RotateAngleAxisVertexDataInPlace(vData, this.absoluteR * Math.PI * 0.5, BABYLON.Axis.Y);
+        Mummu.TranslateVertexDataInPlace(vData, this.absolutePosition.subtract(this.construction.position));
         vDatas.push(vData);
         subMeshInfos.push({ faceId: 0, brick: this });
         let children = this.getChildTransformNodes(true);
@@ -4205,9 +4233,7 @@ class Brick extends BABYLON.TransformNode {
         data.i = this.posI;
         data.j = this.posJ;
         data.k = this.posK;
-        let dir = BABYLON.Vector3.Forward().applyRotationQuaternion(this.rotationQuaternion);
-        let a = Mummu.AngleFromToAround(BABYLON.Axis.Z, dir, BABYLON.Axis.Y);
-        data.d = Math.round(a / (Math.PI * 0.5));
+        data.r = this.r;
         if (this.anchored) {
             data.anc = this.anchored;
         }
@@ -4229,20 +4255,14 @@ class Brick extends BABYLON.TransformNode {
         this.posI = data.i;
         this.posJ = data.j;
         this.posK = data.k;
+        this.r = data.r;
         console.log(this.position);
-        if (isFinite(data.d)) {
-            BABYLON.Quaternion.RotationAxisToRef(BABYLON.Axis.Y, data.d * Math.PI * 0.5, this.rotationQuaternion);
-        }
-        else {
-            this.rotationQuaternion.copyFromFloats(data.qx, data.qy, data.qz, data.qw);
-        }
-        console.log(this.rotationQuaternion);
         if (data.anc) {
             this.anchored = true;
         }
         if (data.c) {
             for (let i = 0; i < data.c.length; i++) {
-                let child = new Brick(this.brickManager, 0, 0, this);
+                let child = new Brick(this.brickManager, 0, 0);
                 child.deserialize(data.c[i]);
             }
         }
