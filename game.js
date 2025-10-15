@@ -1032,6 +1032,23 @@ class Game {
             for (let i = 0; i < DodoColors.length; i++) {
                 playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
             }
+            try {
+                const response = await fetch(SHARE_SERVICE_PATH + "get_available_constructions", {
+                    method: "GET",
+                    mode: "cors"
+                });
+                let responseText = await response.text();
+                console.log(responseText);
+                if (responseText) {
+                    let response = JSON.parse(responseText);
+                    console.log(response);
+                }
+            }
+            catch (e) {
+                console.error(e);
+                ScreenLoger.Log("buildFromServer error");
+                ScreenLoger.Log(e);
+            }
         }
     }
     animate() {

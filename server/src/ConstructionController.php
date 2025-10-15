@@ -12,15 +12,24 @@ class ConstructionData {
         return json_encode(get_object_vars($this));
     }
 }
+class ConstructionsData {
+    public $constructions = [];
+
+    public function toJSON() {
+        return json_encode(get_object_vars($this));
+    }
+}
 
 class ConstructionController {
 
+    private $requestFunction;
     private $requestMethod;
     private $constructionData;
     private $password;
 
-    public function __construct($requestMethod, $constructionData, $password)
+    public function __construct($requestFunction, $requestMethod, $constructionData, $password)
     {
+        $this->requestFunction = $requestFunction;
         $this->requestMethod = $requestMethod;
         $this->constructionData = $constructionData;
         $this->password = $password;
@@ -30,7 +39,12 @@ class ConstructionController {
     {
         switch ($this->requestMethod) {
             case 'GET':
-                $response = $this->getConstruction($this->constructionData, $this->password);
+                if ($this->requestFunction == "get_construction") {
+                    $response = $this->getConstruction($this->constructionData, $this->password);
+                }
+                else if ($this->requestFunction == "get_available_constructions") {
+                    $response = $this->getAvailableConstructions($this->password);
+                }
                 break;
             case 'POST':
                 $response = $this->setConstruction($this->constructionData, $this->password);
@@ -96,6 +110,42 @@ class ConstructionController {
 
         return $response;
     }
+
+    private function getAvailableConstructions($password)
+    {
+        global $servername;
+        global $username;
+        global $nopassword;
+        global $database;
+        
+        $sql = "SELECT i, j FROM dodo_constructions WHERE (last_edit < DATE_SUB(NOW(), INTERVAL 60 MINUTE)) ORDER BY radial_dist_sqr ASC LIMIT 10";
+        $conn = mysqli_connect($servername, $username, $nopassword, $database);
+
+        $response['status_code_header'] = 'HTTP/1.1 200 OK';
+        if (!$conn) {
+            $response['body'] = "Can't connect to DB.";
+        }
+        else {
+            $result = $conn->query($sql);
+            $datas = new ConstructionsData();
+            $i = 0;
+            while ($row = $result->fetch_assoc()) {
+                $constructionData = new ConstructionData();
+                $constructionData->i = intval($row["i"]);
+                $constructionData->j = intval($row["j"]);
+                $datas->constructions[$i] = $constructionData;
+                $i++;
+            }
+
+            $response['status_code_header'] = 'HTTP/1.1 200 OK';
+            $response['body'] = $datas->toJSON();
+        }
+
+        $conn->close();
+
+        return $response;
+    }
+
     private function setConstruction($constructionData, $password)
     {
         global $servername;

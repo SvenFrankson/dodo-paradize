@@ -71,7 +71,13 @@ else if (isset($uri[2]) && $uri[2] == 'get_construction') {
         $constructionData->j = $uri[4];
     }
 
-    $controller = new ConstructionController($requestMethod, $constructionData, $password);
+    $controller = new ConstructionController("get_construction", $requestMethod, $constructionData, $password);
+    $controller->processRequest();
+}
+else if (isset($uri[2]) && $uri[2] == 'get_available_constructions') {
+    $constructionData = new ConstructionData();
+
+    $controller = new ConstructionController("get_available_constructions", $requestMethod, $constructionData, $password);
     $controller->processRequest();
 }
 else if (isset($uri[2]) && $uri[2] == 'set_construction') {
@@ -91,7 +97,7 @@ else if (isset($uri[2]) && $uri[2] == 'set_construction') {
         $constructionData->token = $rawData->{'token'};
     }
 
-    $controller = new ConstructionController($requestMethod, $constructionData, $password);
+    $controller = new ConstructionController("set_construction", $requestMethod, $constructionData, $password);
     $controller->processRequest();
 }
 else if (isset($uri[2]) && $uri[2] == 'get_players') {
