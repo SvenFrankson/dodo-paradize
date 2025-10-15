@@ -541,36 +541,45 @@ class HomeMenuPlate extends BABYLON.Mesh {
         this.customizeBodyLine.toString = (v) => {
             return DodoColors[v].name;
         };
+        this.customizeHatLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-hat"));
+        this.customizeHatLine.maxValue = 2;
+        var customizeHatLineLabels = ["None", "Top Hat"];
+        this.customizeHatLine.toString = (v) => {
+            return customizeHatLineLabels[v];
+        };
+        this.customizeHatColorLine = new HomeMenuCustomizeColorLine(3, document.querySelector("#dodo-customize-hat-color"), this);
+        this.customizeHatColorLine.maxValue = DodoColors.length;
+        this.customizeHatColorLine.toString = (v) => {
+            return DodoColors[v].name;
+        };
+    }
+    get playerDodo() {
+        return this.game.playerDodo;
     }
     initialize() {
-        let style = this.game.playerDodo.style;
-        this.customizeHeadLine.setValue(parseInt(style.substring(2, 4), 16));
-        this.customizeEyesLine.setValue(parseInt(style.substring(6, 8), 16));
-        this.customizeBeakLine.setValue(parseInt(style.substring(4, 6), 16));
-        this.customizeBodyLine.setValue(parseInt(style.substring(0, 2), 16));
+        this.customizeHeadLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color1));
+        this.customizeEyesLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.EyeColor));
+        this.customizeBeakLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color2));
+        this.customizeBodyLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color0));
+        this.customizeHatLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.HatIndex));
+        this.customizeHatColorLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.HatColor));
         this.customizeHeadLine.onValueChanged = (v) => {
-            let style = this.game.playerDodo.style;
-            let newStyle = style.substring(0, 2) + v.toString(16).padStart(2, "0") + style.substring(4, 8);
-            console.log(style + " " + newStyle);
-            this.game.playerDodo.setStyle(newStyle);
+            this.playerDodo.setStyleValue(v, StyleValueTypes.Color1);
         };
         this.customizeEyesLine.onValueChanged = (v) => {
-            let style = this.game.playerDodo.style;
-            let newStyle = style.substring(0, 6) + v.toString(16).padStart(2, "0");
-            console.log(style + " " + newStyle);
-            this.game.playerDodo.setStyle(newStyle);
+            this.playerDodo.setStyleValue(v, StyleValueTypes.EyeColor);
         };
         this.customizeBeakLine.onValueChanged = (v) => {
-            let style = this.game.playerDodo.style;
-            let newStyle = style.substring(0, 4) + v.toString(16).padStart(2, "0") + style.substring(6, 8);
-            console.log(style + " " + newStyle);
-            this.game.playerDodo.setStyle(newStyle);
+            this.playerDodo.setStyleValue(v, StyleValueTypes.Color2);
         };
         this.customizeBodyLine.onValueChanged = (v) => {
-            let style = this.game.playerDodo.style;
-            let newStyle = v.toString(16).padStart(2, "0") + style.substring(2, 8);
-            console.log(style + " " + newStyle);
-            this.game.playerDodo.setStyle(newStyle);
+            this.playerDodo.setStyleValue(v, StyleValueTypes.Color0);
+        };
+        this.customizeHatLine.onValueChanged = (v) => {
+            this.playerDodo.setStyleValue(v, StyleValueTypes.HatIndex);
+        };
+        this.customizeHatColorLine.onValueChanged = (v) => {
+            this.playerDodo.setStyleValue(v, StyleValueTypes.HatColor);
         };
     }
 }
@@ -953,6 +962,8 @@ class Game {
         this.homeMenuPlate = new HomeMenuPlate(this);
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
+        this.npcManager = new NPCManager(this);
+        this.npcManager.initialize();
         this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
@@ -1060,6 +1071,7 @@ class Game {
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick-corner-curved_3x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("tile_4x4", InventoryCategory.Brick, this));
+            this.npcManager.instantiate();
             for (let i = 0; i < DodoColors.length; i++) {
                 playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
             }
@@ -1360,6 +1372,23 @@ class MiniatureFactory {
                 };
             });
         });
+    }
+}
+class NPCManager {
+    constructor(game) {
+        this.game = game;
+        //232a0f200101
+    }
+    initialize() {
+        this.landServant = new Dodo("Boadicea Bipin", this.game, { style: "232a0f200101" });
+        this.landServant.brain = new Brain(this.landServant, BrainMode.Idle);
+        this.landServant.brain.initialize();
+    }
+    async instantiate() {
+        await this.landServant.instantiate();
+        this.landServant.unfold();
+        this.landServant.setWorldPosition(new BABYLON.Vector3(1.12, 0, -16));
+        this.game.npcDodos.push(this.landServant);
     }
 }
 /// <reference path="../lib/peerjs.d.ts"/>
@@ -5286,8 +5315,19 @@ var DodoColors = [
     BABYLON.Color3.FromHexString("#dcd6cf")
 ];
 */
+var StyleValueTypes;
+(function (StyleValueTypes) {
+    StyleValueTypes[StyleValueTypes["Color0"] = 0] = "Color0";
+    StyleValueTypes[StyleValueTypes["Color1"] = 1] = "Color1";
+    StyleValueTypes[StyleValueTypes["Color2"] = 2] = "Color2";
+    StyleValueTypes[StyleValueTypes["EyeColor"] = 3] = "EyeColor";
+    StyleValueTypes[StyleValueTypes["HatIndex"] = 4] = "HatIndex";
+    StyleValueTypes[StyleValueTypes["HatColor"] = 5] = "HatColor";
+    StyleValueTypes[StyleValueTypes["COUNT"] = 6] = "COUNT";
+})(StyleValueTypes || (StyleValueTypes = {}));
 var DodoColors = [
     { name: "Chinese Black", color: BABYLON.Color3.FromHexString("#10121c"), textColor: "black", hex: "#000000" },
+    { name: "Quartz", color: BABYLON.Color3.FromHexString("#494b57"), textColor: "black", hex: "#000000" },
     { name: "Dark Purple", color: BABYLON.Color3.FromHexString("#2c1e31"), textColor: "black", hex: "#000000" },
     { name: "Old Mauve", color: BABYLON.Color3.FromHexString("#6b2643"), textColor: "black", hex: "#000000" },
     { name: "Amaranth Purple", color: BABYLON.Color3.FromHexString("#ac2847"), textColor: "black", hex: "#000000" },
@@ -5356,12 +5396,6 @@ function DodoColorIdToName(colorID) {
         return DodoColors[colorID].name;
     }
 }
-var DodoEyes = [
-    { name: "Blue", file: "datas/textures/eye_0.png" },
-    { name: "Green", file: "datas/textures/eye_1.png" },
-    { name: "Yellow", file: "datas/textures/eye_2.png" },
-    { name: "Brown", file: "datas/textures/eye_3.png" },
-];
 class DodoCollider extends BABYLON.Mesh {
     constructor(dodo) {
         super("dodo-collider");
@@ -5383,6 +5417,8 @@ class Dodo extends Creature {
         this.bodyVelocity = BABYLON.Vector3.Zero();
         this.headVelocity = BABYLON.Vector3.Zero();
         this.tailTargetPos = BABYLON.Vector3.Zero();
+        this.hatType = 0;
+        this.hatColor = 0;
         //public topEyelids: BABYLON.Mesh[];
         //public bottomEyelids: BABYLON.Mesh[];
         //public wing: BABYLON.Mesh;
@@ -5432,7 +5468,7 @@ class Dodo extends Creature {
             let c1 = Math.floor(Math.random() * DodoColors.length);
             let c2 = Math.floor(Math.random() * DodoColors.length);
             let c3 = Math.floor(Math.random() * DodoColors.length);
-            let c4 = Math.floor(Math.random() * DodoEyes.length);
+            let c4 = Math.floor(Math.random() * DodoColors.length);
             let style = c1.toString(16).padStart(2, "0") + c2.toString(16).padStart(2, "0") + c3.toString(16).padStart(2, "0") + c4.toString(16).padStart(2, "0");
             this.setStyle(style);
         }
@@ -5440,6 +5476,8 @@ class Dodo extends Creature {
         this.body = Dodo.OutlinedMesh("body");
         this.head = Dodo.OutlinedMesh("head");
         this.head.rotationQuaternion = BABYLON.Quaternion.Identity();
+        this.hat = Dodo.OutlinedMesh("hat");
+        this.hat.parent = this.head;
         this.jaw = Dodo.OutlinedMesh("jaw");
         this.jaw.parent = this.head;
         this.jaw.position.copyFromFloats(0, -0.078575, 0.055646);
@@ -5567,12 +5605,36 @@ class Dodo extends Creature {
     get bodyR() {
         return Mummu.AngleFromToAround(BABYLON.Axis.Z, this.body.forward, BABYLON.Axis.Y);
     }
+    getStyleValue(type) {
+        if (this.style.length != 2 * StyleValueTypes.COUNT) {
+            this.style = this.style.padEnd(2 * StyleValueTypes.COUNT, "0");
+            this.style = this.style.substring(0, 2 * StyleValueTypes.COUNT);
+        }
+        return parseInt(this.style.substring(2 * type, 2 * (type + 1)), 16);
+    }
+    setStyleValue(value, type) {
+        if (this.style.length != 2 * StyleValueTypes.COUNT) {
+            this.style = this.style.padEnd(2 * StyleValueTypes.COUNT, "0");
+            this.style = this.style.substring(0, 2 * StyleValueTypes.COUNT);
+        }
+        let style = "";
+        if (type > StyleValueTypes.Color0) {
+            style += this.style.substring(0, 2 * (type));
+        }
+        style += value.toString(16).padStart(2, "0");
+        if (type < StyleValueTypes.COUNT - 1) {
+            style += this.style.substring(2 * (type + 1));
+        }
+        this.setStyle(style);
+    }
     setStyle(style) {
         this.style = style;
-        this.colors[0] = DodoColors[parseInt(style.substring(0, 2), 16)].color;
-        this.colors[1] = DodoColors[parseInt(style.substring(2, 4), 16)].color;
-        this.colors[2] = DodoColors[parseInt(style.substring(4, 6), 16)].color;
-        this.eyeColor = parseInt(style.substring(6, 8), 16);
+        this.colors[0] = DodoColors[this.getStyleValue(StyleValueTypes.Color0)].color;
+        this.colors[1] = DodoColors[this.getStyleValue(StyleValueTypes.Color1)].color;
+        this.colors[2] = DodoColors[this.getStyleValue(StyleValueTypes.Color2)].color;
+        this.eyeColor = this.getStyleValue(StyleValueTypes.EyeColor);
+        this.hatType = this.getStyleValue(StyleValueTypes.HatIndex);
+        this.hatColor = this.getStyleValue(StyleValueTypes.HatColor);
         if (this._instantiated) {
             this.instantiate();
         }
@@ -5616,6 +5678,7 @@ class Dodo extends Creature {
         this.tailFeathers[0].material = this.material;
         this.tailFeathers[1].material = this.material;
         this.tailFeathers[2].material = this.material;
+        this.hat.material = this.material;
         //this.topEyelids[0].material = this.material;
         //this.topEyelids[1].material = this.material;
         //this.bottomEyelids[0].material = this.material;
@@ -5660,6 +5723,15 @@ class Dodo extends Creature {
         await this.feet[0].instantiate();
         await this.feet[1].instantiate();
         datas[7].applyToMesh(this.jaw);
+        if (this.hatType === 0) {
+            this.hat.isVisible = false;
+        }
+        else {
+            this.hat.isVisible = true;
+            if (this.hatType === 1) {
+                Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[8]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
+            }
+        }
         //datas[1].applyToMesh(this.upperLegs[0]);
         //datas[1].applyToMesh(this.upperLegs[1]);
         //this.upperLegs[1].scaling.copyFromFloats(-1, 1, 1);
@@ -6241,25 +6313,27 @@ class Brain {
     }
     update(dt) {
         if (this.mode === BrainMode.Idle) {
-            if (Math.random() < 0.005) {
-                let destination = BABYLON.Vector3.Zero();
-                destination.y += 100;
-                destination.x += -100 + 200 * Math.random();
-                destination.z += -100 + 200 * Math.random();
-                let ray = new BABYLON.Ray(destination, new BABYLON.Vector3(0, -1, 0));
-                let pick = this.dodo.game.scene.pickWithRay(ray, (mesh => {
-                    return mesh.name.startsWith("chunck");
-                }));
-                if (pick.hit) {
-                    destination = pick.pickedPoint;
-                    this.subBrains[BrainMode.Travel].destination = destination;
-                    this.subBrains[BrainMode.Travel].onReach = () => {
-                        this.mode = BrainMode.Idle;
-                    };
-                    this.subBrains[BrainMode.Travel].onCantFindPath = () => {
-                        this.mode = BrainMode.Idle;
-                    };
-                    this.mode = BrainMode.Travel;
+            if (this.subBrains[BrainMode.Travel]) {
+                if (Math.random() < 0.005) {
+                    let destination = BABYLON.Vector3.Zero();
+                    destination.y += 100;
+                    destination.x += -100 + 200 * Math.random();
+                    destination.z += -100 + 200 * Math.random();
+                    let ray = new BABYLON.Ray(destination, new BABYLON.Vector3(0, -1, 0));
+                    let pick = this.dodo.game.scene.pickWithRay(ray, (mesh => {
+                        return mesh.name.startsWith("chunck");
+                    }));
+                    if (pick.hit) {
+                        destination = pick.pickedPoint;
+                        this.subBrains[BrainMode.Travel].destination = destination;
+                        this.subBrains[BrainMode.Travel].onReach = () => {
+                            this.mode = BrainMode.Idle;
+                        };
+                        this.subBrains[BrainMode.Travel].onCantFindPath = () => {
+                            this.mode = BrainMode.Idle;
+                        };
+                        this.mode = BrainMode.Travel;
+                    }
                 }
             }
         }

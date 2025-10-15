@@ -251,6 +251,7 @@ class Game {
     public playerInventoryView: PlayerInventoryView;
     public terrain: Terrain;
     public terrainManager: TerrainManager;
+    public npcManager: NPCManager;
     public playerDodo: Dodo;
     public networkDodos: Dodo[];
     public npcDodos: Dodo[];
@@ -455,6 +456,9 @@ class Game {
         this.terrain = new Terrain(this);
         this.terrainManager = new TerrainManager(this.terrain);
 
+        this.npcManager = new NPCManager(this);
+        this.npcManager.initialize();
+
         this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
@@ -581,6 +585,7 @@ class Game {
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick-corner-curved_3x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("tile_4x4", InventoryCategory.Brick, this));
             
+            this.npcManager.instantiate();
 
             for (let i = 0; i < DodoColors.length; i++) {
                 playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
@@ -603,7 +608,7 @@ class Game {
                 ScreenLoger.Log("buildFromServer error");
                 ScreenLoger.Log(e);
             }
-            }
+        }
     }
 
     public onResize = () => {
