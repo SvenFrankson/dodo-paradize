@@ -16,8 +16,8 @@ class Construction extends BABYLON.Mesh {
     }
 
     public static worldPosToIJ(pos: BABYLON.Vector3): { i: number, j: number} {
-        let i = Math.floor((pos.x) / Construction.SIZE_m);
-        let j = Math.floor((pos.z) / Construction.SIZE_m);
+        let i = Math.floor((pos.x + BRICK_S * 0.5) / Construction.SIZE_m);
+        let j = Math.floor((pos.z + BRICK_S * 0.5) / Construction.SIZE_m);
 
         return { i: i, j: j };
     }

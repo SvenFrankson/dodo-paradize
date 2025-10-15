@@ -303,7 +303,7 @@ class CompletionBar extends HTMLElement {
     }
 }
 customElements.define("completion-bar", CompletionBar);
-var BRICKS_PER_CONSTRUCTION = 64;
+var BRICKS_PER_CONSTRUCTION = 32;
 var KeyInput;
 (function (KeyInput) {
     KeyInput[KeyInput["NULL"] = -1] = "NULL";
@@ -4169,6 +4169,9 @@ class Brick extends BABYLON.TransformNode {
         let data = Brick.MergeVertexDatas(this.subMeshInfos, ...vDatas);
         if (!this.mesh) {
             this.mesh = new BrickMesh(this);
+            //this.mesh.renderOutline = true;
+            //this.mesh.outlineColor.copyFromFloats(0, 0, 0);
+            //this.mesh.outlineWidth = 0.005;
             this.mesh.layerMask |= 0x20000000;
             this.mesh.parent = this.construction;
             let brickMaterial = new BABYLON.StandardMaterial("brick-material");
@@ -4203,9 +4206,7 @@ class Brick extends BABYLON.TransformNode {
             return this.root.highlight();
         }
         if (this.mesh) {
-            this.mesh.renderOutline = true;
             this.mesh.outlineColor = new BABYLON.Color3(0, 1, 1);
-            this.mesh.outlineWidth = 0.01;
         }
     }
     unlight() {
@@ -4213,7 +4214,7 @@ class Brick extends BABYLON.TransformNode {
             return this.root.unlight();
         }
         if (this.mesh) {
-            this.mesh.renderOutline = false;
+            this.mesh.outlineColor.copyFromFloats(0, 0, 0);
         }
     }
     async generateMeshVertexData(vDatas, subMeshInfos, depth = 0) {
@@ -5028,8 +5029,8 @@ class Construction extends BABYLON.Mesh {
         this.barycenter.z += Construction.SIZE_m * 0.5;
     }
     static worldPosToIJ(pos) {
-        let i = Math.floor((pos.x) / Construction.SIZE_m);
-        let j = Math.floor((pos.z) / Construction.SIZE_m);
+        let i = Math.floor((pos.x + BRICK_S * 0.5) / Construction.SIZE_m);
+        let j = Math.floor((pos.z + BRICK_S * 0.5) / Construction.SIZE_m);
         return { i: i, j: j };
     }
     async instantiate() {

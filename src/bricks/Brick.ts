@@ -190,6 +190,10 @@ class Brick extends BABYLON.TransformNode {
         let data = Brick.MergeVertexDatas(this.subMeshInfos, ...vDatas);
         if (!this.mesh) {
             this.mesh = new BrickMesh(this);
+            
+            //this.mesh.renderOutline = true;
+            //this.mesh.outlineColor.copyFromFloats(0, 0, 0);
+            //this.mesh.outlineWidth = 0.005;
             this.mesh.layerMask |= 0x20000000;
             this.mesh.parent = this.construction;
 
@@ -229,9 +233,7 @@ class Brick extends BABYLON.TransformNode {
             return this.root.highlight();
         }
         if (this.mesh) {
-            this.mesh.renderOutline = true;
             this.mesh.outlineColor = new BABYLON.Color3(0, 1, 1);
-            this.mesh.outlineWidth = 0.01;
         }
     }
 
@@ -240,7 +242,7 @@ class Brick extends BABYLON.TransformNode {
             return this.root.unlight();
         }
         if (this.mesh) {
-            this.mesh.renderOutline = false;
+            this.mesh.outlineColor.copyFromFloats(0, 0, 0);
         }
     }
 
