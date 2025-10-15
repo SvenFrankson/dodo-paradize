@@ -6365,30 +6365,44 @@ class SubBrain {
 class BrainIdle extends SubBrain {
     constructor() {
         super(...arguments);
-        this._targetQ = BABYLON.Quaternion.Identity();
+        this._targetR = 0;
         this._targetLook = BABYLON.Vector3.Zero();
-        this._targetBodyHeight = 0.95;
+        this._speed = 1;
+        this._currentCooldown = 0;
+        this._currentSkip = 0;
     }
     update(dt) {
-        if (Math.random() < 0.001) {
-            let targetDir = this.dodo.forward.clone();
-            Mummu.RotateInPlace(targetDir, this.dodo.up, (2 * Math.random() - 1) * Math.PI / 3);
-            targetDir.normalize();
-            Mummu.QuaternionFromZYAxisToRef(targetDir, this.dodo.up, this._targetQ);
-            this._targetBodyHeight = 0.8 + 0.4 * Math.random();
+        this._currentCooldown -= dt;
+        if (this._currentCooldown <= 0) {
+            let dirToPlayer = this.game.playerDodo.position.subtract(this.dodo.position);
+            let distToPlayer = dirToPlayer.length();
+            if (distToPlayer < 5) {
+                this._targetLook = this.game.playerDodo.head.position;
+                if (Mummu.Angle(this.dodo.forward, dirToPlayer) > Math.PI / 3) {
+                    this._targetR = Mummu.AngleFromToAround(BABYLON.Axis.Z, dirToPlayer, BABYLON.Axis.Y);
+                }
+                this._speed = 1;
+                this._currentSkip = 0;
+            }
+            else {
+                this._currentSkip--;
+                if (this._currentSkip <= 0) {
+                    let dirToLook = new BABYLON.Vector3(0, -3 + 6 * Math.random(), 10);
+                    Mummu.RotateInPlace(dirToLook, BABYLON.Axis.Y, this.dodo.r + 0.6 * Math.PI * (Math.random() - 0.5));
+                    this._targetLook = dirToLook.add(this.dodo.position);
+                    if (Mummu.Angle(this.dodo.forward, dirToLook) > Math.PI / 16) {
+                        this._targetR = Mummu.AngleFromToAround(BABYLON.Axis.Z, dirToLook, BABYLON.Axis.Y);
+                    }
+                    this._speed = 3;
+                    this._currentSkip = 8;
+                }
+            }
+            this._currentCooldown = 0.5 * 0.9 + 0.2 * Math.random();
         }
-        if (Math.random() < 0.003) {
-            this._targetLook.copyFrom(this.dodo.position);
-            this._targetLook.addInPlace(this.dodo.forward.scale(20));
-            this._targetLook.x += Math.random() * 10 - 5;
-            this._targetLook.y += Math.random() * 10 - 5;
-            this._targetLook.z += Math.random() * 10 - 5;
-        }
-        let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
-        this.dodo.animatedSpeed.scaleInPlace(fSpeed);
-        BABYLON.Quaternion.SlerpToRef(this.dodo.rotationQuaternion, this._targetQ, 0.01, this.dodo.rotationQuaternion);
-        //this.dodo.bodyHeight = this.dodo.bodyHeight * 0.99 + this._targetBodyHeight * 0.01;
-        BABYLON.Vector3.SlerpToRef(this.dodo.targetLook, this._targetLook, 0.03, this.dodo.targetLook);
+        let f = Nabu.Easing.smoothNSec(1 / dt, 0.3 * this._speed);
+        BABYLON.Vector3.LerpToRef(this.dodo.targetLook, this._targetLook, 1 - f, this.dodo.targetLook);
+        f = Nabu.Easing.smoothNSec(1 / dt, 1 * this._speed);
+        this.dodo.r = Nabu.LerpAngle(this.dodo.r, this._targetR, 1 - f);
     }
 }
 function IsBrainNetworkData(v) {
