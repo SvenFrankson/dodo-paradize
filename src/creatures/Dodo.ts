@@ -40,8 +40,19 @@ var DodoColors = [
 ];
 */
 
+enum StyleValueTypes {
+    Color0,
+    Color1,
+    Color2,
+    EyeColor,
+    HatIndex,
+    HatColor,
+    COUNT
+}
+
 var DodoColors = [
     { name: "Chinese Black", color: BABYLON.Color3.FromHexString("#10121c"), textColor: "black", hex: "#000000" },
+    { name: "Quartz", color: BABYLON.Color3.FromHexString("#494b57"), textColor: "black", hex: "#000000" },
     { name: "Dark Purple", color: BABYLON.Color3.FromHexString("#2c1e31"), textColor: "black", hex: "#000000" },
     { name: "Old Mauve", color: BABYLON.Color3.FromHexString("#6b2643"), textColor: "black", hex: "#000000" },
     { name: "Amaranth Purple", color: BABYLON.Color3.FromHexString("#ac2847"), textColor: "black", hex: "#000000" },
@@ -114,13 +125,6 @@ function DodoColorIdToName(colorID: number | string): string {
     }
 }
 
-var DodoEyes = [
-    { name: "Blue", file: "datas/textures/eye_0.png" },
-    { name: "Green", file: "datas/textures/eye_1.png" },
-    { name: "Yellow", file: "datas/textures/eye_2.png" },
-    { name: "Brown", file: "datas/textures/eye_3.png" },
-]
-
 class DodoCollider extends BABYLON.Mesh {
 
     constructor(public dodo: Dodo) {
@@ -158,6 +162,9 @@ class Dodo extends Creature {
     public tail: BABYLON.Mesh;
     public tailTargetPos: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public tailFeathers: BABYLON.Mesh[];
+    public hat: BABYLON.Mesh;
+    public hatType: number = 0;
+    public hatColor: number = 0;
     //public topEyelids: BABYLON.Mesh[];
     //public bottomEyelids: BABYLON.Mesh[];
     //public wing: BABYLON.Mesh;
@@ -226,7 +233,7 @@ class Dodo extends Creature {
             let c1 = Math.floor(Math.random() * DodoColors.length);
             let c2 = Math.floor(Math.random() * DodoColors.length);
             let c3 = Math.floor(Math.random() * DodoColors.length);
-            let c4 = Math.floor(Math.random() * DodoEyes.length);
+            let c4 = Math.floor(Math.random() * DodoColors.length);
             let style = c1.toString(16).padStart(2, "0") + c2.toString(16).padStart(2, "0") + c3.toString(16).padStart(2, "0") + c4.toString(16).padStart(2, "0");
             this.setStyle(style);
         }
@@ -236,6 +243,9 @@ class Dodo extends Creature {
 
         this.head = Dodo.OutlinedMesh("head");
         this.head.rotationQuaternion = BABYLON.Quaternion.Identity();
+
+        this.hat = Dodo.OutlinedMesh("hat");
+        this.hat.parent = this.head;
 
         
         this.jaw = Dodo.OutlinedMesh("jaw");
@@ -356,12 +366,39 @@ class Dodo extends Creature {
         */
     }
 
+    public getStyleValue(type: StyleValueTypes): number {
+        if (this.style.length != 2 * StyleValueTypes.COUNT) {
+            this.style = this.style.padEnd(2 * StyleValueTypes.COUNT, "0");
+            this.style = this.style.substring(0, 2 * StyleValueTypes.COUNT);
+        }
+        return parseInt(this.style.substring(2 * type, 2 * (type + 1)), 16);
+    }
+
+    public setStyleValue(value: number, type: StyleValueTypes): void {
+        if (this.style.length != 2 * StyleValueTypes.COUNT) {
+            this.style = this.style.padEnd(2 * StyleValueTypes.COUNT, "0");
+            this.style = this.style.substring(0, 2 * StyleValueTypes.COUNT);
+        }
+
+        let style = "";
+        if (type > StyleValueTypes.Color0) {
+            style += this.style.substring(0, 2 * (type));
+        }
+        style += value.toString(16).padStart(2, "0");
+        if (type < StyleValueTypes.COUNT - 1) {
+            style += this.style.substring(2 * (type + 1));
+        }
+        this.setStyle(style);
+    }
+
     public setStyle(style: string): void {
         this.style = style;
-        this.colors[0] = DodoColors[parseInt(style.substring(0, 2), 16)].color;
-        this.colors[1] = DodoColors[parseInt(style.substring(2, 4), 16)].color;
-        this.colors[2] = DodoColors[parseInt(style.substring(4, 6), 16)].color;
-        this.eyeColor = parseInt(style.substring(6, 8), 16);
+        this.colors[0] = DodoColors[this.getStyleValue(StyleValueTypes.Color0)].color;
+        this.colors[1] = DodoColors[this.getStyleValue(StyleValueTypes.Color1)].color;
+        this.colors[2] = DodoColors[this.getStyleValue(StyleValueTypes.Color2)].color;
+        this.eyeColor = this.getStyleValue(StyleValueTypes.EyeColor);
+        this.hatType = this.getStyleValue(StyleValueTypes.HatIndex);
+        this.hatColor = this.getStyleValue(StyleValueTypes.HatColor);
 
         if (this._instantiated) {
             this.instantiate();
@@ -419,6 +456,8 @@ class Dodo extends Creature {
         this.tailFeathers[0].material = this.material;
         this.tailFeathers[1].material = this.material;
         this.tailFeathers[2].material = this.material;
+
+        this.hat.material = this.material;
 
         //this.topEyelids[0].material = this.material;
         //this.topEyelids[1].material = this.material;
@@ -478,6 +517,16 @@ class Dodo extends Creature {
         await this.feet[1].instantiate();
         
         datas[7].applyToMesh(this.jaw);
+
+        if (this.hatType === 0) {
+            this.hat.isVisible = false;
+        }
+        else {
+            this.hat.isVisible = true;
+            if (this.hatType === 1) {
+                Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[8]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
+            }
+        }
 
         //datas[1].applyToMesh(this.upperLegs[0]);
         //datas[1].applyToMesh(this.upperLegs[1]);

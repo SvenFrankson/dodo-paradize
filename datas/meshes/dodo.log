@@ -61,17 +61,6 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  120
-	processing begun of node:  Empty
-	processing begun of node:  Empty.001
-	processing begun of mesh:  Cube
-		WARNING: No materials have been assigned: 
-		num positions      :  29
-		num normals        :  29
-		num tangents       :  0
-		num uvs            :  58
-		num uvs2           :  0
-		num colors         :  0
-		num triangles      :  12
 	processing begun of mesh:  5-tail
 		processing begun of material:  Blue
 		registered as also a user of material:  Blue
@@ -104,16 +93,26 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  32
+	processing begun of mesh:  8-hat
+		processing begun of material:  Red
+		registered as also a user of material:  Red
+		num positions      :  62
+		num normals        :  62
+		num tangents       :  0
+		num uvs            :  124
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  96
 ========= Writing of JSON file started =========
 	writing mesh:  0-body
 	writing mesh:  1-upper-leg
 	writing mesh:  2-lower-leg
 	writing mesh:  3-head
 	writing mesh:  4-eye
-	writing mesh:  Cube
 	writing mesh:  5-tail
 	writing mesh:  6-tail-side
 	writing mesh:  7-jaw
+	writing mesh:  8-hat
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.0585 secs
+elapsed time:  0 min, 0.0536 secs

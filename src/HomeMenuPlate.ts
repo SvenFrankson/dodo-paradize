@@ -113,6 +113,12 @@ class HomeMenuPlate extends BABYLON.Mesh {
     public customizeEyesLine: HomeMenuCustomizeColorLine;
     public customizeBeakLine: HomeMenuCustomizeColorLine;
     public customizeBodyLine: HomeMenuCustomizeColorLine;
+    public customizeHatLine: HomeMenuCustomizeLine;
+    public customizeHatColorLine: HomeMenuCustomizeColorLine;
+
+    public get playerDodo(): Dodo {
+        return this.game.playerDodo;
+    }
 
     constructor(public game: Game) {
         super("home-menu-plate");
@@ -139,56 +145,69 @@ class HomeMenuPlate extends BABYLON.Mesh {
         this.customizeHeadLine.toString = (v: number) => {
             return DodoColors[v].name;
         }
+
         this.customizeEyesLine = new HomeMenuCustomizeColorLine(1, document.querySelector("#dodo-customize-eyes"), this);
         this.customizeEyesLine.maxValue = DodoColors.length;
         this.customizeEyesLine.toString = (v: number) => {
             return DodoColors[v].name;
         }
+
         this.customizeBeakLine = new HomeMenuCustomizeColorLine(2, document.querySelector("#dodo-customize-beak"), this);
         this.customizeBeakLine.maxValue = DodoColors.length;
         this.customizeBeakLine.toString = (v: number) => {
             return DodoColors[v].name;
         }
+
         this.customizeBodyLine = new HomeMenuCustomizeColorLine(3, document.querySelector("#dodo-customize-body"), this);
         this.customizeBodyLine.maxValue = DodoColors.length;
         this.customizeBodyLine.toString = (v: number) => {
             return DodoColors[v].name;
         }
+
+        this.customizeHatLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-hat"));
+        this.customizeHatLine.maxValue = 2;
+        var customizeHatLineLabels = ["None", "Top Hat"];
+        this.customizeHatLine.toString = (v: number) => {
+            return customizeHatLineLabels[v];
+        }
+
+        this.customizeHatColorLine = new HomeMenuCustomizeColorLine(3, document.querySelector("#dodo-customize-hat-color"), this);
+        this.customizeHatColorLine.maxValue = DodoColors.length;
+        this.customizeHatColorLine.toString = (v: number) => {
+            return DodoColors[v].name;
+        }
     }
 
     public initialize(): void {
-        let style = this.game.playerDodo.style;
-        this.customizeHeadLine.setValue(parseInt(style.substring(2, 4), 16));
-        this.customizeEyesLine.setValue(parseInt(style.substring(6, 8), 16));
-        this.customizeBeakLine.setValue(parseInt(style.substring(4, 6), 16));
-        this.customizeBodyLine.setValue(parseInt(style.substring(0, 2), 16));
+        this.customizeHeadLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color1));
+        this.customizeEyesLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.EyeColor));
+        this.customizeBeakLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color2));
+        this.customizeBodyLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color0));
+        this.customizeHatLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.HatIndex));
+        this.customizeHatColorLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.HatColor));
 
         this.customizeHeadLine.onValueChanged = (v) => {
-            let style = this.game.playerDodo.style;
-            let newStyle = style.substring(0, 2) + v.toString(16).padStart(2, "0") + style.substring(4, 8);
-            console.log(style + " " + newStyle);
-            this.game.playerDodo.setStyle(newStyle);
+            this.playerDodo.setStyleValue(v, StyleValueTypes.Color1);
         }
 
         this.customizeEyesLine.onValueChanged = (v) => {
-            let style = this.game.playerDodo.style;
-            let newStyle = style.substring(0, 6) + v.toString(16).padStart(2, "0");
-            console.log(style + " " + newStyle);
-            this.game.playerDodo.setStyle(newStyle);
+            this.playerDodo.setStyleValue(v, StyleValueTypes.EyeColor);
         }
 
         this.customizeBeakLine.onValueChanged = (v) => {
-            let style = this.game.playerDodo.style;
-            let newStyle = style.substring(0, 4) + v.toString(16).padStart(2, "0")  + style.substring(6, 8);
-            console.log(style + " " + newStyle);
-            this.game.playerDodo.setStyle(newStyle);
+            this.playerDodo.setStyleValue(v, StyleValueTypes.Color2);
         }
         
         this.customizeBodyLine.onValueChanged = (v) => {
-            let style = this.game.playerDodo.style;
-            let newStyle = v.toString(16).padStart(2, "0") + style.substring(2, 8);
-            console.log(style + " " + newStyle);
-            this.game.playerDodo.setStyle(newStyle);
+            this.playerDodo.setStyleValue(v, StyleValueTypes.Color0);
+        }
+        
+        this.customizeHatLine.onValueChanged = (v) => {
+            this.playerDodo.setStyleValue(v, StyleValueTypes.HatIndex);
+        }
+        
+        this.customizeHatColorLine.onValueChanged = (v) => {
+            this.playerDodo.setStyleValue(v, StyleValueTypes.HatColor);
         }
     }
 }
