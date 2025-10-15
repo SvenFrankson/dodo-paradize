@@ -222,6 +222,7 @@ class Game {
     public screenRatio: number = 1;
     public performanceWatcher: PerformanceWatcher;
     public analytics: Analytics;
+    public devMode: DevMode;
 
     public camera: PlayerCamera;
 
@@ -273,9 +274,12 @@ class Game {
         this.uiInputManager = new UserInterfaceInputManager(this);
         this.performanceWatcher = new PerformanceWatcher(this);
         this.analytics = new Analytics(this);
+        this.devMode = new DevMode(this);
 	}
 
     public async createScene(): Promise<void> {
+        this.devMode.initialize();
+
         this.miniatureFactory = new MiniatureFactory(this);
         this.miniatureFactory.initialize();
 
@@ -541,6 +545,9 @@ class Game {
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick-corner-curved_3x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("tile_4x4", InventoryCategory.Brick, this));
+            
 
             for (let i = 0; i < DodoColors.length; i++) {
                 playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));

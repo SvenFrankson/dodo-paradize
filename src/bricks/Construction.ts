@@ -66,14 +66,18 @@ class Construction extends BABYLON.Mesh {
             content: this.serialize()
         }
 
+        let headers = {
+            "Content-Type": "application/json",
+        };
+        if (this.terrain.game.devMode.activated) {
+            headers["Authorization"] = 'Basic ' + btoa("carillon:" + this.terrain.game.devMode.getPassword());
+        }
         let dataString = JSON.stringify(constructionData);
         try {
             const response = await fetch(SHARE_SERVICE_PATH + "set_construction", {
                 method: "POST",
                 mode: "cors",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: headers,
                 body: dataString,
             });
             let responseText = await response.text();

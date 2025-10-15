@@ -6,6 +6,7 @@ class ConstructionData {
     public $i;
     public $j;
     public $content;
+    public $token;
 
     public function toJSON() {
         return json_encode(get_object_vars($this));
@@ -103,24 +104,15 @@ class ConstructionController {
         global $database;
 
         if (true) {
-            $conn = mysqli_connect($servername, $username, $nopassword, $database);
-            $constructionData->content = $conn->real_escape_string($constructionData->content);
-    
-            if (!$conn) {
-                $response['status_code_header'] = 'HTTP/1.1 404 Not Found';
-                $response['body'] = "Can't connect to DB.";
-            }
-            else {
-                $creation = "NOW()";
-                if (isset($constructionData->creation)) {
-                    $creation = "FROM_UNIXTIME( $constructionData->creation )";
-                }
-
+            if (!is_string($password)) {
+                $conn = mysqli_connect($servername, $username, $nopassword, $database);
+                $constructionData->content = $conn->real_escape_string($constructionData->content);
+                $constructionData->token = $conn->real_escape_string($constructionData->token);
                 $getIdSql = "SELECT id FROM dodo_constructions WHERE i=$constructionData->i AND j=$constructionData->j";
                 $result = $conn->query($getIdSql);
                 if ($result->num_rows > 0) {
                     $constructionData->id = intval($result->fetch_row()[0]);
-                    $sql = "UPDATE dodo_constructions SET content='$constructionData->content' WHERE id=$constructionData->id";
+                    $sql = "UPDATE dodo_constructions SET content='$constructionData->content', last_edit=NOW() WHERE id=$constructionData->id AND token='$constructionData->token'";
 
                     if ($conn->query($sql) === TRUE) {
                         $response['status_code_header'] = 'HTTP/1.1 200 OK';
@@ -132,7 +124,31 @@ class ConstructionController {
                     }
                 }
                 else {
-                    $sql = "INSERT INTO dodo_constructions (i, j, content) VALUES ($constructionData->i, $constructionData->j, '$constructionData->content')";
+                    $response['status_code_header'] = 'HTTP/1.1 404 Not Found';
+                    $response['body'] =  "No Construction exist at i=$constructionData->i AND j=$constructionData->j";
+                }
+            }
+            else {
+                $conn = mysqli_connect($servername, $username, $password, $database);
+                $getIdSql = "SELECT id FROM dodo_constructions WHERE i=$constructionData->i AND j=$constructionData->j";
+                $result = $conn->query($getIdSql);
+                if ($result->num_rows > 0) {
+                    $constructionData->id = intval($result->fetch_row()[0]);
+                    $sql = "UPDATE dodo_constructions SET content='$constructionData->content', last_edit=NOW() WHERE id=$constructionData->id";
+
+                    if ($conn->query($sql) === TRUE) {
+                        $response['status_code_header'] = 'HTTP/1.1 200 OK';
+                        $response['body'] = $constructionData->id;
+                    } 
+                    else {
+                        $response['status_code_header'] = 'HTTP/1.1 404 Not Found';
+                        $response['body'] =  "Error: " . $sql . "<br>" . $conn->error;
+                    }
+                }
+                else {
+                    $conn = mysqli_connect($servername, $username, $password, $database);
+                    $token = $this->generateToken(32);
+                    $sql = "INSERT INTO dodo_constructions (i, j, content, token) VALUES ($constructionData->i, $constructionData->j, '$constructionData->content', '$token')";
 
                     if ($conn->query($sql) === TRUE) {
                         $response['status_code_header'] = 'HTTP/1.1 200 OK';

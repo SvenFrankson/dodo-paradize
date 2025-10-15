@@ -87,6 +87,9 @@ else if (isset($uri[2]) && $uri[2] == 'set_construction') {
     if (isset($rawData->{'content'})) {
         $constructionData->content = $rawData->{'content'};
     }
+    if (isset($rawData->{'token'})) {
+        $constructionData->token = $rawData->{'token'};
+    }
 
     $controller = new ConstructionController($requestMethod, $constructionData, $password);
     $controller->processRequest();

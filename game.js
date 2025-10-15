@@ -304,6 +304,20 @@ class CompletionBar extends HTMLElement {
 }
 customElements.define("completion-bar", CompletionBar);
 var BRICKS_PER_CONSTRUCTION = 32;
+class DevMode {
+    constructor(game) {
+        this.game = game;
+        this.activated = false;
+    }
+    getPassword() {
+        return "Crillion";
+    }
+    initialize() {
+        if (location.host.startsWith("127.0.0.1")) {
+            this.activated = true;
+        }
+    }
+}
 var KeyInput;
 (function (KeyInput) {
     KeyInput[KeyInput["NULL"] = -1] = "NULL";
@@ -797,11 +811,13 @@ class Game {
         this.uiInputManager = new UserInterfaceInputManager(this);
         this.performanceWatcher = new PerformanceWatcher(this);
         this.analytics = new Analytics(this);
+        this.devMode = new DevMode(this);
     }
     getScene() {
         return this.scene;
     }
     async createScene() {
+        this.devMode.initialize();
         this.miniatureFactory = new MiniatureFactory(this);
         this.miniatureFactory.initialize();
         this.scene = new BABYLON.Scene(this.engine);
@@ -1011,6 +1027,8 @@ class Game {
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick-corner-curved_3x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("tile_4x4", InventoryCategory.Brick, this));
             for (let i = 0; i < DodoColors.length; i++) {
                 playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
             }
@@ -5069,14 +5087,18 @@ class Construction extends BABYLON.Mesh {
             j: this.j,
             content: this.serialize()
         };
+        let headers = {
+            "Content-Type": "application/json",
+        };
+        if (this.terrain.game.devMode.activated) {
+            headers["Authorization"] = 'Basic ' + btoa("carillon:" + this.terrain.game.devMode.getPassword());
+        }
         let dataString = JSON.stringify(constructionData);
         try {
             const response = await fetch(SHARE_SERVICE_PATH + "set_construction", {
                 method: "POST",
                 mode: "cors",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: headers,
                 body: dataString,
             });
             let responseText = await response.text();
