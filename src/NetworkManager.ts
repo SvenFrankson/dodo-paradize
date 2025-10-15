@@ -3,7 +3,7 @@
 class NetworkManager {
 
     private peer: Peer;
-    private token: string;
+    public token: string;
 
     public serverPlayersList: any[] = [];
     public receivedData: Map<string, IBrainNetworkData[]> = new Map<string, IBrainNetworkData[]>();

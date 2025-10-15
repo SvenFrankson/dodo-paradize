@@ -1002,6 +1002,37 @@ class Game {
         }
         //this.performanceWatcher.showDebug();
     }
+    async testClaimCurrentConstruction() {
+        let token = this.networkManager.token;
+        let constructionData = {
+            i: this.playerDodo.getCurrentConstruction(0, 0).i,
+            j: this.playerDodo.getCurrentConstruction(0, 0).j,
+            token: token
+        };
+        console.log(constructionData);
+        let headers = {
+            "Content-Type": "application/json",
+        };
+        if (this.terrain.game.devMode.activated) {
+            headers["Authorization"] = 'Basic ' + btoa("carillon:" + this.terrain.game.devMode.getPassword());
+        }
+        let dataString = JSON.stringify(constructionData);
+        try {
+            const response = await fetch(SHARE_SERVICE_PATH + "claim_construction", {
+                method: "POST",
+                mode: "cors",
+                headers: headers,
+                body: dataString,
+            });
+            let responseText = await response.text();
+            console.log("testClaimCurrentConstruction " + responseText);
+        }
+        catch (e) {
+            console.error(e);
+            ScreenLoger.Log("testClaimCurrentConstruction error");
+            ScreenLoger.Log(e);
+        }
+    }
     async setGameMode(mode) {
         this.gameMode = mode;
         if (this.gameMode === GameMode.Home) {

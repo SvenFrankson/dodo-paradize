@@ -100,6 +100,23 @@ else if (isset($uri[2]) && $uri[2] == 'set_construction') {
     $controller = new ConstructionController("set_construction", $requestMethod, $constructionData, $password);
     $controller->processRequest();
 }
+else if (isset($uri[2]) && $uri[2] == 'claim_construction') {
+    $rawData = json_decode(file_get_contents('php://input'));
+    $constructionData = new ConstructionData();
+    
+    if (is_numeric($rawData->{'i'})) {
+        $constructionData->i = $rawData->{'i'};
+    }
+    if (is_numeric($rawData->{'j'})) {
+        $constructionData->j = $rawData->{'j'};
+    }
+    if (isset($rawData->{'token'})) {
+        $constructionData->token = $rawData->{'token'};
+    }
+
+    $controller = new ConstructionController("claim_construction", $requestMethod, $constructionData, $password);
+    $controller->processRequest();
+}
 else if (isset($uri[2]) && $uri[2] == 'get_players') {
     $connectPlayerData = new ConnectPlayerData();
     

@@ -47,7 +47,12 @@ class ConstructionController {
                 }
                 break;
             case 'POST':
-                $response = $this->setConstruction($this->constructionData, $this->password);
+                if ($this->requestFunction == "set_construction") {
+                    $response = $this->setConstruction($this->constructionData, $this->password);
+                }
+                else if ($this->requestFunction == "claim_construction") {
+                    $response = $this->claimConstruction($this->constructionData, $this->password);
+                }
                 break;
             case 'OPTIONS':
                 $response['status_code_header'] = 'HTTP/1.1 200 OK';
@@ -216,6 +221,54 @@ class ConstructionController {
         else {
             
         }
+
+        return $response;
+    }
+
+    private function claimConstruction($constructionData, $password) {
+        global $servername;
+        global $username;
+        global $nopassword;
+        global $database;
+
+        $conn = mysqli_connect($servername, $username, $nopassword, $database);
+        $constructionData->token = $conn->real_escape_string($constructionData->token);
+
+        $sql = "SELECT * FROM dodo_constructions WHERE (last_edit > DATE_SUB(NOW(), INTERVAL 60 MINUTE)) AND token='$constructionData->token'";
+
+        $response['status_code_header'] = 'HTTP/1.1 200 OK';
+        if (!$conn) {
+            $response['body'] = "Can't connect to DB.";
+        }
+        else {
+            // If there's already a claimed Construction with this token, send it back
+            $result = $conn->query($sql);
+            if ($result->num_rows > 0) {
+                $row = $result->fetch_assoc();
+
+                $existingConstructionData = new ConstructionData();
+                $existingConstructionData->id = intval($row["id"]);
+                $existingConstructionData->i = intval($row["i"]);
+                $existingConstructionData->j = intval($row["j"]);
+                $existingConstructionData->content = $row["content"];
+                echo "DO NOT BE GREEDY";
+                $response['body'] = $existingConstructionData->toJSON();
+            }
+            else {
+                $sql = "UPDATE dodo_constructions SET token='$constructionData->token', last_edit=NOW() WHERE i=$constructionData->i AND j=$constructionData->j AND (last_edit < DATE_SUB(NOW(), INTERVAL 60 MINUTE))";
+
+                if ($conn->query($sql) === TRUE && mysqli_affected_rows($conn) > 0 ) {
+                    $response['status_code_header'] = 'HTTP/1.1 200 OK';
+                    $response['body'] = "POUET " . $constructionData->toJSON();
+                } 
+                else {
+                    $response['status_code_header'] = 'HTTP/1.1 200 OK';
+                    $response['body'] = "SORRY YOU CANNOT CLAIM THIS PARCEL IT'S ALREADY TAKEN";
+                }
+            }
+        }
+
+        $conn->close();
 
         return $response;
     }
