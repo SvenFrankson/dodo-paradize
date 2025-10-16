@@ -359,7 +359,6 @@ class Brick extends BABYLON.TransformNode {
     }
 
     public static Deserialize(data: string, parent: Construction | Brick): Brick {
-        console.log("Brick.Deserialize '" + data + "'")
         let brick: Brick;
         let id = parseInt(data.substring(0, 3), 16);
         let colorIndex = parseInt(data.substring(3, 5), 16);
@@ -404,15 +403,12 @@ class Brick extends BABYLON.TransformNode {
                 }
             }
             let childrenDatas = data.substring(13, closeIndex);
-            console.log("childrenDatas '" + childrenDatas + "'");
-            console.log("directChildIndexes " + directChildIndexes.toString())
             for (let i = 0; i < directChildIndexes.length; i++) {
                 let c0 = 13;
                 if (i > 0) {
                     c0 = directChildIndexes[i - 1] + 1;
                 }
                 let c1 = directChildIndexes[i];
-                console.log("c0c1 " + c0.toFixed(0) + " " + c1.toFixed(0));
                 Brick.Deserialize(data.substring(c0, c1), brick);
             }
         }

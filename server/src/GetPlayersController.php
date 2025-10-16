@@ -82,7 +82,7 @@ class GetPlayersController {
             $playerData->peerId = $row["peer_id"];
             $playerData->displayName = $row["display_name"];
             $playerData->style = $row["style"];
-            $playerData->gameId = intval($row["game_id"]);
+            $playerData->gameId = intval($row["id"]);
             $playerData->posX = intval($row["pos_x"]);
             $playerData->posY = intval($row["pos_y"]);
             $playerData->posZ = intval($row["pos_z"]);

@@ -142,7 +142,7 @@ class DodoCollider extends BABYLON.Mesh {
 
 class Dodo extends Creature {
 
-    public peerId: string = "";
+    public peerId: string = null;
     public gameId: number = -1;
     public get isPlayerControlled(): boolean {
         return this === this.game.playerDodo;

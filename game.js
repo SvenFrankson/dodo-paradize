@@ -316,7 +316,7 @@ class DevMode {
     }
     initialize() {
         if (location.host.startsWith("127.0.0.1")) {
-            this.activated = true;
+            //this.activated = true;
         }
     }
 }
@@ -1079,23 +1079,6 @@ class Game {
             for (let i = 0; i < DodoColors.length; i++) {
                 playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
             }
-            try {
-                const response = await fetch(SHARE_SERVICE_PATH + "get_available_constructions", {
-                    method: "GET",
-                    mode: "cors"
-                });
-                let responseText = await response.text();
-                console.log(responseText);
-                if (responseText) {
-                    let response = JSON.parse(responseText);
-                    console.log(response);
-                }
-            }
-            catch (e) {
-                console.error(e);
-                ScreenLoger.Log("buildFromServer error");
-                ScreenLoger.Log(e);
-            }
         }
     }
     animate() {
@@ -1382,27 +1365,37 @@ class MiniatureFactory {
 class NetworkManager {
     constructor(game) {
         this.game = game;
+        this.token = null;
         this.serverPlayersList = [];
         this.receivedData = new Map();
         ScreenLoger.Log("Create NetworkManager");
+        if (window.localStorage.getItem("token")) {
+            this.token = window.localStorage.getItem("token");
+        }
     }
     async initialize() {
         ScreenLoger.Log("Initialize NetworkManager");
+        this.connectToTiaratumServer();
         this.peer = new Peer();
         this.peer.on("open", this.onPeerOpen.bind(this));
+        this.peer.on("error", this.onPeerError.bind(this));
         this.peer.on("connection", this.onPeerConnection.bind(this));
+        this.peer.on("disconnected", () => { console.log("disconnected"); });
+        this.peer.on("call", () => { console.log("call"); });
     }
-    async onPeerOpen(id) {
-        ScreenLoger.Log("Open peer connection, my ID is");
-        ScreenLoger.Log(id);
-        this.game.playerDodo.peerId = id;
+    async onPeerError(e) {
+        console.error(e);
+        ScreenLoger.Log(e);
+    }
+    async connectToTiaratumServer() {
         let connectPlayerData = {
-            peerId: id,
+            peerId: this.game.playerDodo.peerId,
             displayName: this.game.playerDodo.name,
             style: this.game.playerDodo.style,
-            posX: 0,
-            posY: 0,
-            posZ: 0
+            posX: this.game.playerDodo.position.x,
+            posY: this.game.playerDodo.position.y,
+            posZ: this.game.playerDodo.position.z,
+            token: this.token
         };
         let dataString = JSON.stringify(connectPlayerData);
         try {
@@ -1415,17 +1408,27 @@ class NetworkManager {
                 body: dataString,
             });
             let responseText = await response.text();
+            console.log(responseText);
             let responseJSON = JSON.parse(responseText);
             this.token = responseJSON.token;
+            window.localStorage.setItem("token", this.token);
             this.game.playerDodo.gameId = responseJSON.gameId;
             console.log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
             ScreenLoger.Log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
+            console.log("token = " + this.token);
+            ScreenLoger.Log("token = " + this.token);
         }
         catch (e) {
             console.error(e);
             ScreenLoger.Log("connect_player error");
             ScreenLoger.Log(e);
         }
+    }
+    async onPeerOpen(id) {
+        ScreenLoger.Log("Open peer connection, my ID is");
+        ScreenLoger.Log(id);
+        this.game.playerDodo.peerId = id;
+        await this.connectToTiaratumServer();
         try {
             const responseExistingPlayers = await fetch(SHARE_SERVICE_PATH + "get_players", {
                 method: "GET",
@@ -3733,9 +3736,7 @@ class PlayerActionDefault {
             setAimedObject(undefined);
         };
         defaultAction.onPointerUp = (duration, distance) => {
-            ScreenLoger.Log("alpha");
             if (distance > 4) {
-                ScreenLoger.Log("bravo");
                 return;
             }
             if (duration > 0.3) {
@@ -3751,16 +3752,12 @@ class PlayerActionDefault {
                 }
             }
             else {
-                ScreenLoger.Log("charly");
                 if (player.playMode === PlayMode.Playing) {
-                    ScreenLoger.Log("delta");
                     if ((aimedObject instanceof Brick) && !aimedObject.root.anchored) {
                         player.currentAction = PlayerActionMoveBrick.Create(player, aimedObject.root);
                     }
                     if (aimedObject instanceof DodoCollider) {
-                        ScreenLoger.Log("echo");
                         if (aimedObject.dodo.brain.npcDialog) {
-                            ScreenLoger.Log("foxtrot");
                             let canvas = aimedObject.dodo.game.canvas;
                             document.exitPointerLock();
                             aimedObject.dodo.brain.npcDialog.onNextStop = () => {
@@ -4436,7 +4433,6 @@ class Brick extends BABYLON.TransformNode {
         return s;
     }
     static Deserialize(data, parent) {
-        console.log("Brick.Deserialize '" + data + "'");
         let brick;
         let id = parseInt(data.substring(0, 3), 16);
         let colorIndex = parseInt(data.substring(3, 5), 16);
@@ -4479,15 +4475,12 @@ class Brick extends BABYLON.TransformNode {
                 }
             }
             let childrenDatas = data.substring(13, closeIndex);
-            console.log("childrenDatas '" + childrenDatas + "'");
-            console.log("directChildIndexes " + directChildIndexes.toString());
             for (let i = 0; i < directChildIndexes.length; i++) {
                 let c0 = 13;
                 if (i > 0) {
                     c0 = directChildIndexes[i - 1] + 1;
                 }
                 let c1 = directChildIndexes[i];
-                console.log("c0c1 " + c0.toFixed(0) + " " + c1.toFixed(0));
                 Brick.Deserialize(data.substring(c0, c1), brick);
             }
         }
@@ -5159,22 +5152,24 @@ class Construction extends BABYLON.Mesh {
         if (this.limits) {
             this.limits.dispose();
         }
-        let min = new BABYLON.Vector3(-BRICK_S * 0.5, 0, -BRICK_S * 0.5);
-        let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
-        this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.DOUBLESIDE });
-        let material = new BABYLON.StandardMaterial("limit-material");
-        material.specularColor.copyFromFloats(0, 0, 0);
-        material.diffuseColor.copyFromFloats(0, 1, 1);
-        this.limits.material = material;
-        this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
-        this.limits.visibility = 0.3;
-        this.limits.parent = this;
-        for (let i = 0; i <= 1; i++) {
-            for (let j = 0; j <= 1; j++) {
-                let corner = BABYLON.MeshBuilder.CreateBox("corner", { width: 0.03, height: 256, depth: 0.03 });
-                corner.position.x = (i - 0.5) * Construction.SIZE_m;
-                corner.position.z = (j - 0.5) * Construction.SIZE_m;
-                corner.parent = this.limits;
+        if (this.terrain.game.devMode.activated || this.terrain.game.networkManager.claimedConstructionI === this.i && this.terrain.game.networkManager.claimedConstructionJ === this.j) {
+            let min = new BABYLON.Vector3(-BRICK_S * 0.5, 0, -BRICK_S * 0.5);
+            let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
+            this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.DOUBLESIDE });
+            let material = new BABYLON.StandardMaterial("limit-material");
+            material.specularColor.copyFromFloats(0, 0, 0);
+            material.diffuseColor.copyFromFloats(0, 1, 1);
+            this.limits.material = material;
+            this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
+            this.limits.visibility = 0.3;
+            this.limits.parent = this;
+            for (let i = 0; i <= 1; i++) {
+                for (let j = 0; j <= 1; j++) {
+                    let corner = BABYLON.MeshBuilder.CreateBox("corner", { width: 0.03, height: 256, depth: 0.03 });
+                    corner.position.x = (i - 0.5) * Construction.SIZE_m;
+                    corner.position.z = (j - 0.5) * Construction.SIZE_m;
+                    corner.parent = this.limits;
+                }
             }
         }
     }
@@ -5187,7 +5182,8 @@ class Construction extends BABYLON.Mesh {
         let constructionData = {
             i: this.i,
             j: this.j,
-            content: this.serialize()
+            content: this.serialize(),
+            token: this.terrain.game.networkManager.token
         };
         let headers = {
             "Content-Type": "application/json",
@@ -5219,7 +5215,6 @@ class Construction extends BABYLON.Mesh {
                 mode: "cors"
             });
             let responseText = await response.text();
-            console.log(responseText);
             if (responseText) {
                 let response = JSON.parse(responseText);
                 this.deserialize(response.content);
@@ -5248,11 +5243,8 @@ class Construction extends BABYLON.Mesh {
         return JSON.stringify(bricks);
     }
     deserialize(dataString) {
-        console.log("deserialize");
         let data = JSON.parse(dataString);
-        console.log(data);
         for (let i = 0; i < data.length; i++) {
-            console.log("brick " + i.toFixed(0));
             let brick = Brick.Deserialize(data[i], this);
             brick.updateMesh();
             this.bricks.push(brick);
@@ -5436,7 +5428,7 @@ class DodoCollider extends BABYLON.Mesh {
 class Dodo extends Creature {
     constructor(peerId, name, game, prop) {
         super(peerId, game);
-        this.peerId = "";
+        this.peerId = null;
         this.gameId = -1;
         this.stepDuration = 0.2;
         this.colors = [];
@@ -7484,7 +7476,7 @@ class NPCManager {
                                 j: j,
                                 token: token
                             };
-                            ScreenLoger.Log("claimConstruction " + i + " " + j);
+                            ScreenLoger.Log("claimConstruction " + i + " " + j + " with " + token);
                             let headers = {
                                 "Content-Type": "application/json",
                             };
@@ -7500,6 +7492,9 @@ class NPCManager {
                                 if (responseText) {
                                     let response = JSON.parse(responseText);
                                     if (response) {
+                                        console.log(response);
+                                        this.game.networkManager.claimedConstructionI = response.i;
+                                        this.game.networkManager.claimedConstructionJ = response.j;
                                         if (response.i != i || response.j != j) {
                                             return 30;
                                         }

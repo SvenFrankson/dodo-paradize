@@ -3,35 +3,48 @@
 class NetworkManager {
 
     private peer: Peer;
-    public token: string;
+    public token: string = null;
 
     public serverPlayersList: any[] = [];
     public receivedData: Map<string, IBrainNetworkData[]> = new Map<string, IBrainNetworkData[]>();
 
+    public claimedConstructionI: number;
+    public claimedConstructionJ: number;
+
     constructor(public game: Game) {
         ScreenLoger.Log("Create NetworkManager");
+        if (window.localStorage.getItem("token")) {
+            this.token = window.localStorage.getItem("token");
+        }
     }
 
     public async initialize(): Promise<void> {
         ScreenLoger.Log("Initialize NetworkManager");
 
+        this.connectToTiaratumServer();
+
         this.peer = new Peer();
         this.peer.on("open", this.onPeerOpen.bind(this));
+        this.peer.on("error", this.onPeerError.bind(this));
         this.peer.on("connection", this.onPeerConnection.bind(this))
+        this.peer.on("disconnected", () => { console.log("disconnected"); });
+        this.peer.on("call", () => { console.log("call"); });
     }
 
-    public async onPeerOpen(id: string): Promise<void> {
-        ScreenLoger.Log("Open peer connection, my ID is");
-        ScreenLoger.Log(id);
-        this.game.playerDodo.peerId = id;
+    public async onPeerError(e): Promise<void> {
+        console.error(e);
+        ScreenLoger.Log(e);
+    }
 
+    public async connectToTiaratumServer(): Promise<void> {
         let connectPlayerData = {
-            peerId: id,
+            peerId: this.game.playerDodo.peerId,
             displayName: this.game.playerDodo.name,
             style: this.game.playerDodo.style,
-            posX: 0,
-            posY: 0,
-            posZ: 0
+            posX: this.game.playerDodo.position.x,
+            posY: this.game.playerDodo.position.y,
+            posZ: this.game.playerDodo.position.z,
+            token: this.token
         }
 
         let dataString = JSON.stringify(connectPlayerData);
@@ -45,17 +58,31 @@ class NetworkManager {
                 body: dataString,
             });
             let responseText = await response.text();
+            console.log(responseText);
             let responseJSON = JSON.parse(responseText);
             this.token = responseJSON.token;
+            
+            window.localStorage.setItem("token", this.token);
+            
             this.game.playerDodo.gameId = responseJSON.gameId;
             console.log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
             ScreenLoger.Log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
+            console.log("token = " + this.token);
+            ScreenLoger.Log("token = " + this.token);
         }
         catch(e) {
             console.error(e);
             ScreenLoger.Log("connect_player error");
             ScreenLoger.Log(e);
         }
+    }
+
+    public async onPeerOpen(id: string): Promise<void> {
+        ScreenLoger.Log("Open peer connection, my ID is");
+        ScreenLoger.Log(id);
+        this.game.playerDodo.peerId = id;
+
+        await this.connectToTiaratumServer();
 
         try {
             const responseExistingPlayers = await fetch(SHARE_SERVICE_PATH + "get_players", {

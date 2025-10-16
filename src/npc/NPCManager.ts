@@ -57,7 +57,7 @@ class NPCManager {
                                 j: j,
                                 token: token
                             }
-                            ScreenLoger.Log("claimConstruction " + i + " " + j);
+                            ScreenLoger.Log("claimConstruction " + i + " " + j + " with " + token);
 
                             let headers = {
                                 "Content-Type": "application/json",
@@ -74,6 +74,9 @@ class NPCManager {
                                 if (responseText) {
                                     let response = JSON.parse(responseText);
                                     if (response) {
+                                        console.log(response);
+                                        this.game.networkManager.claimedConstructionI = response.i;
+                                        this.game.networkManager.claimedConstructionJ = response.j;
                                         if (response.i != i || response.j != j) {
                                             return 30;
                                         }

@@ -74,6 +74,9 @@ class ConnectPlayerController {
             $connectPlayerData->peerId = $conn->real_escape_string($connectPlayerData->peerId);
             $connectPlayerData->displayName = $conn->real_escape_string($connectPlayerData->displayName);
             $connectPlayerData->style = $conn->real_escape_string($connectPlayerData->style);
+            if ($connectPlayerData->token != null) {
+                $connectPlayerData->token = $conn->real_escape_string($connectPlayerData->token);
+            }
     
             if (!$conn) {
                 $response['status_code_header'] = 'HTTP/1.1 404 Not Found';
@@ -81,29 +84,49 @@ class ConnectPlayerController {
             }
             else {
                 //$response['body'] = "INSERT INTO machines (title, author, content, creation) VALUES (" . $connectPlayerData->title . ", " . $connectPlayerData->author . ", " . $connectPlayerData->content . ", NOW())";
-                $creation = "NOW()";
-                if (isset($connectPlayerData->creation)) {
-                    $creation = "FROM_UNIXTIME( $connectPlayerData->creation )";
-                }
                 //$sql = "SELECT COUNT(*) FROM machines WHERE content=\"$connectPlayerData->content\"";
                 //$result = $conn->query($sql);
                 //$row = $result->fetch_row();
                 //$duplicateCount = $row[0];
 
-                $token = $this->generateToken(32);
-                $sql = "INSERT INTO dodo_players (token, display_name, peer_id, style, pos_x, pos_y, pos_z, creation_date) VALUES ('$token', '$connectPlayerData->displayName', '$connectPlayerData->peerId', '$connectPlayerData->style', $connectPlayerData->posX, $connectPlayerData->posY, $connectPlayerData->posZ, $creation)";
-
-                if ($conn->query($sql) === TRUE) {
-                    $response['status_code_header'] = 'HTTP/1.1 200 OK';
-                    $connectResponse = new ConnectPlayerResponse();
-                    $connectResponse->gameId = mysqli_insert_id($conn);
-                    $connectResponse->token = $token;
-                    $response['body'] = $connectResponse->toJSON();
-                } 
-                else {
-                    $response['status_code_header'] = 'HTTP/1.1 404 Not Found';
-                    $response['body'] =  "Error: " . $sql . "<br>" . $conn->error;
+                if ($connectPlayerData->token == null) {
+                    $connectPlayerData->token = $this->generateToken(32);
                 }
+                $getIdSql = "SELECT id FROM dodo_players WHERE token='$connectPlayerData->token'";
+                $result = $conn->query($getIdSql);
+                if ($result->num_rows > 0) {
+                    $id = intval($result->fetch_row()[0]);
+                    $sql = "UPDATE dodo_players SET display_name='$connectPlayerData->displayName', peer_id='$connectPlayerData->peerId', style='$connectPlayerData->style', pos_x=$connectPlayerData->posX, pos_y=$connectPlayerData->posY, pos_z=$connectPlayerData->posZ, creation_date=NOW() WHERE id=$id";
+
+                    if ($conn->query($sql) === TRUE) {
+                        $response['status_code_header'] = 'HTTP/1.1 200 OK';
+                        $connectResponse = new ConnectPlayerResponse();
+                        $connectResponse->gameId = $id;
+                        $connectResponse->token = $connectPlayerData->token;
+                        $response['body'] = $connectResponse->toJSON();
+                    } 
+                    else {
+                        $response['status_code_header'] = 'HTTP/1.1 404 Not Found';
+                        $response['body'] =  "Error: " . $sql . "<br>" . $conn->error;
+                    }
+                }
+                else {
+                    $sql = "INSERT INTO dodo_players (token, display_name, peer_id, style, pos_x, pos_y, pos_z, creation_date) VALUES ('$connectPlayerData->token', '$connectPlayerData->displayName', '$connectPlayerData->peerId', '$connectPlayerData->style', $connectPlayerData->posX, $connectPlayerData->posY, $connectPlayerData->posZ, NOW())";
+
+                    if ($conn->query($sql) === TRUE) {
+                        $response['status_code_header'] = 'HTTP/1.1 200 OK';
+                        $connectResponse = new ConnectPlayerResponse();
+                        $connectResponse->gameId = mysqli_insert_id($conn);
+                        $connectResponse->token = $connectPlayerData->token;
+                        $response['body'] = $connectResponse->toJSON();
+                    } 
+                    else {
+                        $response['status_code_header'] = 'HTTP/1.1 404 Not Found';
+                        $response['body'] =  "Error: " . $sql . "<br>" . $conn->error;
+                    }
+                }
+
+                
 
             }
     

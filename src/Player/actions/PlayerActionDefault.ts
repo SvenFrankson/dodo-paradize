@@ -75,9 +75,7 @@ class PlayerActionDefault {
         }
 
         defaultAction.onPointerUp = (duration, distance) => {
-            ScreenLoger.Log("alpha");
             if (distance > 4) {
-                ScreenLoger.Log("bravo");
                 return;
             }
             if (duration > 0.3) {
@@ -93,16 +91,12 @@ class PlayerActionDefault {
                 }
             }
             else {
-                ScreenLoger.Log("charly");
                 if (player.playMode === PlayMode.Playing) {
-                    ScreenLoger.Log("delta");
                     if ((aimedObject instanceof Brick) && !aimedObject.root.anchored) {
                         player.currentAction = PlayerActionMoveBrick.Create(player, aimedObject.root);
                     }
                     if (aimedObject instanceof DodoCollider) {
-                        ScreenLoger.Log("echo");
                         if (aimedObject.dodo.brain.npcDialog) {
-                            ScreenLoger.Log("foxtrot");
                             let canvas = aimedObject.dodo.game.canvas;
                             document.exitPointerLock();
                             aimedObject.dodo.brain.npcDialog.onNextStop = () => {

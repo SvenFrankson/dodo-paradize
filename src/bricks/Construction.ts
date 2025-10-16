@@ -31,24 +31,26 @@ class Construction extends BABYLON.Mesh {
             this.limits.dispose();
         }
 
-        let min = new BABYLON.Vector3(- BRICK_S * 0.5, 0, - BRICK_S * 0.5);
-        let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
+        if (this.terrain.game.devMode.activated || this.terrain.game.networkManager.claimedConstructionI === this.i && this.terrain.game.networkManager.claimedConstructionJ === this.j) {
+            let min = new BABYLON.Vector3(- BRICK_S * 0.5, 0, - BRICK_S * 0.5);
+            let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
 
-        this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.DOUBLESIDE });
-        let material = new BABYLON.StandardMaterial("limit-material");
-        material.specularColor.copyFromFloats(0, 0, 0);
-        material.diffuseColor.copyFromFloats(0, 1, 1);
-        this.limits.material = material;
-        this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
-        this.limits.visibility = 0.3;
-        this.limits.parent = this;
+            this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.DOUBLESIDE });
+            let material = new BABYLON.StandardMaterial("limit-material");
+            material.specularColor.copyFromFloats(0, 0, 0);
+            material.diffuseColor.copyFromFloats(0, 1, 1);
+            this.limits.material = material;
+            this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
+            this.limits.visibility = 0.3;
+            this.limits.parent = this;
 
-        for (let i = 0; i <= 1; i++) {
-            for (let j = 0; j <= 1; j++) {
-                let corner = BABYLON.MeshBuilder.CreateBox("corner", { width: 0.03, height: 256, depth: 0.03 });
-                corner.position.x = (i - 0.5) * Construction.SIZE_m;
-                corner.position.z = (j - 0.5) * Construction.SIZE_m;
-                corner.parent = this.limits;
+            for (let i = 0; i <= 1; i++) {
+                for (let j = 0; j <= 1; j++) {
+                    let corner = BABYLON.MeshBuilder.CreateBox("corner", { width: 0.03, height: 256, depth: 0.03 });
+                    corner.position.x = (i - 0.5) * Construction.SIZE_m;
+                    corner.position.z = (j - 0.5) * Construction.SIZE_m;
+                    corner.parent = this.limits;
+                }
             }
         }
     }
@@ -63,7 +65,8 @@ class Construction extends BABYLON.Mesh {
         let constructionData = {
             i: this.i,
             j: this.j,
-            content: this.serialize()
+            content: this.serialize(),
+            token: this.terrain.game.networkManager.token
         }
 
         let headers = {
@@ -97,7 +100,6 @@ class Construction extends BABYLON.Mesh {
                 mode: "cors"
             });
             let responseText = await response.text();
-            console.log(responseText);
             if (responseText) {
                 let response = JSON.parse(responseText);
                 this.deserialize(response.content);
@@ -131,12 +133,9 @@ class Construction extends BABYLON.Mesh {
     }
 
     public deserialize(dataString: string): void {
-        console.log("deserialize");
         let data: string[] = JSON.parse(dataString);
-        console.log(data);
 
         for (let i = 0; i < data.length; i++) {
-            console.log("brick " + i.toFixed(0));
             let brick = Brick.Deserialize(data[i], this);
             brick.updateMesh();
             this.bricks.push(brick);
