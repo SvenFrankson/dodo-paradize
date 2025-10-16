@@ -99,7 +99,7 @@ class NetworkManager {
             if (playerDesc) {
                 style = playerDesc.style;
             }
-            existingDodo = await this.createDodo("Unkown", conn.peer, style);
+            existingDodo = await this.createDodo("Unknown", conn.peer, style);
             this.game.networkDodos.push(existingDodo);
         }
 
@@ -154,12 +154,11 @@ class NetworkManager {
     }
 
     public async createDodo(name: string, peerId: string, style: string): Promise<Dodo> {
-        let dodo = new Dodo(name, this.game, {
+        let dodo = new Dodo(peerId, name, this.game, {
             speed: 1.5 + Math.random(),
             stepDuration: 0.2 + 0.2 * Math.random(),
             style: style
         });
-        dodo.peerId = peerId;
         await dodo.instantiate();
         dodo.unfold();
         dodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));

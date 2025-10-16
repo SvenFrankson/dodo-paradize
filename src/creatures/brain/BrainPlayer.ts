@@ -289,6 +289,9 @@ class BrainPlayer extends SubBrain {
             if (this.currentAction) {
                 this.currentAction.onUpdate();
             }
+            else {
+                this.defaultAction.onUpdate();
+            }
         }
 
         this._smoothedRotateXAxisInput = this._smoothedRotateXAxisInput * this._pointerSmoothness + this._rotateXAxisInput * (1 - this._pointerSmoothness);

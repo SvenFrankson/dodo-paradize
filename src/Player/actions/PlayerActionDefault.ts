@@ -1,7 +1,7 @@
 interface IAimable {
 
     highlight: () => void;
-    unlight: () => void;
+    unlit: () => void;
 }
 
 class PlayerActionDefault {
@@ -10,19 +10,22 @@ class PlayerActionDefault {
         if (mesh instanceof BrickMesh) {
             return true;
         }
+        if (mesh instanceof DodoCollider) {
+            return true;
+        }
         return false;
     }
 
     public static Create(player: BrainPlayer): PlayerAction {
-        let brickAction = new PlayerAction("default-action", player);
-        brickAction.backgroundColor = "#FF00FF";
-        brickAction.iconUrl = "";
+        let defaultAction = new PlayerAction("default-action", player);
+        defaultAction.backgroundColor = "#FF00FF";
+        defaultAction.iconUrl = "";
 
         let aimedObject: IAimable;
         let setAimedObject = (b: IAimable) => {
             if (b != aimedObject) {
                 if (aimedObject) {
-                    aimedObject.unlight();
+                    aimedObject.unlit();
                 }
                 aimedObject = b;
                 if (aimedObject) {
@@ -31,7 +34,7 @@ class PlayerActionDefault {
             }
         }
 
-        brickAction.onUpdate = () => {
+        defaultAction.onUpdate = () => {
             if (player.playMode === PlayMode.Playing) {
                 let x: number;
                 let y: number;
@@ -47,7 +50,7 @@ class PlayerActionDefault {
                     x,
                     y,
                     (mesh) => {
-                        return PlayerActionDefault.IsAimable(mesh);
+                        return PlayerActionDefault.IsAimable(mesh) && mesh != player.dodo.dodoCollider;
                     }
                 )
 
@@ -62,13 +65,19 @@ class PlayerActionDefault {
                             return;
                         }
                     }
+                    else if (hit.pickedMesh instanceof DodoCollider) {
+                        setAimedObject(hit.pickedMesh);
+                        return;
+                    }
                 }
             }
             setAimedObject(undefined);
         }
 
-        brickAction.onPointerUp = (duration, distance) => {
+        defaultAction.onPointerUp = (duration, distance) => {
+            ScreenLoger.Log("alpha");
             if (distance > 4) {
+                ScreenLoger.Log("bravo");
                 return;
             }
             if (duration > 0.3) {
@@ -84,15 +93,24 @@ class PlayerActionDefault {
                 }
             }
             else {
+                ScreenLoger.Log("charly");
                 if (player.playMode === PlayMode.Playing) {
+                    ScreenLoger.Log("delta");
                     if ((aimedObject instanceof Brick) && !aimedObject.root.anchored) {
                         player.currentAction = PlayerActionMoveBrick.Create(player, aimedObject.root);
+                    }
+                    if (aimedObject instanceof DodoCollider) {
+                        ScreenLoger.Log("echo");
+                        if (aimedObject.dodo.brain.npcDialog) {
+                            ScreenLoger.Log("foxtrot");
+                            aimedObject.dodo.brain.npcDialog.start();
+                        }
                     }
                 }
             }
         }
 
-        brickAction.onRightPointerUp = (duration, distance) => {
+        defaultAction.onRightPointerUp = (duration, distance) => {
             if (distance > 4) {
                 return;
             }
@@ -106,10 +124,10 @@ class PlayerActionDefault {
             }
         }
 
-        brickAction.onUnequip = () => {
+        defaultAction.onUnequip = () => {
             setAimedObject(undefined);
         }
         
-        return brickAction;
+        return defaultAction;
     }
 }

@@ -238,6 +238,7 @@ class ConstructionController {
 
         $response['status_code_header'] = 'HTTP/1.1 200 OK';
         if (!$conn) {
+            $response['status_code_header'] = 'HTTP/1.1 404 Not Found';
             $response['body'] = "Can't connect to DB.";
         }
         else {
@@ -251,7 +252,6 @@ class ConstructionController {
                 $existingConstructionData->i = intval($row["i"]);
                 $existingConstructionData->j = intval($row["j"]);
                 $existingConstructionData->content = $row["content"];
-                echo "DO NOT BE GREEDY";
                 $response['body'] = $existingConstructionData->toJSON();
             }
             else {
@@ -259,11 +259,11 @@ class ConstructionController {
 
                 if ($conn->query($sql) === TRUE && mysqli_affected_rows($conn) > 0 ) {
                     $response['status_code_header'] = 'HTTP/1.1 200 OK';
-                    $response['body'] = "POUET " . $constructionData->toJSON();
+                    $response['body'] = $constructionData->toJSON();
                 } 
                 else {
                     $response['status_code_header'] = 'HTTP/1.1 200 OK';
-                    $response['body'] = "SORRY YOU CANNOT CLAIM THIS PARCEL IT'S ALREADY TAKEN";
+                    $response['body'] = "";
                 }
             }
         }

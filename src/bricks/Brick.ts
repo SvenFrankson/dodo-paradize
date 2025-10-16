@@ -237,9 +237,9 @@ class Brick extends BABYLON.TransformNode {
         }
     }
 
-    public unlight(): void {
+    public unlit(): void {
         if (this != this.root) {
-            return this.root.unlight();
+            return this.root.unlit();
         }
         if (this.mesh) {
             this.mesh.outlineColor.copyFromFloats(0, 0, 0);

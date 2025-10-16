@@ -966,7 +966,7 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.npcManager = new NPCManager(this);
         this.npcManager.initialize();
-        this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("", "Player", this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
@@ -976,7 +976,7 @@ class Game {
         this.networkDodos = [];
         this.npcDodos = [];
         for (let n = 0; n < 0; n++) {
-            let npcDodo = new Dodo("Test", this, {
+            let npcDodo = new Dodo("", "Test", this, {
                 speed: 1 + Math.random(),
                 stepDuration: 0.2 + 0.1 * Math.random()
             });
@@ -1376,24 +1376,6 @@ class MiniatureFactory {
         });
     }
 }
-class NPCManager {
-    constructor(game) {
-        this.game = game;
-        //232a0f200101
-    }
-    initialize() {
-        this.landServant = new Dodo("Boadicea Bipin", this.game, { style: "232a0f200101" });
-        this.landServant.brain = new Brain(this.landServant, BrainMode.Idle);
-        this.landServant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.12, 0, -16);
-        this.landServant.brain.initialize();
-    }
-    async instantiate() {
-        await this.landServant.instantiate();
-        this.landServant.unfold();
-        this.landServant.setWorldPosition(new BABYLON.Vector3(1.12, 0, -16));
-        this.game.npcDodos.push(this.landServant);
-    }
-}
 /// <reference path="../lib/peerjs.d.ts"/>
 class NetworkManager {
     constructor(game) {
@@ -1481,7 +1463,7 @@ class NetworkManager {
             if (playerDesc) {
                 style = playerDesc.style;
             }
-            existingDodo = await this.createDodo("Unkown", conn.peer, style);
+            existingDodo = await this.createDodo("Unknown", conn.peer, style);
             this.game.networkDodos.push(existingDodo);
         }
         conn.on('data', (data) => {
@@ -1525,12 +1507,11 @@ class NetworkManager {
         }
     }
     async createDodo(name, peerId, style) {
-        let dodo = new Dodo(name, this.game, {
+        let dodo = new Dodo(peerId, name, this.game, {
             speed: 1.5 + Math.random(),
             stepDuration: 0.2 + 0.2 * Math.random(),
             style: style
         });
-        dodo.peerId = peerId;
         await dodo.instantiate();
         dodo.unfold();
         dodo.setWorldPosition(new BABYLON.Vector3(-5 + 10 * Math.random(), 1, -5 + 10 * Math.random()));
@@ -3678,17 +3659,20 @@ class PlayerActionDefault {
         if (mesh instanceof BrickMesh) {
             return true;
         }
+        if (mesh instanceof DodoCollider) {
+            return true;
+        }
         return false;
     }
     static Create(player) {
-        let brickAction = new PlayerAction("default-action", player);
-        brickAction.backgroundColor = "#FF00FF";
-        brickAction.iconUrl = "";
+        let defaultAction = new PlayerAction("default-action", player);
+        defaultAction.backgroundColor = "#FF00FF";
+        defaultAction.iconUrl = "";
         let aimedObject;
         let setAimedObject = (b) => {
             if (b != aimedObject) {
                 if (aimedObject) {
-                    aimedObject.unlight();
+                    aimedObject.unlit();
                 }
                 aimedObject = b;
                 if (aimedObject) {
@@ -3696,7 +3680,7 @@ class PlayerActionDefault {
                 }
             }
         };
-        brickAction.onUpdate = () => {
+        defaultAction.onUpdate = () => {
             if (player.playMode === PlayMode.Playing) {
                 let x;
                 let y;
@@ -3709,7 +3693,7 @@ class PlayerActionDefault {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return PlayerActionDefault.IsAimable(mesh);
+                    return PlayerActionDefault.IsAimable(mesh) && mesh != player.dodo.dodoCollider;
                 });
                 if (hit.hit && hit.pickedPoint) {
                     if (hit.pickedMesh instanceof BrickMesh) {
@@ -3722,12 +3706,18 @@ class PlayerActionDefault {
                             return;
                         }
                     }
+                    else if (hit.pickedMesh instanceof DodoCollider) {
+                        setAimedObject(hit.pickedMesh);
+                        return;
+                    }
                 }
             }
             setAimedObject(undefined);
         };
-        brickAction.onPointerUp = (duration, distance) => {
+        defaultAction.onPointerUp = (duration, distance) => {
+            ScreenLoger.Log("alpha");
             if (distance > 4) {
+                ScreenLoger.Log("bravo");
                 return;
             }
             if (duration > 0.3) {
@@ -3743,14 +3733,23 @@ class PlayerActionDefault {
                 }
             }
             else {
+                ScreenLoger.Log("charly");
                 if (player.playMode === PlayMode.Playing) {
+                    ScreenLoger.Log("delta");
                     if ((aimedObject instanceof Brick) && !aimedObject.root.anchored) {
                         player.currentAction = PlayerActionMoveBrick.Create(player, aimedObject.root);
+                    }
+                    if (aimedObject instanceof DodoCollider) {
+                        ScreenLoger.Log("echo");
+                        if (aimedObject.dodo.brain.npcDialog) {
+                            ScreenLoger.Log("foxtrot");
+                            aimedObject.dodo.brain.npcDialog.start();
+                        }
                     }
                 }
             }
         };
-        brickAction.onRightPointerUp = (duration, distance) => {
+        defaultAction.onRightPointerUp = (duration, distance) => {
             if (distance > 4) {
                 return;
             }
@@ -3763,10 +3762,10 @@ class PlayerActionDefault {
                 }
             }
         };
-        brickAction.onUnequip = () => {
+        defaultAction.onUnequip = () => {
             setAimedObject(undefined);
         };
-        return brickAction;
+        return defaultAction;
     }
 }
 class PlayerActionMoveBrick {
@@ -4307,9 +4306,9 @@ class Brick extends BABYLON.TransformNode {
             this.mesh.outlineColor = new BABYLON.Color3(0, 1, 1);
         }
     }
-    unlight() {
+    unlit() {
         if (this != this.root) {
-            return this.root.unlight();
+            return this.root.unlit();
         }
         if (this.mesh) {
             this.mesh.outlineColor.copyFromFloats(0, 0, 0);
@@ -5404,10 +5403,14 @@ class DodoCollider extends BABYLON.Mesh {
         super("dodo-collider");
         this.dodo = dodo;
     }
+    highlight() {
+    }
+    unlit() {
+    }
 }
 class Dodo extends Creature {
-    constructor(name, game, prop) {
-        super(name, game);
+    constructor(peerId, name, game, prop) {
+        super(peerId, game);
         this.peerId = "";
         this.gameId = -1;
         this.stepDuration = 0.2;
@@ -5450,8 +5453,8 @@ class Dodo extends Creature {
         this._lastR = 0;
         this.gravityVelocity = 0;
         this._constructionRange = { di0: 0, di1: 0, dj0: 0, dj1: 0 };
-        this.name = "Dodo_" + Math.floor(Math.random() * 10000).toFixed(0);
-        this.peerId = name;
+        this.name = name;
+        this.peerId = peerId;
         this.colors = [];
         if (prop) {
             if (isFinite(prop.speed)) {
@@ -6730,6 +6733,9 @@ class BrainPlayer extends SubBrain {
             if (this.currentAction) {
                 this.currentAction.onUpdate();
             }
+            else {
+                this.defaultAction.onUpdate();
+            }
         }
         this._smoothedRotateXAxisInput = this._smoothedRotateXAxisInput * this._pointerSmoothness + this._rotateXAxisInput * (1 - this._pointerSmoothness);
         this._smoothedRotateYAxisInput = this._smoothedRotateYAxisInput * this._pointerSmoothness + this._rotateYAxisInput * (1 - this._pointerSmoothness);
@@ -7284,6 +7290,207 @@ class StampEffect {
         div.style.transform = "scale(1)";
         await Mummu.AnimationFactory.CreateWait(this)(0.2);
         div.style.transition = "";
+    }
+}
+class NPCDialogResponse {
+    constructor(text, lineIndex) {
+        this.text = text;
+        this.lineIndex = lineIndex;
+    }
+}
+class NPCDialogLine {
+    constructor(index) {
+        this.index = index;
+    }
+}
+class NPCDialogTextLine extends NPCDialogLine {
+    constructor(index, text, ...responses) {
+        super(index);
+        this.text = text;
+        this.responses = [];
+        this.responses.push(...responses);
+    }
+}
+class NPCDialogCheckLine extends NPCDialogLine {
+    constructor(index, check) {
+        super(index);
+        this.check = check;
+    }
+}
+class NPCDialog {
+    constructor(dodo, dialogLines = []) {
+        this.dodo = dodo;
+        this.dialogLines = dialogLines;
+        this.dialogTimeout = 0;
+    }
+    getLine(index) {
+        let line = this.dialogLines.find(line => { return line.index === index; });
+        if (line) {
+            return line;
+        }
+        return this.dialogLines.find(line => { return line.index === 1000; });
+    }
+    async writeLine(dialogLine) {
+        if (this.linesContainer) {
+            if (dialogLine instanceof NPCDialogTextLine) {
+                let lineElement = document.createElement("div");
+                lineElement.classList.add("dialog-line");
+                lineElement.innerHTML = "<span class='text'>— " + dialogLine.text + "</span>";
+                this.linesContainer.appendChild(lineElement);
+                if (dialogLine.responses.length > 0) {
+                    setTimeout(() => {
+                        let responsesElements = [];
+                        for (let n = 0; n < dialogLine.responses.length; n++) {
+                            let response = dialogLine.responses[n];
+                            let responseElement = document.createElement("div");
+                            responseElement.classList.add("dialog-response-line");
+                            responseElement.innerHTML = "<span class='index'>" + (n + 1).toFixed(0) + "</span><span class='text'>" + response.text + "</span>";
+                            this.linesContainer.appendChild(responseElement);
+                            responseElement.onclick = () => {
+                                responsesElements.forEach(e => {
+                                    if (e === responseElement) {
+                                        e.classList.add("selected");
+                                    }
+                                    else {
+                                        e.classList.add("rejected");
+                                    }
+                                    e.onclick = undefined;
+                                });
+                                if (response.lineIndex >= 0) {
+                                    this.writeLine(this.getLine(response.lineIndex));
+                                }
+                                else {
+                                    this.stop();
+                                }
+                            };
+                            responsesElements[n] = responseElement;
+                        }
+                    }, 100);
+                }
+                else {
+                    setTimeout(() => {
+                        this.writeLine(this.getLine(dialogLine.index + 1));
+                    }, 100);
+                }
+            }
+            else if (dialogLine instanceof NPCDialogCheckLine) {
+                let result = await dialogLine.check();
+                this.writeLine(this.getLine(result));
+            }
+            else {
+                this.stop();
+            }
+        }
+    }
+    start() {
+        this.container = document.querySelector("#dialog-container");
+        this.container.style.display = "block";
+        this.linesContainer = document.querySelector("#dialog-lines-container");
+        let title = document.querySelector("#dialog-container .dialog-title");
+        title.innerHTML = this.dodo.name.toLocaleUpperCase();
+        this.writeLine(this.dialogLines[0]);
+    }
+    stop() {
+        if (this.container) {
+            this.container.style.display = "none";
+        }
+        if (this.linesContainer) {
+            this.linesContainer.innerHTML = "";
+        }
+    }
+}
+class NPCManager {
+    constructor(game) {
+        this.game = game;
+        //232a0f200101
+    }
+    initialize() {
+        this.landServant = new Dodo("local-npc", "Boadicea Bipin", this.game, { style: "232a0f200101" });
+        this.landServant.brain = new Brain(this.landServant, BrainMode.Idle);
+        this.landServant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.12, 0, -16);
+        this.landServant.brain.initialize();
+    }
+    async instantiate() {
+        await this.landServant.instantiate();
+        this.landServant.unfold();
+        this.landServant.setWorldPosition(new BABYLON.Vector3(1.12, 0, -16));
+        this.game.npcDodos.push(this.landServant);
+        this.landServant.brain.npcDialog = new NPCDialog(this.landServant, [
+            new NPCDialogTextLine(0, "Good Morning Sir !"),
+            new NPCDialogTextLine(1, "I am Boadicea Bipin, Head of the Departement of Urbanism and Land Survey."),
+            new NPCDialogTextLine(2, "Do you wish to build on a terrain parcel ?", new NPCDialogResponse("Yes, I would like to build something.", 3), new NPCDialogResponse("No, thanks.", 100)),
+            new NPCDialogTextLine(3, "Do you know the building rules in Dodopolis ?", new NPCDialogResponse("Yes, but I would love to hear it again.", 4), new NPCDialogResponse("No, what are the rules ?", 4)),
+            new NPCDialogTextLine(4, "In Dodopolis, you can not own a parcel."),
+            new NPCDialogTextLine(5, "But you may have the exclusive usage of one, for as long as you wish."),
+            new NPCDialogTextLine(6, "You will be the only one able to build on your parcel."),
+            new NPCDialogTextLine(7, "And if you stop using it for a while, another Dodo will use it."),
+            new NPCDialogTextLine(8, "Do you want to be lended a parcel ?", new NPCDialogResponse("Yes", 9), new NPCDialogResponse("No", 100)),
+            new NPCDialogCheckLine(9, async () => {
+                try {
+                    const response = await fetch(SHARE_SERVICE_PATH + "get_available_constructions", {
+                        method: "GET",
+                        mode: "cors"
+                    });
+                    let responseText = await response.text();
+                    if (responseText) {
+                        let response = JSON.parse(responseText);
+                        let availableConstruction = response.constructions;
+                        if (availableConstruction[0]) {
+                            let i = availableConstruction[0].i;
+                            let j = availableConstruction[0].j;
+                            let token = this.game.networkManager.token;
+                            let constructionData = {
+                                i: i,
+                                j: j,
+                                token: token
+                            };
+                            ScreenLoger.Log("claimConstruction " + i + " " + j);
+                            let headers = {
+                                "Content-Type": "application/json",
+                            };
+                            let dataString = JSON.stringify(constructionData);
+                            try {
+                                const response = await fetch(SHARE_SERVICE_PATH + "claim_construction", {
+                                    method: "POST",
+                                    mode: "cors",
+                                    headers: headers,
+                                    body: dataString,
+                                });
+                                let responseText = await response.text();
+                                if (responseText) {
+                                    let response = JSON.parse(responseText);
+                                    if (response) {
+                                        if (response.i != i || response.j != j) {
+                                            return 30;
+                                        }
+                                        return 20;
+                                    }
+                                }
+                            }
+                            catch (e) {
+                                console.error(e);
+                                ScreenLoger.Log("claimConstruction error");
+                                ScreenLoger.Log(e);
+                            }
+                        }
+                        else {
+                            return 40;
+                        }
+                        console.log(response);
+                    }
+                }
+                catch (e) {
+                    console.error(e);
+                    ScreenLoger.Log("buildFromServer error");
+                    ScreenLoger.Log(e);
+                }
+                return 40;
+            }),
+            new NPCDialogTextLine(20, "You can now use your parcel, have fun !"),
+            new NPCDialogTextLine(30, "You already have a parcel assigned, don't be greedy."),
+            new NPCDialogTextLine(40, "Something went wrong but I don't know what."),
+            new NPCDialogTextLine(1000, "Have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
+        ]);
     }
 }
 function SineFlashVisibility(target, duration, min = 0, max = 1) {

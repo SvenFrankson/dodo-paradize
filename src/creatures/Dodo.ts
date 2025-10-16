@@ -130,6 +130,14 @@ class DodoCollider extends BABYLON.Mesh {
     constructor(public dodo: Dodo) {
         super("dodo-collider");
     }
+
+    public highlight(): void {
+        
+    }
+
+    public unlit(): void {
+        
+    }
 }
 
 class Dodo extends Creature {
@@ -206,11 +214,11 @@ class Dodo extends Creature {
         return Mummu.AngleFromToAround(BABYLON.Axis.Z, this.body.forward, BABYLON.Axis.Y);
     }
 
-    constructor(name: string, game: Game, prop?: IDodoProp) {
-        super(name, game);
+    constructor(peerId: string, name: string, game: Game, prop?: IDodoProp) {
+        super(peerId, game);
 
-        this.name = "Dodo_" + Math.floor(Math.random() * 10000).toFixed(0);
-        this.peerId = name;
+        this.name = name;
+        this.peerId = peerId;
 
         this.colors = [];
 

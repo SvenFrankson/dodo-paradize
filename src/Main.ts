@@ -459,7 +459,7 @@ class Game {
         this.npcManager = new NPCManager(this);
         this.npcManager.initialize();
 
-        this.playerDodo = new Dodo("Player", this, { speed: 2, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("", "Player", this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
 
@@ -473,7 +473,7 @@ class Game {
         this.npcDodos = [];
 
         for (let n = 0; n < 0; n++) {
-            let npcDodo = new Dodo("Test", this, {
+            let npcDodo = new Dodo("", "Test", this, {
                 speed: 1 + Math.random(),
                 stepDuration: 0.2 + 0.1 * Math.random()
             });
