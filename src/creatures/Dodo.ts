@@ -408,6 +408,8 @@ class Dodo extends Creature {
         this.hatType = this.getStyleValue(StyleValueTypes.HatIndex);
         this.hatColor = this.getStyleValue(StyleValueTypes.HatColor);
 
+        SavePlayerToLocalStorage(this.game);
+
         if (this._instantiated) {
             this.instantiate();
         }
@@ -1069,9 +1071,6 @@ class Dodo extends Creature {
     }
 
     public updateCurrentConstruction(): void {
-        if (this.currentConstructions[1][1]) {
-            this.currentConstructions[1][1].hideLimits();
-        }
         let iConstruction = Math.floor(this.position.x / Construction.SIZE_m);
         let jConstruction = Math.floor(this.position.z / Construction.SIZE_m);
         for (let i = 0; i < 3; i++) {
@@ -1080,9 +1079,6 @@ class Dodo extends Creature {
             }
         }
         this.currentConstructions[1][1] = this.game.terrainManager.getConstruction(iConstruction, jConstruction);
-        if (this.currentConstructions[1][1]) {
-            this.currentConstructions[1][1].showLimits();
-        }
     }
 
     public async eyeBlink(eyeIndex: number = -1): Promise<void> {

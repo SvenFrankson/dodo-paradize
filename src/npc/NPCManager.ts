@@ -51,49 +51,20 @@ class NPCManager {
                         if (availableConstruction[0]) {
                             let i = availableConstruction[0].i;
                             let j = availableConstruction[0].j;
-                            let token = this.game.networkManager.token;
-                            let constructionData = {
-                                i: i,
-                                j: j,
-                                token: token
-                            }
-                            ScreenLoger.Log("claimConstruction " + i + " " + j + " with " + token);
 
-                            let headers = {
-                                "Content-Type": "application/json",
-                            };
-                            let dataString = JSON.stringify(constructionData);
-                            try {
-                                const response = await fetch(SHARE_SERVICE_PATH + "claim_construction", {
-                                    method: "POST",
-                                    mode: "cors",
-                                    headers: headers,
-                                    body: dataString,
-                                });
-                                let responseText = await response.text();
-                                if (responseText) {
-                                    let response = JSON.parse(responseText);
-                                    if (response) {
-                                        console.log(response);
-                                        this.game.networkManager.claimedConstructionI = response.i;
-                                        this.game.networkManager.claimedConstructionJ = response.j;
-                                        if (response.i != i || response.j != j) {
-                                            return 30;
-                                        }
-                                        return 20;
-                                    }
-                                }
+                            let constructionData = await this.game.networkManager.claimConstruction(i, j);
+                            if (!constructionData) {
+                                return 40;
                             }
-                            catch(e) {
-                                console.error(e);
-                                ScreenLoger.Log("claimConstruction error");
-                                ScreenLoger.Log(e);
+                            
+                            if (constructionData.i != i || constructionData.j != j) {
+                                return 30;
                             }
+                            return 20;
                         }
                         else {
                             return 40;
                         }
-                        console.log(response);
                     }
                 }
                 catch(e) {

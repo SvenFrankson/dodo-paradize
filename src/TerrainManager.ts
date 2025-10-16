@@ -193,6 +193,7 @@ class TerrainManager {
             if (!construction) {
                 construction = this.getOrCreateConstruction(task.i, task.j);
                 //construction.buildFromLocalStorage();
+                await construction.instantiate();
                 construction.buildFromServer();
                 this.constructions.push(construction);
             }

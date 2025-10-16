@@ -504,6 +504,8 @@ class Game {
 
         this.gameLoaded = true;
 
+        LoadPlayerFromLocalStorage(this);
+
         this.setGameMode(GameMode.Home);
 
         I18Nizer.Translate(LOCALE);

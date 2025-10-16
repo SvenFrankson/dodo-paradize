@@ -1,3 +1,11 @@
+interface IConstructionData {
+    id?: number,
+    i: number,
+    j: number,
+    content: string,
+    token?: string
+}
+
 class Construction extends BABYLON.Mesh {
 
     public static SIZE_m: number = BRICKS_PER_CONSTRUCTION * BRICK_S;
@@ -23,7 +31,9 @@ class Construction extends BABYLON.Mesh {
     }
 
     public async instantiate(): Promise<void> {
-        
+        if (this.terrain.game.devMode.activated || this.terrain.game.networkManager.claimedConstructionI === this.i && this.terrain.game.networkManager.claimedConstructionJ === this.j) {
+            this.showLimits();
+        }
     }
 
     public showLimits(): void {
@@ -31,26 +41,24 @@ class Construction extends BABYLON.Mesh {
             this.limits.dispose();
         }
 
-        if (this.terrain.game.devMode.activated || this.terrain.game.networkManager.claimedConstructionI === this.i && this.terrain.game.networkManager.claimedConstructionJ === this.j) {
-            let min = new BABYLON.Vector3(- BRICK_S * 0.5, 0, - BRICK_S * 0.5);
-            let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
+        let min = new BABYLON.Vector3(- BRICK_S * 0.5, 0, - BRICK_S * 0.5);
+        let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
 
-            this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.DOUBLESIDE });
-            let material = new BABYLON.StandardMaterial("limit-material");
-            material.specularColor.copyFromFloats(0, 0, 0);
-            material.diffuseColor.copyFromFloats(0, 1, 1);
-            this.limits.material = material;
-            this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
-            this.limits.visibility = 0.3;
-            this.limits.parent = this;
+        this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.DOUBLESIDE });
+        let material = new BABYLON.StandardMaterial("limit-material");
+        material.specularColor.copyFromFloats(0, 0, 0);
+        material.diffuseColor.copyFromFloats(0, 1, 1);
+        this.limits.material = material;
+        this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
+        this.limits.visibility = 0.3;
+        this.limits.parent = this;
 
-            for (let i = 0; i <= 1; i++) {
-                for (let j = 0; j <= 1; j++) {
-                    let corner = BABYLON.MeshBuilder.CreateBox("corner", { width: 0.03, height: 256, depth: 0.03 });
-                    corner.position.x = (i - 0.5) * Construction.SIZE_m;
-                    corner.position.z = (j - 0.5) * Construction.SIZE_m;
-                    corner.parent = this.limits;
-                }
+        for (let i = 0; i <= 1; i++) {
+            for (let j = 0; j <= 1; j++) {
+                let corner = BABYLON.MeshBuilder.CreateBox("corner", { width: 0.03, height: 256, depth: 0.03 });
+                corner.position.x = (i - 0.5) * Construction.SIZE_m;
+                corner.position.z = (j - 0.5) * Construction.SIZE_m;
+                corner.parent = this.limits;
             }
         }
     }

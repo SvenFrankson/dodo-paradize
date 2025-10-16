@@ -999,6 +999,7 @@ class Game {
         //brick.position.copyFromFloats(0, TILE_H, 0);
         //brick.updateMesh();
         this.gameLoaded = true;
+        LoadPlayerFromLocalStorage(this);
         this.setGameMode(GameMode.Home);
         I18Nizer.Translate(LOCALE);
         if (USE_POKI_SDK) {
@@ -1375,7 +1376,10 @@ class NetworkManager {
     }
     async initialize() {
         ScreenLoger.Log("Initialize NetworkManager");
-        this.connectToTiaratumServer();
+        await this.connectToTiaratumServer();
+        if (this.claimedConstructionI != null && this.claimedConstructionJ != null) {
+            this.claimConstruction(this.claimedConstructionI, this.claimedConstructionJ);
+        }
         this.peer = new Peer();
         this.peer.on("open", this.onPeerOpen.bind(this));
         this.peer.on("error", this.onPeerError.bind(this));
@@ -1425,8 +1429,7 @@ class NetworkManager {
         }
     }
     async onPeerOpen(id) {
-        ScreenLoger.Log("Open peer connection, my ID is");
-        ScreenLoger.Log(id);
+        ScreenLoger.Log("Open peer connection, my ID is " + id);
         this.game.playerDodo.peerId = id;
         await this.connectToTiaratumServer();
         try {
@@ -1523,6 +1526,51 @@ class NetworkManager {
         dodo.brain = new Brain(dodo, BrainMode.Network);
         dodo.brain.initialize();
         return dodo;
+    }
+    async claimConstruction(i, j) {
+        let token = this.game.networkManager.token;
+        let constructionData = {
+            i: i,
+            j: j,
+            token: token
+        };
+        ScreenLoger.Log("ClaimConstruction " + i + " " + j + " with " + token);
+        let headers = {
+            "Content-Type": "application/json",
+        };
+        let dataString = JSON.stringify(constructionData);
+        try {
+            const response = await fetch(SHARE_SERVICE_PATH + "claim_construction", {
+                method: "POST",
+                mode: "cors",
+                headers: headers,
+                body: dataString,
+            });
+            let responseText = await response.text();
+            if (responseText) {
+                let response = JSON.parse(responseText);
+                if (response) {
+                    this.game.networkManager.claimedConstructionI = response.i;
+                    this.game.networkManager.claimedConstructionJ = response.j;
+                    SavePlayerToLocalStorage(this.game);
+                    let construction = this.game.terrainManager.getConstruction(this.game.networkManager.claimedConstructionI, this.game.networkManager.claimedConstructionJ);
+                    if (construction) {
+                        construction.showLimits();
+                    }
+                    return response;
+                }
+            }
+        }
+        catch (e) {
+            console.error(e);
+            ScreenLoger.Log("ClaimConstruction error");
+            ScreenLoger.Log(e);
+            return undefined;
+        }
+        this.game.networkManager.claimedConstructionI = null;
+        this.game.networkManager.claimedConstructionJ = null;
+        SavePlayerToLocalStorage(this.game);
+        return undefined;
     }
 }
 class NumValueInput extends HTMLElement {
@@ -2198,6 +2246,7 @@ class TerrainManager {
             if (!construction) {
                 construction = this.getOrCreateConstruction(task.i, task.j);
                 //construction.buildFromLocalStorage();
+                await construction.instantiate();
                 construction.buildFromServer();
                 this.constructions.push(construction);
             }
@@ -3682,6 +3731,52 @@ class PlayerInventoryView extends HTMLElement {
     }
 }
 customElements.define("inventory-page", PlayerInventoryView);
+function SavePlayerToLocalStorage(game) {
+    if (!game.gameLoaded) {
+        return;
+    }
+    let data = {
+        name: "NoName",
+        claimedConstructionI: null,
+        claimedConstructionJ: null,
+        token: "",
+        style: ""
+    };
+    data.name = game.playerDodo.name;
+    data.claimedConstructionI = game.networkManager.claimedConstructionI;
+    data.claimedConstructionJ = game.networkManager.claimedConstructionJ;
+    data.token = game.networkManager.token;
+    data.style = game.playerDodo.style;
+    if (HasLocalStorage) {
+        window.localStorage.setItem("player-save", JSON.stringify(data));
+    }
+}
+function LoadPlayerFromLocalStorage(game) {
+    console.log("a");
+    if (HasLocalStorage) {
+        let dataString = window.localStorage.getItem("player-save");
+        if (dataString) {
+            let data = JSON.parse(dataString);
+            if (data) {
+                if (data.name) {
+                    game.playerDodo.name = data.name;
+                }
+                if (data.claimedConstructionI != null) {
+                    game.networkManager.claimedConstructionI = data.claimedConstructionI;
+                }
+                if (data.claimedConstructionJ != null) {
+                    game.networkManager.claimedConstructionJ = data.claimedConstructionJ;
+                }
+                if (data.token) {
+                    game.networkManager.token = data.token;
+                }
+                if (data.style) {
+                    game.playerDodo.setStyle(data.style);
+                }
+            }
+        }
+    }
+}
 class PlayerActionDefault {
     static IsAimable(mesh) {
         if (mesh instanceof BrickMesh) {
@@ -5154,29 +5249,30 @@ class Construction extends BABYLON.Mesh {
         return { i: i, j: j };
     }
     async instantiate() {
+        if (this.terrain.game.devMode.activated || this.terrain.game.networkManager.claimedConstructionI === this.i && this.terrain.game.networkManager.claimedConstructionJ === this.j) {
+            this.showLimits();
+        }
     }
     showLimits() {
         if (this.limits) {
             this.limits.dispose();
         }
-        if (this.terrain.game.devMode.activated || this.terrain.game.networkManager.claimedConstructionI === this.i && this.terrain.game.networkManager.claimedConstructionJ === this.j) {
-            let min = new BABYLON.Vector3(-BRICK_S * 0.5, 0, -BRICK_S * 0.5);
-            let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
-            this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.DOUBLESIDE });
-            let material = new BABYLON.StandardMaterial("limit-material");
-            material.specularColor.copyFromFloats(0, 0, 0);
-            material.diffuseColor.copyFromFloats(0, 1, 1);
-            this.limits.material = material;
-            this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
-            this.limits.visibility = 0.3;
-            this.limits.parent = this;
-            for (let i = 0; i <= 1; i++) {
-                for (let j = 0; j <= 1; j++) {
-                    let corner = BABYLON.MeshBuilder.CreateBox("corner", { width: 0.03, height: 256, depth: 0.03 });
-                    corner.position.x = (i - 0.5) * Construction.SIZE_m;
-                    corner.position.z = (j - 0.5) * Construction.SIZE_m;
-                    corner.parent = this.limits;
-                }
+        let min = new BABYLON.Vector3(-BRICK_S * 0.5, 0, -BRICK_S * 0.5);
+        let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
+        this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.DOUBLESIDE });
+        let material = new BABYLON.StandardMaterial("limit-material");
+        material.specularColor.copyFromFloats(0, 0, 0);
+        material.diffuseColor.copyFromFloats(0, 1, 1);
+        this.limits.material = material;
+        this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
+        this.limits.visibility = 0.3;
+        this.limits.parent = this;
+        for (let i = 0; i <= 1; i++) {
+            for (let j = 0; j <= 1; j++) {
+                let corner = BABYLON.MeshBuilder.CreateBox("corner", { width: 0.03, height: 256, depth: 0.03 });
+                corner.position.x = (i - 0.5) * Construction.SIZE_m;
+                corner.position.z = (j - 0.5) * Construction.SIZE_m;
+                corner.parent = this.limits;
             }
         }
     }
@@ -5665,6 +5761,7 @@ class Dodo extends Creature {
         this.eyeColor = this.getStyleValue(StyleValueTypes.EyeColor);
         this.hatType = this.getStyleValue(StyleValueTypes.HatIndex);
         this.hatColor = this.getStyleValue(StyleValueTypes.HatColor);
+        SavePlayerToLocalStorage(this.game);
         if (this._instantiated) {
             this.instantiate();
         }
@@ -6213,9 +6310,6 @@ class Dodo extends Creature {
         return this.currentConstructions[1 + di][1 + dj];
     }
     updateCurrentConstruction() {
-        if (this.currentConstructions[1][1]) {
-            this.currentConstructions[1][1].hideLimits();
-        }
         let iConstruction = Math.floor(this.position.x / Construction.SIZE_m);
         let jConstruction = Math.floor(this.position.z / Construction.SIZE_m);
         for (let i = 0; i < 3; i++) {
@@ -6224,9 +6318,6 @@ class Dodo extends Creature {
             }
         }
         this.currentConstructions[1][1] = this.game.terrainManager.getConstruction(iConstruction, jConstruction);
-        if (this.currentConstructions[1][1]) {
-            this.currentConstructions[1][1].showLimits();
-        }
     }
     async eyeBlink(eyeIndex = -1) {
         let eyeIndexes = [0, 1];
@@ -7477,48 +7568,18 @@ class NPCManager {
                         if (availableConstruction[0]) {
                             let i = availableConstruction[0].i;
                             let j = availableConstruction[0].j;
-                            let token = this.game.networkManager.token;
-                            let constructionData = {
-                                i: i,
-                                j: j,
-                                token: token
-                            };
-                            ScreenLoger.Log("claimConstruction " + i + " " + j + " with " + token);
-                            let headers = {
-                                "Content-Type": "application/json",
-                            };
-                            let dataString = JSON.stringify(constructionData);
-                            try {
-                                const response = await fetch(SHARE_SERVICE_PATH + "claim_construction", {
-                                    method: "POST",
-                                    mode: "cors",
-                                    headers: headers,
-                                    body: dataString,
-                                });
-                                let responseText = await response.text();
-                                if (responseText) {
-                                    let response = JSON.parse(responseText);
-                                    if (response) {
-                                        console.log(response);
-                                        this.game.networkManager.claimedConstructionI = response.i;
-                                        this.game.networkManager.claimedConstructionJ = response.j;
-                                        if (response.i != i || response.j != j) {
-                                            return 30;
-                                        }
-                                        return 20;
-                                    }
-                                }
+                            let constructionData = await this.game.networkManager.claimConstruction(i, j);
+                            if (!constructionData) {
+                                return 40;
                             }
-                            catch (e) {
-                                console.error(e);
-                                ScreenLoger.Log("claimConstruction error");
-                                ScreenLoger.Log(e);
+                            if (constructionData.i != i || constructionData.j != j) {
+                                return 30;
                             }
+                            return 20;
                         }
                         else {
                             return 40;
                         }
-                        console.log(response);
                     }
                 }
                 catch (e) {

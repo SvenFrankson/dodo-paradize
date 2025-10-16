@@ -21,7 +21,11 @@ class NetworkManager {
     public async initialize(): Promise<void> {
         ScreenLoger.Log("Initialize NetworkManager");
 
-        this.connectToTiaratumServer();
+        await this.connectToTiaratumServer();
+
+        if (this.claimedConstructionI != null && this.claimedConstructionJ != null) {
+            this.claimConstruction(this.claimedConstructionI, this.claimedConstructionJ);
+        }
 
         this.peer = new Peer();
         this.peer.on("open", this.onPeerOpen.bind(this));
@@ -78,8 +82,7 @@ class NetworkManager {
     }
 
     public async onPeerOpen(id: string): Promise<void> {
-        ScreenLoger.Log("Open peer connection, my ID is");
-        ScreenLoger.Log(id);
+        ScreenLoger.Log("Open peer connection, my ID is " + id);
         this.game.playerDodo.peerId = id;
 
         await this.connectToTiaratumServer();
@@ -192,5 +195,52 @@ class NetworkManager {
         dodo.brain = new Brain(dodo, BrainMode.Network);
         dodo.brain.initialize();
         return dodo;
+    }
+
+    public async claimConstruction(i: number, j: number): Promise<IConstructionData> {
+        let token = this.game.networkManager.token;
+        let constructionData = {
+            i: i,
+            j: j,
+            token: token
+        }
+        ScreenLoger.Log("ClaimConstruction " + i + " " + j + " with " + token);
+
+        let headers = {
+            "Content-Type": "application/json",
+        };
+        let dataString = JSON.stringify(constructionData);
+        try {
+            const response = await fetch(SHARE_SERVICE_PATH + "claim_construction", {
+                method: "POST",
+                mode: "cors",
+                headers: headers,
+                body: dataString,
+            });
+            let responseText = await response.text();
+            if (responseText) {
+                let response = JSON.parse(responseText);
+                if (response) {
+                    this.game.networkManager.claimedConstructionI = response.i;
+                    this.game.networkManager.claimedConstructionJ = response.j;
+                    SavePlayerToLocalStorage(this.game);
+                    let construction = this.game.terrainManager.getConstruction(this.game.networkManager.claimedConstructionI, this.game.networkManager.claimedConstructionJ);
+                    if (construction) {
+                        construction.showLimits();
+                    }
+                    return response;
+                }
+            }
+        }
+        catch(e) {
+            console.error(e);
+            ScreenLoger.Log("ClaimConstruction error");
+            ScreenLoger.Log(e);
+            return undefined;
+        }
+        this.game.networkManager.claimedConstructionI = null;
+        this.game.networkManager.claimedConstructionJ = null;
+        SavePlayerToLocalStorage(this.game);
+        return undefined;
     }
 }
