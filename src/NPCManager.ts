@@ -9,6 +9,7 @@ class NPCManager {
     public initialize(): void {
         this.landServant = new Dodo("Boadicea Bipin", this.game, { style: "232a0f200101" });
         this.landServant.brain = new Brain(this.landServant, BrainMode.Idle);
+        (this.landServant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(1.12, 0, -16);
         this.landServant.brain.initialize();
     }
 

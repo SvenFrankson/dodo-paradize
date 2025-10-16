@@ -1,1 +1,3 @@
 var BRICKS_PER_CONSTRUCTION: number = 32;
+var ONE_cm_SQUARED = 0.01 * 0.01;
+var ONE_mm_SQUARED = 0.01 * 0.01;

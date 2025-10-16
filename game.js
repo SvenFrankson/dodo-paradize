@@ -304,6 +304,8 @@ class CompletionBar extends HTMLElement {
 }
 customElements.define("completion-bar", CompletionBar);
 var BRICKS_PER_CONSTRUCTION = 32;
+var ONE_cm_SQUARED = 0.01 * 0.01;
+var ONE_mm_SQUARED = 0.01 * 0.01;
 class DevMode {
     constructor(game) {
         this.game = game;
@@ -1382,6 +1384,7 @@ class NPCManager {
     initialize() {
         this.landServant = new Dodo("Boadicea Bipin", this.game, { style: "232a0f200101" });
         this.landServant.brain = new Brain(this.landServant, BrainMode.Idle);
+        this.landServant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.12, 0, -16);
         this.landServant.brain.initialize();
     }
     async instantiate() {
@@ -6365,11 +6368,17 @@ class SubBrain {
 class BrainIdle extends SubBrain {
     constructor() {
         super(...arguments);
+        this.positionZero = BABYLON.Vector3.Zero();
+        this.positionRadius = 2;
+        this._targetPos = BABYLON.Vector3.Zero();
         this._targetR = 0;
         this._targetLook = BABYLON.Vector3.Zero();
         this._speed = 1;
         this._currentCooldown = 0;
         this._currentSkip = 0;
+    }
+    initialize() {
+        this._targetPos.copyFrom(this.positionZero);
     }
     update(dt) {
         this._currentCooldown -= dt;
@@ -6387,6 +6396,11 @@ class BrainIdle extends SubBrain {
             else {
                 this._currentSkip--;
                 if (this._currentSkip <= 0) {
+                    if (Math.random() < 0.5) {
+                        this._targetPos.copyFromFloats(0, 0, Math.random() * this.positionRadius);
+                        Mummu.RotateInPlace(this._targetPos, BABYLON.Axis.Y, Math.random() * 2 * Math.PI);
+                        this._targetPos.addInPlace(this.positionZero);
+                    }
                     let dirToLook = new BABYLON.Vector3(0, -3 + 6 * Math.random(), 10);
                     Mummu.RotateInPlace(dirToLook, BABYLON.Axis.Y, this.dodo.r + 0.6 * Math.PI * (Math.random() - 0.5));
                     this._targetLook = dirToLook.add(this.dodo.position);
@@ -6403,6 +6417,18 @@ class BrainIdle extends SubBrain {
         BABYLON.Vector3.LerpToRef(this.dodo.targetLook, this._targetLook, 1 - f, this.dodo.targetLook);
         f = Nabu.Easing.smoothNSec(1 / dt, 1 * this._speed);
         this.dodo.r = Nabu.LerpAngle(this.dodo.r, this._targetR, 1 - f);
+        if (BABYLON.Vector3.Distance(this.dodo.position, this._targetPos) > ONE_cm_SQUARED) {
+            let f = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+            let targetAnimatedSpeed = this._targetPos.subtract(this.dodo.position);
+            if (targetAnimatedSpeed.lengthSquared() > 1) {
+                targetAnimatedSpeed.normalize();
+            }
+            BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, targetAnimatedSpeed, 1 - f, this.dodo.animatedSpeed);
+            Mummu.StepToRef(this.dodo.position, this._targetPos, 1 * dt, this.dodo.position);
+        }
+        else {
+            this.dodo.animatedSpeed.copyFromFloats(0, 0, 0);
+        }
     }
 }
 function IsBrainNetworkData(v) {
