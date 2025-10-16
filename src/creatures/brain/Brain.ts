@@ -10,6 +10,7 @@ class Brain {
     public mode: BrainMode = BrainMode.Idle;
     public subBrains: SubBrain[] = [];
     public npcDialog: NPCDialog;
+    public inDialog: NPCDialog;
 
     public get game(): Game {
         return this.dodo.game;

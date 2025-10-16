@@ -43,9 +43,13 @@ class NPCDialogCheckLine extends NPCDialogLine {
 
 class NPCDialog {
 
+    public get game(): Game {
+        return this.dodo.game;
+    }
     public container: HTMLDivElement;
     public linesContainer: HTMLDivElement;
     public dialogTimeout: number = 0;
+    public onNextStop: () => void;
 
     public getLine(index: number): NPCDialogLine {
         let line = this.dialogLines.find(line => { return line.index === index; });
@@ -119,6 +123,7 @@ class NPCDialog {
     }
 
     public start(): void {
+        this.game.playerBrain.inDialog = this;
         this.container = document.querySelector("#dialog-container");
         this.container.style.display = "block";
         this.linesContainer = document.querySelector("#dialog-lines-container");
@@ -128,11 +133,16 @@ class NPCDialog {
     }
 
     public stop(): void {
+        this.game.playerBrain.inDialog = undefined;
         if (this.container) {
             this.container.style.display = "none";
         }
         if (this.linesContainer) {
             this.linesContainer.innerHTML = "";
+        }
+        if (this.onNextStop) {
+            this.onNextStop();
+            this.onNextStop = undefined;
         }
     }
 }

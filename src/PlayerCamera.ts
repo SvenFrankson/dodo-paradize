@@ -12,6 +12,8 @@ class PlayerCamera extends BABYLON.FreeCamera {
     public pivotHeightHome: number = 0.5;
     public pivotRecoil: number = 4;
     public playerPosY: number = 0;
+    public dialogOffset: BABYLON.Vector3 = BABYLON.Vector3.Zero();
+    public dialogRotation: number = 0;
 
     constructor(public game: Game) {
         super("player-camera", BABYLON.Vector3.Zero());
@@ -46,8 +48,20 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
             }
             else if (this.game.gameMode === GameMode.Playing) {
+                let f = Nabu.Easing.smoothNSec(1 / dt, 0.5);
+                if (this.game.playerBrain.inDialog) {
+                    let dialogOffset = this.game.playerBrain.inDialog.dodo.position.subtract(this.player.position).scale(0.5);
+                    dialogOffset.y -= this.pivotHeight * 0.5;
+                    BABYLON.Vector3.LerpToRef(this.dialogOffset, dialogOffset, 1 - f, this.dialogOffset);
+                    this.dialogRotation = this.dialogRotation * f + Math.PI * 0.5 * (1 - f);
+                }
+                else {
+                    this.dialogOffset.scaleInPlace(f);
+                    this.dialogRotation *= f;
+                }
                 let target = this.player.forward.scale(- this.pivotRecoil);
                 Mummu.RotateInPlace(target, this.player.right, this.verticalAngle);
+                Mummu.RotateInPlace(target, BABYLON.Axis.Y, this.dialogRotation);
                 let targetLook = target.clone().scaleInPlace(-5);
 
                 let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.1);
@@ -56,11 +70,13 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 target.x += this.player.position.x;
                 target.y += this.playerPosY;
                 target.z += this.player.position.z;
+                target.addInPlace(this.dialogOffset);
 
                 targetLook.y += this.pivotHeight;
                 targetLook.x += this.player.position.x;
                 targetLook.y += this.player.position.y;
                 targetLook.z += this.player.position.z;
+                targetLook.addInPlace(this.dialogOffset);
 
                 this.position.copyFrom(target);
 

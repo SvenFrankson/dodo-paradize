@@ -322,17 +322,23 @@ class BrainPlayer extends SubBrain {
             }
         }
         else if (this.game.gameMode === GameMode.Playing) {
-            let aimRay = this.game.camera.getForwardRay(50);
-            let pick = this.game.scene.pickWithRay(aimRay, (mesh) => {
-                return mesh instanceof DodoCollider && mesh.dodo != this.dodo;
-            });
-            if (pick.hit && pick.pickedMesh instanceof DodoCollider) {
-                this._targetLook.copyFrom(pick.pickedMesh.dodo.head.absolutePosition);
+            if (this.brain.inDialog) {
+                this._targetLook.copyFrom(this.brain.inDialog.dodo.head.absolutePosition);
                 f = Nabu.Easing.smoothNSec(1 / dt, 0.3);
             }
             else {
-                this._targetLook.copyFrom(aimRay.direction).scaleInPlace(50).addInPlace(aimRay.origin);
-                f = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+                let aimRay = this.game.camera.getForwardRay(50);
+                let pick = this.game.scene.pickWithRay(aimRay, (mesh) => {
+                    return mesh instanceof DodoCollider && mesh.dodo != this.dodo;
+                });
+                if (pick.hit && pick.pickedMesh instanceof DodoCollider) {
+                    this._targetLook.copyFrom(pick.pickedMesh.dodo.head.absolutePosition);
+                    f = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+                }
+                else {
+                    this._targetLook.copyFrom(aimRay.direction).scaleInPlace(50).addInPlace(aimRay.origin);
+                    f = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+                }
             }
         }
         BABYLON.Vector3.LerpToRef(this.dodo.targetLook, this._targetLook, 1 - f, this.dodo.targetLook);

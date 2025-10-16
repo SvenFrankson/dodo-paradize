@@ -132,11 +132,11 @@ class DodoCollider extends BABYLON.Mesh {
     }
 
     public highlight(): void {
-        
+        this.visibility = 0.5;
     }
 
     public unlit(): void {
-        
+        this.visibility = 0;
     }
 }
 

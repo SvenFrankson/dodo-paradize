@@ -253,6 +253,8 @@ class Game {
     public terrainManager: TerrainManager;
     public npcManager: NPCManager;
     public playerDodo: Dodo;
+    public playerBrain: Brain;
+    public playerBrainPlayer: BrainPlayer;
     public networkDodos: Dodo[];
     public npcDodos: Dodo[];
 
@@ -462,6 +464,8 @@ class Game {
         this.playerDodo = new Dodo("", "Player", this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
+        this.playerBrain = this.playerDodo.brain;
+        this.playerBrainPlayer = this.playerBrain.subBrains[BrainMode.Player] as BrainPlayer;
 
         let playerBrain = (this.playerDodo.brain.subBrains[BrainMode.Player] as BrainPlayer);
         this.playerInventoryView.setInventory(playerBrain.inventory);

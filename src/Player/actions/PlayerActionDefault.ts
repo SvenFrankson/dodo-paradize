@@ -103,6 +103,11 @@ class PlayerActionDefault {
                         ScreenLoger.Log("echo");
                         if (aimedObject.dodo.brain.npcDialog) {
                             ScreenLoger.Log("foxtrot");
+                            let canvas = aimedObject.dodo.game.canvas;
+                            document.exitPointerLock();
+                            aimedObject.dodo.brain.npcDialog.onNextStop = () => {
+                                canvas.requestPointerLock();
+                            }
                             aimedObject.dodo.brain.npcDialog.start();
                         }
                     }

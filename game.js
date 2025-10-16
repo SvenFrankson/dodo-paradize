@@ -969,6 +969,8 @@ class Game {
         this.playerDodo = new Dodo("", "Player", this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
+        this.playerBrain = this.playerDodo.brain;
+        this.playerBrainPlayer = this.playerBrain.subBrains[BrainMode.Player];
         let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
         this.playerInventoryView.setInventory(playerBrain.inventory);
         this.playerActionView.initialize(playerBrain);
@@ -1724,6 +1726,8 @@ class PlayerCamera extends BABYLON.FreeCamera {
         this.pivotHeightHome = 0.5;
         this.pivotRecoil = 4;
         this.playerPosY = 0;
+        this.dialogOffset = BABYLON.Vector3.Zero();
+        this.dialogRotation = 0;
     }
     get verticalAngle() {
         return this._verticalAngle;
@@ -1755,8 +1759,20 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
             }
             else if (this.game.gameMode === GameMode.Playing) {
+                let f = Nabu.Easing.smoothNSec(1 / dt, 0.5);
+                if (this.game.playerBrain.inDialog) {
+                    let dialogOffset = this.game.playerBrain.inDialog.dodo.position.subtract(this.player.position).scale(0.5);
+                    dialogOffset.y -= this.pivotHeight * 0.5;
+                    BABYLON.Vector3.LerpToRef(this.dialogOffset, dialogOffset, 1 - f, this.dialogOffset);
+                    this.dialogRotation = this.dialogRotation * f + Math.PI * 0.5 * (1 - f);
+                }
+                else {
+                    this.dialogOffset.scaleInPlace(f);
+                    this.dialogRotation *= f;
+                }
                 let target = this.player.forward.scale(-this.pivotRecoil);
                 Mummu.RotateInPlace(target, this.player.right, this.verticalAngle);
+                Mummu.RotateInPlace(target, BABYLON.Axis.Y, this.dialogRotation);
                 let targetLook = target.clone().scaleInPlace(-5);
                 let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.1);
                 this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
@@ -1764,10 +1780,12 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 target.x += this.player.position.x;
                 target.y += this.playerPosY;
                 target.z += this.player.position.z;
+                target.addInPlace(this.dialogOffset);
                 targetLook.y += this.pivotHeight;
                 targetLook.x += this.player.position.x;
                 targetLook.y += this.player.position.y;
                 targetLook.z += this.player.position.z;
+                targetLook.addInPlace(this.dialogOffset);
                 this.position.copyFrom(target);
                 let dir = targetLook.subtract(this.position);
                 this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
@@ -3743,6 +3761,11 @@ class PlayerActionDefault {
                         ScreenLoger.Log("echo");
                         if (aimedObject.dodo.brain.npcDialog) {
                             ScreenLoger.Log("foxtrot");
+                            let canvas = aimedObject.dodo.game.canvas;
+                            document.exitPointerLock();
+                            aimedObject.dodo.brain.npcDialog.onNextStop = () => {
+                                canvas.requestPointerLock();
+                            };
                             aimedObject.dodo.brain.npcDialog.start();
                         }
                     }
@@ -5404,8 +5427,10 @@ class DodoCollider extends BABYLON.Mesh {
         this.dodo = dodo;
     }
     highlight() {
+        this.visibility = 0.5;
     }
     unlit() {
+        this.visibility = 0;
     }
 }
 class Dodo extends Creature {
@@ -6763,17 +6788,23 @@ class BrainPlayer extends SubBrain {
             }
         }
         else if (this.game.gameMode === GameMode.Playing) {
-            let aimRay = this.game.camera.getForwardRay(50);
-            let pick = this.game.scene.pickWithRay(aimRay, (mesh) => {
-                return mesh instanceof DodoCollider && mesh.dodo != this.dodo;
-            });
-            if (pick.hit && pick.pickedMesh instanceof DodoCollider) {
-                this._targetLook.copyFrom(pick.pickedMesh.dodo.head.absolutePosition);
+            if (this.brain.inDialog) {
+                this._targetLook.copyFrom(this.brain.inDialog.dodo.head.absolutePosition);
                 f = Nabu.Easing.smoothNSec(1 / dt, 0.3);
             }
             else {
-                this._targetLook.copyFrom(aimRay.direction).scaleInPlace(50).addInPlace(aimRay.origin);
-                f = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+                let aimRay = this.game.camera.getForwardRay(50);
+                let pick = this.game.scene.pickWithRay(aimRay, (mesh) => {
+                    return mesh instanceof DodoCollider && mesh.dodo != this.dodo;
+                });
+                if (pick.hit && pick.pickedMesh instanceof DodoCollider) {
+                    this._targetLook.copyFrom(pick.pickedMesh.dodo.head.absolutePosition);
+                    f = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+                }
+                else {
+                    this._targetLook.copyFrom(aimRay.direction).scaleInPlace(50).addInPlace(aimRay.origin);
+                    f = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+                }
             }
         }
         BABYLON.Vector3.LerpToRef(this.dodo.targetLook, this._targetLook, 1 - f, this.dodo.targetLook);
@@ -7323,6 +7354,9 @@ class NPCDialog {
         this.dialogLines = dialogLines;
         this.dialogTimeout = 0;
     }
+    get game() {
+        return this.dodo.game;
+    }
     getLine(index) {
         let line = this.dialogLines.find(line => { return line.index === index; });
         if (line) {
@@ -7383,6 +7417,7 @@ class NPCDialog {
         }
     }
     start() {
+        this.game.playerBrain.inDialog = this;
         this.container = document.querySelector("#dialog-container");
         this.container.style.display = "block";
         this.linesContainer = document.querySelector("#dialog-lines-container");
@@ -7391,11 +7426,16 @@ class NPCDialog {
         this.writeLine(this.dialogLines[0]);
     }
     stop() {
+        this.game.playerBrain.inDialog = undefined;
         if (this.container) {
             this.container.style.display = "none";
         }
         if (this.linesContainer) {
             this.linesContainer.innerHTML = "";
+        }
+        if (this.onNextStop) {
+            this.onNextStop();
+            this.onNextStop = undefined;
         }
     }
 }
