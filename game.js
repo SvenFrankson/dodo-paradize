@@ -2039,7 +2039,7 @@ class Terrain {
 class TerrainManager {
     constructor(terrain) {
         this.terrain = terrain;
-        this.range = 2;
+        this.range = 10;
         this.createChunckTasks = [];
         this.disposeChunckTasks = [];
         this.createConstructionTasks = [];
@@ -2107,6 +2107,13 @@ class TerrainManager {
             if (d > (this.range + 1) * this.terrain.chunckSize_m) {
                 this.addDisposeChunckTask(chunck.i, chunck.j);
             }
+        });
+        this.createChunckTasks.sort((t1, t2) => {
+            let di1 = t1.i - iCenter;
+            let dj1 = t1.j - jCenter;
+            let di2 = t2.i - iCenter;
+            let dj2 = t2.j - jCenter;
+            return (di2 * di2 + dj2 * dj2) - (di1 * di1 + dj1 * dj1);
         });
         this._lastRefreshChunckPosition = position;
     }

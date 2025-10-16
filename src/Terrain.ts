@@ -160,6 +160,7 @@ class Terrain {
         vertexData.normals = normals;
 
         vertexData.applyToMesh(chunck);
+
         return chunck;
     }
 }

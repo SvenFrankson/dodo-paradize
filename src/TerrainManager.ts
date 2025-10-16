@@ -9,7 +9,7 @@ class TerrainManager {
         return this.terrain.game;
     }
 
-    public range: number = 2;
+    public range: number = 10;
     public createChunckTasks: IJ[] = [];
     public disposeChunckTasks: IJ[] = [];
 
@@ -86,6 +86,15 @@ class TerrainManager {
                 this.addDisposeChunckTask(chunck.i, chunck.j);
             }
         })
+
+        this.createChunckTasks.sort((t1, t2) => {
+            let di1 = t1.i - iCenter;
+            let dj1 = t1.j - jCenter;
+            let di2 = t2.i - iCenter;
+            let dj2 = t2.j - jCenter;
+
+            return (di2 * di2 + dj2 * dj2) - (di1 * di1 + dj1 * dj1);
+        });
 
         this._lastRefreshChunckPosition = position;
     }
