@@ -1707,12 +1707,12 @@ class OutlinePostProcess {
 				
 				gl_FragColor = n[4];
 				if (max(sobel.r, max(sobel.g, sobel.b)) > 20. * depthFactor) {
-					gl_FragColor = n[4] * 0.8;
+					gl_FragColor = n[4] * 0.9;
 					gl_FragColor.a = 1.0;
 				}
 				if (sobel_depth > 0.2 * depthFactor) {
-					gl_FragColor = vec4(0.);
-					gl_FragColor.a = 1.0;
+					//gl_FragColor = vec4(0.);
+					//gl_FragColor.a = 1.0;
 				}
 			}
         `;
@@ -1878,7 +1878,8 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 let f = Nabu.Easing.smoothNSec(1 / dt, 0.5);
                 if (this.game.playerBrain.inDialog) {
                     let dialogOffset = this.game.playerBrain.inDialog.dodo.position.subtract(this.player.position).scale(0.5);
-                    dialogOffset.y -= this.pivotHeight * 0.3;
+                    dialogOffset.y -= this.pivotHeight;
+                    dialogOffset.y += 0.5;
                     BABYLON.Vector3.LerpToRef(this.dialogOffset, dialogOffset, 1 - f, this.dialogOffset);
                     this.dialogRotation = this.dialogRotation * f + Math.PI * 0.5 * (1 - f);
                 }
@@ -7660,6 +7661,7 @@ class NPCDialog {
                 lineElement.classList.add("dialog-line");
                 lineElement.innerHTML = "<span class='text'>— " + dialogLine.text + "</span>";
                 this.linesContainer.appendChild(lineElement);
+                this.linesContainer.scroll({ top: 1000, behavior: "smooth" });
                 if (dialogLine.responses.length > 0) {
                     setTimeout(() => {
                         let responsesElements = [];
@@ -7669,6 +7671,7 @@ class NPCDialog {
                             responseElement.classList.add("dialog-response-line");
                             responseElement.innerHTML = "<span class='index'>" + (n + 1).toFixed(0) + "</span><span class='text'>" + response.text + "</span>";
                             this.linesContainer.appendChild(responseElement);
+                            this.linesContainer.scroll({ top: 1000, behavior: "smooth" });
                             responseElement.onclick = () => {
                                 responsesElements.forEach(e => {
                                     if (e === responseElement) {
@@ -7688,12 +7691,12 @@ class NPCDialog {
                             };
                             responsesElements[n] = responseElement;
                         }
-                    }, 100);
+                    }, 1000);
                 }
                 else {
                     setTimeout(() => {
                         this.writeLine(this.getLine(dialogLine.index + 1));
-                    }, 100);
+                    }, 1000);
                 }
             }
             else if (dialogLine instanceof NPCDialogCheckLine) {
@@ -7749,12 +7752,13 @@ class NPCManager {
             new NPCDialogTextLine(1, "I am Boadicea Bipin, Head of the Departement of Urbanism and Land Survey."),
             new NPCDialogTextLine(2, "Do you wish to build on a terrain parcel ?", new NPCDialogResponse("Yes, I would like to build something.", 3), new NPCDialogResponse("No, thanks.", 100)),
             new NPCDialogTextLine(3, "Do you know the building rules in Dodopolis ?", new NPCDialogResponse("Yes, but I would love to hear it again.", 4), new NPCDialogResponse("No, what are the rules ?", 4)),
-            new NPCDialogTextLine(4, "In Dodopolis, you can not own a parcel."),
-            new NPCDialogTextLine(5, "But you may have the exclusive usage of one, for as long as you wish."),
-            new NPCDialogTextLine(6, "You will be the only one able to build on your parcel."),
-            new NPCDialogTextLine(7, "And if you stop using it for a while, another Dodo will use it."),
-            new NPCDialogTextLine(8, "Do you want to be lended a parcel ?", new NPCDialogResponse("Yes", 9), new NPCDialogResponse("No", 100)),
-            new NPCDialogCheckLine(9, async () => {
+            new NPCDialogTextLine(4, "Don't let my top hat fool you, I will not sell you Land."),
+            new NPCDialogTextLine(5, "In Dodopolis, the Land belongs to every Dodo."),
+            new NPCDialogTextLine(6, "You may only borrow it, for as long as you wish."),
+            new NPCDialogTextLine(7, "And once you no longer use the Land, another Dodo will enjoy it."),
+            new NPCDialogTextLine(8, "'From each according to his ability, to each according to his needs'."),
+            new NPCDialogTextLine(9, "Do you want to use a parcel ?", new NPCDialogResponse("Yes", 10), new NPCDialogResponse("No", 100)),
+            new NPCDialogCheckLine(10, async () => {
                 try {
                     const response = await fetch(SHARE_SERVICE_PATH + "get_available_constructions", {
                         method: "GET",

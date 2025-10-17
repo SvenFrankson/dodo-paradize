@@ -66,6 +66,7 @@ class NPCDialog {
                 lineElement.classList.add("dialog-line");
                 lineElement.innerHTML = "<span class='text'>— " + dialogLine.text + "</span>";
                 this.linesContainer.appendChild(lineElement);
+                this.linesContainer.scroll({ top: 1000, behavior: "smooth" });
 
                 if (dialogLine.responses.length > 0) {
                     setTimeout(() => {
@@ -76,6 +77,7 @@ class NPCDialog {
                             responseElement.classList.add("dialog-response-line");
                             responseElement.innerHTML = "<span class='index'>" + (n + 1).toFixed(0) + "</span><span class='text'>" + response.text + "</span>";
                             this.linesContainer.appendChild(responseElement);
+                            this.linesContainer.scroll({ top: 1000, behavior: "smooth" });
 
                             responseElement.onclick = () => {
                                 responsesElements.forEach(e => {
@@ -97,12 +99,12 @@ class NPCDialog {
 
                             responsesElements[n] = responseElement;
                         }
-                    }, 100);
+                    }, 1000);
                 }
                 else {
                     setTimeout(() => {
                         this.writeLine(this.getLine(dialogLine.index + 1));
-                    }, 100);
+                    }, 1000);
                 }
             }
             else if (dialogLine instanceof NPCDialogCheckLine) {

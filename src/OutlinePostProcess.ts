@@ -63,12 +63,12 @@ class OutlinePostProcess {
 				
 				gl_FragColor = n[4];
 				if (max(sobel.r, max(sobel.g, sobel.b)) > 20. * depthFactor) {
-					gl_FragColor = n[4] * 0.8;
+					gl_FragColor = n[4] * 0.9;
 					gl_FragColor.a = 1.0;
 				}
 				if (sobel_depth > 0.2 * depthFactor) {
-					gl_FragColor = vec4(0.);
-					gl_FragColor.a = 1.0;
+					//gl_FragColor = vec4(0.);
+					//gl_FragColor.a = 1.0;
 				}
 			}
         `;

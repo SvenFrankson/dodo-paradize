@@ -30,15 +30,16 @@ class NPCManager {
                 new NPCDialogResponse("Yes, but I would love to hear it again.", 4),
                 new NPCDialogResponse("No, what are the rules ?", 4),
             ),
-            new NPCDialogTextLine(4, "In Dodopolis, you can not own a parcel."),
-            new NPCDialogTextLine(5, "But you may have the exclusive usage of one, for as long as you wish."),
-            new NPCDialogTextLine(6, "You will be the only one able to build on your parcel."),
-            new NPCDialogTextLine(7, "And if you stop using it for a while, another Dodo will use it."),
-            new NPCDialogTextLine(8, "Do you want to be lended a parcel ?",
-                new NPCDialogResponse("Yes", 9),
+            new NPCDialogTextLine(4, "Don't let my top hat fool you, I will not sell you Land."),
+            new NPCDialogTextLine(5, "In Dodopolis, the Land belongs to every Dodo."),
+            new NPCDialogTextLine(6, "You may only borrow it, for as long as you wish."),
+            new NPCDialogTextLine(7, "And once you no longer use the Land, another Dodo will enjoy it."),
+            new NPCDialogTextLine(8, "'From each according to his ability, to each according to his needs'."),
+            new NPCDialogTextLine(9, "Do you want to use a parcel ?",
+                new NPCDialogResponse("Yes", 10),
                 new NPCDialogResponse("No", 100),
             ),
-            new NPCDialogCheckLine(9, async () => {
+            new NPCDialogCheckLine(10, async () => {
                 try {
                     const response = await fetch(SHARE_SERVICE_PATH + "get_available_constructions", {
                         method: "GET",

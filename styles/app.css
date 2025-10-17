@@ -222,7 +222,7 @@ body.vertical #dodo-color-picker {
 }
 
 #screen-loger-container {
-  display: block;
+  display: none;
   position: fixed;
   left: 100px;
   top: 10px;
@@ -249,6 +249,11 @@ body.vertical #dodo-color-picker {
     border-right: 1px solid white;
     border-top-left-radius: 5px;
     border-top-right-radius: 5px;
+}
+
+#dialog-lines-container {
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 #dialog-container .dialog-title {
