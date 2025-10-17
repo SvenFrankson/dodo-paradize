@@ -4071,6 +4071,7 @@ class PlayerActionMoveBrick {
                         dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
                         brick.root.position.copyFrom(dp);
                         brick.root.position.addInPlace(rootPosition);
+                        brick.clampToConstruction();
                         brick.updateRootPosition();
                         return;
                     }
@@ -4080,6 +4081,7 @@ class PlayerActionMoveBrick {
                         pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
                         pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
                         brick.root.position.copyFrom(pos);
+                        brick.clampToConstruction();
                         brick.updateRootPosition();
                     }
                 }
@@ -4109,6 +4111,7 @@ class PlayerActionMoveBrick {
                             let root = hit.pickedMesh.brick.root;
                             let aimedBrick = root.getBrickForFaceId(hit.faceId);
                             brick.setParent(aimedBrick);
+                            brick.clampToConstruction();
                             brick.updateMesh();
                         }
                         else {
@@ -4119,6 +4122,7 @@ class PlayerActionMoveBrick {
                             dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
                             dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
                             brick.root.position.copyFrom(dp);
+                            brick.clampToConstruction();
                             brick.updateRootPosition();
                         }
                     }
@@ -4128,6 +4132,7 @@ class PlayerActionMoveBrick {
                         brick.posJ = Math.round(pos.z / BRICK_S);
                         brick.posK = Math.floor(pos.y / BRICK_H);
                         brick.setParent(undefined);
+                        brick.clampToConstruction();
                         brick.updateMesh();
                         brick.updateRootPosition();
                         brick.construction.saveToLocalStorage();
@@ -4477,6 +4482,27 @@ class Brick extends BABYLON.TransformNode {
     }
     set posK(v) {
         this.position.y = v * BRICK_H;
+    }
+    clampToConstruction() {
+        let posInConstruction = this.absolutePosition.subtract(this.construction.position);
+        let iInConstruction = Math.round(posInConstruction.x / BRICK_S);
+        let jInConstruction = Math.round(posInConstruction.z / BRICK_S);
+        let overshoot = new BABYLON.Vector3(0, 0, 0);
+        if (iInConstruction < 0) {
+            overshoot.x = iInConstruction;
+        }
+        else if (iInConstruction >= BRICKS_PER_CONSTRUCTION) {
+            overshoot.x = iInConstruction - (BRICKS_PER_CONSTRUCTION - 1);
+        }
+        if (jInConstruction < 0) {
+            overshoot.z = jInConstruction;
+        }
+        else if (jInConstruction >= BRICKS_PER_CONSTRUCTION) {
+            overshoot.z = jInConstruction - (BRICKS_PER_CONSTRUCTION - 1);
+        }
+        Mummu.RotateInPlace(overshoot, BABYLON.Axis.Y, -this.absoluteR * Math.PI / 0.5);
+        this.posI -= overshoot.x;
+        this.posJ -= overshoot.z;
     }
     get r() {
         let r = Math.round(this.rotation.y / (Math.PI * 0.5));

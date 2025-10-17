@@ -101,6 +101,29 @@ class Brick extends BABYLON.TransformNode {
         this.position.y = v * BRICK_H;
     }
 
+    public clampToConstruction(): void {
+        let posInConstruction = this.absolutePosition.subtract(this.construction.position);
+        let iInConstruction = Math.round(posInConstruction.x / BRICK_S);
+        let jInConstruction = Math.round(posInConstruction.z / BRICK_S);
+
+        let overshoot = new BABYLON.Vector3(0, 0, 0);
+        if (iInConstruction < 0) {
+            overshoot.x = iInConstruction;
+        }
+        else if (iInConstruction >= BRICKS_PER_CONSTRUCTION) {
+            overshoot.x = iInConstruction - (BRICKS_PER_CONSTRUCTION - 1);
+        }
+        if (jInConstruction < 0) {
+            overshoot.z = jInConstruction;
+        }
+        else if (jInConstruction >= BRICKS_PER_CONSTRUCTION) {
+            overshoot.z = jInConstruction - (BRICKS_PER_CONSTRUCTION - 1);
+        }
+        Mummu.RotateInPlace(overshoot, BABYLON.Axis.Y, - this.absoluteR * Math.PI / 0.5);
+        this.posI -= overshoot.x;
+        this.posJ -= overshoot.z;
+    }
+
     public get r(): number {
         let r = Math.round(this.rotation.y / (Math.PI * 0.5));
         while (r < 0) {

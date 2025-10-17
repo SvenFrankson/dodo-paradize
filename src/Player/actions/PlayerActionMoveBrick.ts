@@ -39,6 +39,7 @@ class PlayerActionMoveBrick {
                         dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
                         brick.root.position.copyFrom(dp);
                         brick.root.position.addInPlace(rootPosition);
+                        brick.clampToConstruction();
                         brick.updateRootPosition();
                         return;
                     }
@@ -48,6 +49,7 @@ class PlayerActionMoveBrick {
                         pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
                         pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
                         brick.root.position.copyFrom(pos);
+                        brick.clampToConstruction();
                         brick.updateRootPosition();
                     }
                 }
@@ -82,6 +84,7 @@ class PlayerActionMoveBrick {
                             let root = hit.pickedMesh.brick.root;
                             let aimedBrick = root.getBrickForFaceId(hit.faceId);
                             brick.setParent(aimedBrick);
+                            brick.clampToConstruction();
                             brick.updateMesh();
                         }
                         else {
@@ -92,6 +95,7 @@ class PlayerActionMoveBrick {
                             dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
                             dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
                             brick.root.position.copyFrom(dp);
+                            brick.clampToConstruction();
                             brick.updateRootPosition();
                         }
                     }
@@ -101,6 +105,7 @@ class PlayerActionMoveBrick {
                         brick.posJ = Math.round(pos.z / BRICK_S);
                         brick.posK = Math.floor(pos.y / BRICK_H);
                         brick.setParent(undefined);
+                        brick.clampToConstruction();
                         brick.updateMesh();
                         brick.updateRootPosition();
 
