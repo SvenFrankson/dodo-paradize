@@ -55,6 +55,7 @@ class Construction extends BABYLON.Mesh {
         this.limits.material = material;
         this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
         this.limits.visibility = 0.2;
+        this.limits.isVisible = false;
         this.limits.parent = this;
 
         let worldOffset = this.position.add(this.limits.position);

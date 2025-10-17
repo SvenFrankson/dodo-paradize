@@ -6,6 +6,13 @@ interface ISavedPlayerData {
     style: string;
 }
 
+interface ISavedPlayerPositionData {
+    posX: number;
+    posY: number;
+    posZ: number;
+    rot: number;
+}
+
 function SavePlayerToLocalStorage(game: Game): void {
     if (!game.gameLoaded) {
         return;
@@ -29,7 +36,6 @@ function SavePlayerToLocalStorage(game: Game): void {
 }
 
 function LoadPlayerFromLocalStorage(game: Game): void {
-    console.log("a");
     if (HasLocalStorage) {
         let dataString = window.localStorage.getItem("player-save");
         if (dataString) {
@@ -53,4 +59,47 @@ function LoadPlayerFromLocalStorage(game: Game): void {
             }
         }
     }
+}
+
+function SavePlayerPositionToLocalStorage(game: Game): void {
+    if (!game.gameLoaded) {
+        return;
+    }
+    if (game.gameMode === GameMode.Playing) {
+        let data: ISavedPlayerPositionData = {
+            posX: undefined,
+            posY: undefined,
+            posZ: undefined,
+            rot: undefined
+        };
+
+        data.posX = game.playerDodo.position.x;
+        data.posY = game.playerDodo.position.y;
+        data.posZ = game.playerDodo.position.z;
+        data.rot = game.playerDodo.r;
+
+        if (isFinite(data.posX * data.posY * data.posZ) && isFinite(data.rot)) {
+            if (HasLocalStorage) {
+                window.localStorage.setItem("player-save-position", JSON.stringify(data));
+            }
+        }
+    }
+
+}
+
+function LoadPlayerPositionFromLocalStorage(game: Game): boolean {
+    if (HasLocalStorage) {
+        let dataString = window.localStorage.getItem("player-save-position");
+        if (dataString) {
+            let data: ISavedPlayerPositionData = JSON.parse(dataString);
+            if (data) {
+                if (isFinite(data.posX * data.posY * data.posZ) && isFinite(data.rot)) {
+                    game.playerDodo.setWorldPosition(new BABYLON.Vector3(data.posX, data.posY, data.posZ));
+                    game.playerDodo.r = data.rot;
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }

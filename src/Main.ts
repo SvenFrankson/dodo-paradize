@@ -527,39 +527,6 @@ class Game {
         //this.performanceWatcher.showDebug();
 	}
 
-    public async testClaimCurrentConstruction(): Promise<void> {
-        let token = this.networkManager.token;
-        let constructionData = {
-            i: this.playerDodo.getCurrentConstruction(0, 0).i,
-            j: this.playerDodo.getCurrentConstruction(0, 0).j,
-            token: token
-        }
-        console.log(constructionData);
-
-        let headers = {
-            "Content-Type": "application/json",
-        };
-        if (this.terrain.game.devMode.activated) {
-            headers["Authorization"] = 'Basic ' + btoa("carillon:" + this.terrain.game.devMode.getPassword());
-        }
-        let dataString = JSON.stringify(constructionData);
-        try {
-            const response = await fetch(SHARE_SERVICE_PATH + "claim_construction", {
-                method: "POST",
-                mode: "cors",
-                headers: headers,
-                body: dataString,
-            });
-            let responseText = await response.text();
-            console.log("testClaimCurrentConstruction " + responseText);
-        }
-        catch(e) {
-            console.error(e);
-            ScreenLoger.Log("testClaimCurrentConstruction error");
-            ScreenLoger.Log(e);
-        }
-    }
-
     public async setGameMode(mode: GameMode) {
         this.gameMode = mode;
         if (this.gameMode === GameMode.Home) {
@@ -574,11 +541,16 @@ class Game {
             this.inputManager.temporaryNoPointerLock = false;
             (document.querySelector("#ingame-ui") as HTMLDivElement).style.display = "block";
             (document.querySelector("#home-page") as HTMLDivElement).style.display = "none";
+            if (LoadPlayerPositionFromLocalStorage(this)) {
+
+            }
+            else {
+                this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
+                this.playerDodo.r = 0;
+            }
             this.playerDodo.unfold();
-            this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
-            this.playerDodo.r = 0;
             this.networkManager.initialize();
-        
+
             let playerBrain = (this.playerDodo.brain.subBrains[BrainMode.Player] as BrainPlayer);
 
             let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
@@ -638,6 +610,7 @@ class Game {
     public averagedFPS: number = 0;
     public updateConfigTimeout: number = - 1;
     public globalTimer: number = 0;
+    public savePlayerCooldown: number = 2;
     public update(): void {
         let rawDT = this.scene.deltaTime / 1000;
         this.performanceWatcher.update(rawDT);
@@ -658,6 +631,11 @@ class Game {
             if (HasLocalStorage) {
                 window.localStorage.setItem("camera-position", JSON.stringify({ x: camPos.x, y: camPos.y, z: camPos.z }));
                 window.localStorage.setItem("camera-rotation", JSON.stringify({ x: camRotation.x, y: camRotation.y, z: camRotation.z }));
+            }
+            this.savePlayerCooldown -= rawDT;
+            if (this.savePlayerCooldown < 0) {
+                SavePlayerPositionToLocalStorage(this);
+                this.savePlayerCooldown = 3;
             }
         }
     }

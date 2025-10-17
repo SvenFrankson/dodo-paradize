@@ -791,6 +791,7 @@ class Game {
         this.averagedFPS = 0;
         this.updateConfigTimeout = -1;
         this.globalTimer = 0;
+        this.savePlayerCooldown = 2;
         this.canvasLeft = 0;
         this._pointerDownX = 0;
         this._pointerDownY = 0;
@@ -1018,37 +1019,6 @@ class Game {
         }
         //this.performanceWatcher.showDebug();
     }
-    async testClaimCurrentConstruction() {
-        let token = this.networkManager.token;
-        let constructionData = {
-            i: this.playerDodo.getCurrentConstruction(0, 0).i,
-            j: this.playerDodo.getCurrentConstruction(0, 0).j,
-            token: token
-        };
-        console.log(constructionData);
-        let headers = {
-            "Content-Type": "application/json",
-        };
-        if (this.terrain.game.devMode.activated) {
-            headers["Authorization"] = 'Basic ' + btoa("carillon:" + this.terrain.game.devMode.getPassword());
-        }
-        let dataString = JSON.stringify(constructionData);
-        try {
-            const response = await fetch(SHARE_SERVICE_PATH + "claim_construction", {
-                method: "POST",
-                mode: "cors",
-                headers: headers,
-                body: dataString,
-            });
-            let responseText = await response.text();
-            console.log("testClaimCurrentConstruction " + responseText);
-        }
-        catch (e) {
-            console.error(e);
-            ScreenLoger.Log("testClaimCurrentConstruction error");
-            ScreenLoger.Log(e);
-        }
-    }
     async setGameMode(mode) {
         this.gameMode = mode;
         if (this.gameMode === GameMode.Home) {
@@ -1063,9 +1033,13 @@ class Game {
             this.inputManager.temporaryNoPointerLock = false;
             document.querySelector("#ingame-ui").style.display = "block";
             document.querySelector("#home-page").style.display = "none";
+            if (LoadPlayerPositionFromLocalStorage(this)) {
+            }
+            else {
+                this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
+                this.playerDodo.r = 0;
+            }
             this.playerDodo.unfold();
-            this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
-            this.playerDodo.r = 0;
             this.networkManager.initialize();
             let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
             let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
@@ -1116,6 +1090,11 @@ class Game {
             if (HasLocalStorage) {
                 window.localStorage.setItem("camera-position", JSON.stringify({ x: camPos.x, y: camPos.y, z: camPos.z }));
                 window.localStorage.setItem("camera-rotation", JSON.stringify({ x: camRotation.x, y: camRotation.y, z: camRotation.z }));
+            }
+            this.savePlayerCooldown -= rawDT;
+            if (this.savePlayerCooldown < 0) {
+                SavePlayerPositionToLocalStorage(this);
+                this.savePlayerCooldown = 3;
             }
         }
     }
@@ -3781,7 +3760,6 @@ function SavePlayerToLocalStorage(game) {
     }
 }
 function LoadPlayerFromLocalStorage(game) {
-    console.log("a");
     if (HasLocalStorage) {
         let dataString = window.localStorage.getItem("player-save");
         if (dataString) {
@@ -3805,6 +3783,44 @@ function LoadPlayerFromLocalStorage(game) {
             }
         }
     }
+}
+function SavePlayerPositionToLocalStorage(game) {
+    if (!game.gameLoaded) {
+        return;
+    }
+    if (game.gameMode === GameMode.Playing) {
+        let data = {
+            posX: undefined,
+            posY: undefined,
+            posZ: undefined,
+            rot: undefined
+        };
+        data.posX = game.playerDodo.position.x;
+        data.posY = game.playerDodo.position.y;
+        data.posZ = game.playerDodo.position.z;
+        data.rot = game.playerDodo.r;
+        if (isFinite(data.posX * data.posY * data.posZ) && isFinite(data.rot)) {
+            if (HasLocalStorage) {
+                window.localStorage.setItem("player-save-position", JSON.stringify(data));
+            }
+        }
+    }
+}
+function LoadPlayerPositionFromLocalStorage(game) {
+    if (HasLocalStorage) {
+        let dataString = window.localStorage.getItem("player-save-position");
+        if (dataString) {
+            let data = JSON.parse(dataString);
+            if (data) {
+                if (isFinite(data.posX * data.posY * data.posZ) && isFinite(data.rot)) {
+                    game.playerDodo.setWorldPosition(new BABYLON.Vector3(data.posX, data.posY, data.posZ));
+                    game.playerDodo.r = data.rot;
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }
 class PlayerActionDefault {
     static IsAimable(mesh) {
@@ -5302,6 +5318,7 @@ class Construction extends BABYLON.Mesh {
         this.limits.material = material;
         this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
         this.limits.visibility = 0.2;
+        this.limits.isVisible = false;
         this.limits.parent = this;
         let worldOffset = this.position.add(this.limits.position);
         let points = [
@@ -5972,6 +5989,7 @@ class Dodo extends Creature {
         //this.tailEnd.dispose();
     }
     setWorldPosition(p) {
+        ScreenLoger.Log("setWorldPosition " + p);
         this.position.copyFrom(p);
         this.computeWorldMatrix(true);
         this.body.position.copyFrom(p);
