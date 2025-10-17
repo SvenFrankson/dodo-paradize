@@ -34,6 +34,8 @@ class Brick extends BABYLON.TransformNode {
         return !(this.parent instanceof Brick);
     }
 
+    private _invRootWorldMatrix: BABYLON.Matrix;
+
     public anchored: boolean = false;
     public mesh: BrickMesh;
     public construction: Construction;
@@ -184,6 +186,7 @@ class Brick extends BABYLON.TransformNode {
             return;
         }
         this.computeWorldMatrix(true);
+        this._invRootWorldMatrix = this.getWorldMatrix().clone().invert();
         let vDatas: BABYLON.VertexData[] = []
         this.subMeshInfos = [];
         await this.generateMeshVertexData(vDatas, this.subMeshInfos);
@@ -196,8 +199,6 @@ class Brick extends BABYLON.TransformNode {
             //this.mesh.outlineWidth = 0.005;
             this.mesh.layerMask |= 0x20000000;
             this.mesh.parent = this.construction;
-            this.mesh.position = this.position
-            this.mesh.rotation.y = this.r * Math.PI * 0.5;
 
             let brickMaterial = new BABYLON.StandardMaterial("brick-material");
             brickMaterial.specularColor.copyFromFloats(0, 0, 0);
@@ -223,11 +224,23 @@ class Brick extends BABYLON.TransformNode {
             */
 
             this.mesh.material = this.construction.terrain.game.defaultToonMaterial;
+        }
+        
+        data.applyToMesh(this.mesh);
+
+        this.updateRootPosition();
+    }
+
+    public updateRootPosition(): void {
+        if (!this.isRoot) {
+            return this.root.updateRootPosition();
+        }
+        if (this.mesh) {
+            this.mesh.position = this.position
+            this.mesh.rotation.y = this.r * Math.PI * 0.5;
             this.mesh.computeWorldMatrix(true);
             this.mesh.refreshBoundingInfo();
         }
-
-        data.applyToMesh(this.mesh);
     }
 
     public highlight(): void {
@@ -277,8 +290,8 @@ class Brick extends BABYLON.TransformNode {
         vData.uvs = uvs;
 
         if (depth > 0) {
-            Mummu.RotateAngleAxisVertexDataInPlace(vData, this.absoluteR * Math.PI * 0.5, BABYLON.Axis.Y);
-            Mummu.TranslateVertexDataInPlace(vData, this.absolutePosition.subtract(this.construction.position));
+            Mummu.RotateAngleAxisVertexDataInPlace(vData, (this.absoluteR - this.root.r) * Math.PI * 0.5, BABYLON.Axis.Y);
+            Mummu.TranslateVertexDataInPlace(vData, BABYLON.Vector3.TransformCoordinates(this.absolutePosition, this.root._invRootWorldMatrix));
         }
         vDatas.push(vData);
         subMeshInfos.push({ faceId: 0, brick: this });

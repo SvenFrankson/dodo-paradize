@@ -222,7 +222,7 @@ body.vertical #dodo-color-picker {
 }
 
 #screen-loger-container {
-  display: none;
+  display: block;
   position: fixed;
   left: 100px;
   top: 10px;

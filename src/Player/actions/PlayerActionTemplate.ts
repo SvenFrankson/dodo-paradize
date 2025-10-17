@@ -101,6 +101,7 @@ class PlayerActionTemplate {
                             brick.r = r;
                             brick.setParent(aimedBrick);
                             brick.computeWorldMatrix(true);
+                            ScreenLoger.Log("BrickPos " + brick.position)
                             brick.updateMesh();
 
                             root.construction.saveToLocalStorage();

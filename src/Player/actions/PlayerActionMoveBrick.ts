@@ -30,6 +30,7 @@ class PlayerActionMoveBrick {
                 if (hit && hit.pickedPoint) {
                     let n =  hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
                     if (hit.pickedMesh instanceof BrickMesh) {
+                        console.log("tak")
                         let root = hit.pickedMesh.brick.root;
                         let rootPosition = root.position;
                         let dp = hit.pickedPoint.add(n).subtract(rootPosition);
@@ -38,16 +39,16 @@ class PlayerActionMoveBrick {
                         dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
                         brick.root.position.copyFrom(dp);
                         brick.root.position.addInPlace(rootPosition);
-                        brick.root.computeWorldMatrix(true);
+                        brick.updateRootPosition();
                         return;
                     }
                     else {
-                        let pos = hit.pickedPoint.add(n);
+                        let pos = hit.pickedPoint.add(n).subtract(brick.construction.position);
                         pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
                         pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
                         pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
                         brick.root.position.copyFrom(pos);
-                        brick.root.computeWorldMatrix(true);
+                        brick.updateRootPosition();
                     }
                 }
             }
@@ -86,29 +87,25 @@ class PlayerActionMoveBrick {
                         else {
                             let root = hit.pickedMesh.brick.root;
                             let rootPosition = root.position;
-                            let dp = hit.pickedPoint.add(n).subtract(rootPosition);
+                            let dp = hit.pickedPoint.add(n).subtractInPlace(rootPosition);
                             dp.x = BRICK_S * Math.round(dp.x / BRICK_S);
                             dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
                             dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
                             brick.root.position.copyFrom(dp);
-                            brick.root.position.addInPlace(rootPosition);
-                            brick.construction = root.construction;
+                            brick.updateRootPosition();
                         }
                     }
                     else {
-                        let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
-                        let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
-                        if (construction && construction.isPlayerAllowedToEdit()) {
-                            let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5)).subtractInPlace(construction.position);
-                            brick.posI = Math.round(pos.x / BRICK_S);
-                            brick.posJ = Math.round(pos.z / BRICK_S);
-                            brick.posK = Math.floor(pos.y / BRICK_H);
-                            brick.construction = construction;
-                            brick.updateMesh();
-                            
-                            brick.construction.saveToLocalStorage();
-                            brick.construction.saveToServer();
-                        }
+                        let pos = hit.pickedPoint.add(n).subtractInPlace(brick.construction.position);
+                        brick.posI = Math.round(pos.x / BRICK_S);
+                        brick.posJ = Math.round(pos.z / BRICK_S);
+                        brick.posK = Math.floor(pos.y / BRICK_H);
+                        brick.setParent(undefined);
+                        brick.updateMesh();
+                        brick.updateRootPosition();
+
+                        brick.construction.saveToLocalStorage();
+                        brick.construction.saveToServer();
                     }
                 }
             }

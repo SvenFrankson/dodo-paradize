@@ -4062,6 +4062,7 @@ class PlayerActionMoveBrick {
                 if (hit && hit.pickedPoint) {
                     let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
                     if (hit.pickedMesh instanceof BrickMesh) {
+                        console.log("tak");
                         let root = hit.pickedMesh.brick.root;
                         let rootPosition = root.position;
                         let dp = hit.pickedPoint.add(n).subtract(rootPosition);
@@ -4070,16 +4071,16 @@ class PlayerActionMoveBrick {
                         dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
                         brick.root.position.copyFrom(dp);
                         brick.root.position.addInPlace(rootPosition);
-                        brick.root.computeWorldMatrix(true);
+                        brick.updateRootPosition();
                         return;
                     }
                     else {
-                        let pos = hit.pickedPoint.add(n);
+                        let pos = hit.pickedPoint.add(n).subtract(brick.construction.position);
                         pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
                         pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
                         pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
                         brick.root.position.copyFrom(pos);
-                        brick.root.computeWorldMatrix(true);
+                        brick.updateRootPosition();
                     }
                 }
             }
@@ -4113,28 +4114,24 @@ class PlayerActionMoveBrick {
                         else {
                             let root = hit.pickedMesh.brick.root;
                             let rootPosition = root.position;
-                            let dp = hit.pickedPoint.add(n).subtract(rootPosition);
+                            let dp = hit.pickedPoint.add(n).subtractInPlace(rootPosition);
                             dp.x = BRICK_S * Math.round(dp.x / BRICK_S);
                             dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
                             dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
                             brick.root.position.copyFrom(dp);
-                            brick.root.position.addInPlace(rootPosition);
-                            brick.construction = root.construction;
+                            brick.updateRootPosition();
                         }
                     }
                     else {
-                        let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
-                        let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
-                        if (construction && construction.isPlayerAllowedToEdit()) {
-                            let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5)).subtractInPlace(construction.position);
-                            brick.posI = Math.round(pos.x / BRICK_S);
-                            brick.posJ = Math.round(pos.z / BRICK_S);
-                            brick.posK = Math.floor(pos.y / BRICK_H);
-                            brick.construction = construction;
-                            brick.updateMesh();
-                            brick.construction.saveToLocalStorage();
-                            brick.construction.saveToServer();
-                        }
+                        let pos = hit.pickedPoint.add(n).subtractInPlace(brick.construction.position);
+                        brick.posI = Math.round(pos.x / BRICK_S);
+                        brick.posJ = Math.round(pos.z / BRICK_S);
+                        brick.posK = Math.floor(pos.y / BRICK_H);
+                        brick.setParent(undefined);
+                        brick.updateMesh();
+                        brick.updateRootPosition();
+                        brick.construction.saveToLocalStorage();
+                        brick.construction.saveToServer();
                     }
                 }
             }
@@ -4262,6 +4259,7 @@ class PlayerActionTemplate {
                             brick.r = r;
                             brick.setParent(aimedBrick);
                             brick.computeWorldMatrix(true);
+                            ScreenLoger.Log("BrickPos " + brick.position);
                             brick.updateMesh();
                             root.construction.saveToLocalStorage();
                             root.construction.saveToServer();
@@ -4547,6 +4545,7 @@ class Brick extends BABYLON.TransformNode {
             return;
         }
         this.computeWorldMatrix(true);
+        this._invRootWorldMatrix = this.getWorldMatrix().clone().invert();
         let vDatas = [];
         this.subMeshInfos = [];
         await this.generateMeshVertexData(vDatas, this.subMeshInfos);
@@ -4558,8 +4557,6 @@ class Brick extends BABYLON.TransformNode {
             //this.mesh.outlineWidth = 0.005;
             this.mesh.layerMask |= 0x20000000;
             this.mesh.parent = this.construction;
-            this.mesh.position = this.position;
-            this.mesh.rotation.y = this.r * Math.PI * 0.5;
             let brickMaterial = new BABYLON.StandardMaterial("brick-material");
             brickMaterial.specularColor.copyFromFloats(0, 0, 0);
             //brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
@@ -4582,10 +4579,20 @@ class Brick extends BABYLON.TransformNode {
             logoMaterial.setUseFlatSpecular(true);
             */
             this.mesh.material = this.construction.terrain.game.defaultToonMaterial;
+        }
+        data.applyToMesh(this.mesh);
+        this.updateRootPosition();
+    }
+    updateRootPosition() {
+        if (!this.isRoot) {
+            return this.root.updateRootPosition();
+        }
+        if (this.mesh) {
+            this.mesh.position = this.position;
+            this.mesh.rotation.y = this.r * Math.PI * 0.5;
             this.mesh.computeWorldMatrix(true);
             this.mesh.refreshBoundingInfo();
         }
-        data.applyToMesh(this.mesh);
     }
     highlight() {
         if (this != this.root) {
@@ -4630,8 +4637,8 @@ class Brick extends BABYLON.TransformNode {
         }
         vData.uvs = uvs;
         if (depth > 0) {
-            Mummu.RotateAngleAxisVertexDataInPlace(vData, this.absoluteR * Math.PI * 0.5, BABYLON.Axis.Y);
-            Mummu.TranslateVertexDataInPlace(vData, this.absolutePosition.subtract(this.construction.position));
+            Mummu.RotateAngleAxisVertexDataInPlace(vData, (this.absoluteR - this.root.r) * Math.PI * 0.5, BABYLON.Axis.Y);
+            Mummu.TranslateVertexDataInPlace(vData, BABYLON.Vector3.TransformCoordinates(this.absolutePosition, this.root._invRootWorldMatrix));
         }
         vDatas.push(vData);
         subMeshInfos.push({ faceId: 0, brick: this });
