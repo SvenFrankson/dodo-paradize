@@ -97,6 +97,7 @@ class PlayerActionDefault {
             else {
                 if (player.playMode === PlayMode.Playing) {
                     if ((aimedObject instanceof Brick) && !aimedObject.root.anchored) {
+                        console.log("go !");
                         player.currentAction = PlayerActionMoveBrick.Create(player, aimedObject.root);
                     }
                     if (aimedObject instanceof DodoCollider) {

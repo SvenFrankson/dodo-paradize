@@ -196,6 +196,8 @@ class Brick extends BABYLON.TransformNode {
             //this.mesh.outlineWidth = 0.005;
             this.mesh.layerMask |= 0x20000000;
             this.mesh.parent = this.construction;
+            this.mesh.position = this.position
+            this.mesh.rotation.y = this.r * Math.PI * 0.5;
 
             let brickMaterial = new BABYLON.StandardMaterial("brick-material");
             brickMaterial.specularColor.copyFromFloats(0, 0, 0);
@@ -274,8 +276,10 @@ class Brick extends BABYLON.TransformNode {
         }
         vData.uvs = uvs;
 
-        Mummu.RotateAngleAxisVertexDataInPlace(vData, this.absoluteR * Math.PI * 0.5, BABYLON.Axis.Y);
-        Mummu.TranslateVertexDataInPlace(vData, this.absolutePosition.subtract(this.construction.position));
+        if (depth > 0) {
+            Mummu.RotateAngleAxisVertexDataInPlace(vData, this.absoluteR * Math.PI * 0.5, BABYLON.Axis.Y);
+            Mummu.TranslateVertexDataInPlace(vData, this.absolutePosition.subtract(this.construction.position));
+        }
         vDatas.push(vData);
         subMeshInfos.push({ faceId: 0, brick: this });
 
