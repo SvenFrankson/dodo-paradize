@@ -165,8 +165,8 @@ class HomeMenuPlate extends BABYLON.Mesh {
         }
 
         this.customizeHatLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-hat"));
-        this.customizeHatLine.maxValue = 2;
-        var customizeHatLineLabels = ["None", "Top Hat"];
+        this.customizeHatLine.maxValue = 3;
+        var customizeHatLineLabels = ["None", "Top Hat", "Cap"];
         this.customizeHatLine.toString = (v: number) => {
             return customizeHatLineLabels[v];
         }

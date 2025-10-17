@@ -544,8 +544,8 @@ class HomeMenuPlate extends BABYLON.Mesh {
             return DodoColors[v].name;
         };
         this.customizeHatLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-hat"));
-        this.customizeHatLine.maxValue = 2;
-        var customizeHatLineLabels = ["None", "Top Hat"];
+        this.customizeHatLine.maxValue = 3;
+        var customizeHatLineLabels = ["None", "Top Hat", "Cap"];
         this.customizeHatLine.toString = (v) => {
             return customizeHatLineLabels[v];
         };
@@ -873,6 +873,7 @@ class Game {
         skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
         this.skybox.material = skyboxMaterial;
         this.camera = new PlayerCamera(this);
+        OutlinePostProcess.AddOutlinePostProcess(this.camera);
         if (window.localStorage.getItem("camera-position")) {
             let positionItem = JSON.parse(window.localStorage.getItem("camera-position"));
             let position = new BABYLON.Vector3(positionItem.x, positionItem.y, positionItem.z);
@@ -1036,7 +1037,7 @@ class Game {
             if (LoadPlayerPositionFromLocalStorage(this)) {
             }
             else {
-                this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
+                this.playerDodo.setWorldPosition(new BABYLON.Vector3(this.terrain.chunckSize_m * 0.5, 10, this.terrain.chunckSize_m * 0.5));
                 this.playerDodo.r = 0;
             }
             this.playerDodo.unfold();
@@ -1643,6 +1644,88 @@ class NumValueInput extends HTMLElement {
     }
 }
 customElements.define("num-value-input", NumValueInput);
+class OutlinePostProcess {
+    static AddOutlinePostProcess(camera) {
+        let scene = camera.getScene();
+        let engine = scene.getEngine();
+        BABYLON.Effect.ShadersStore["EdgeFragmentShader"] = `
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+			varying vec2 vUV;
+			uniform sampler2D textureSampler;
+			uniform sampler2D depthSampler;
+			uniform float 		width;
+			uniform float 		height;
+			void make_kernel_color(inout vec4 n[9], sampler2D tex, vec2 coord)
+			{
+				float w = 1.0 / width;
+				float h = 1.0 / height;
+				n[0] = texture2D(tex, coord + vec2( -w, -h));
+				n[1] = texture2D(tex, coord + vec2(0.0, -h));
+				n[2] = texture2D(tex, coord + vec2(  w, -h));
+				n[3] = texture2D(tex, coord + vec2( -w, 0.0));
+				n[4] = texture2D(tex, coord);
+				n[5] = texture2D(tex, coord + vec2(  w, 0.0));
+				n[6] = texture2D(tex, coord + vec2( -w, h));
+				n[7] = texture2D(tex, coord + vec2(0.0, h));
+				n[8] = texture2D(tex, coord + vec2(  w, h));
+			}
+			
+			void make_kernel_depth(inout float n[9], sampler2D tex, vec2 coord)
+			{
+				float w = 1.0 / width;
+				float h = 1.0 / height;
+				n[0] = texture2D(tex, coord + vec2( -w, -h)).r;
+				n[1] = texture2D(tex, coord + vec2(0.0, -h)).r;
+				n[2] = texture2D(tex, coord + vec2(  w, -h)).r;
+				n[3] = texture2D(tex, coord + vec2( -w, 0.0)).r;
+				n[4] = texture2D(tex, coord).r;
+				n[5] = texture2D(tex, coord + vec2(  w, 0.0)).r;
+				n[6] = texture2D(tex, coord + vec2( -w, h)).r;
+				n[7] = texture2D(tex, coord + vec2(0.0, h)).r;
+				n[8] = texture2D(tex, coord + vec2(  w, h)).r;
+			}
+
+			void main(void) 
+			{
+				vec4 d = texture2D(depthSampler, vUV);
+				float depth = d.r * (1000.0 - 0.1) + 0.1;
+				float depthFactor = d.r;
+				
+				float nD[9];
+				make_kernel_depth( nD, depthSampler, vUV );
+				float sobel_depth_edge_h = nD[2] + (2.0*nD[5]) + nD[8] - (nD[0] + (2.0*nD[3]) + nD[6]);
+				float sobel_depth_edge_v = nD[0] + (2.0*nD[1]) + nD[2] - (nD[6] + (2.0*nD[7]) + nD[8]);
+				float sobel_depth = sqrt((sobel_depth_edge_h * sobel_depth_edge_h) + (sobel_depth_edge_v * sobel_depth_edge_v));
+
+				vec4 n[9];
+				make_kernel_color( n, textureSampler, vUV );
+				vec4 sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
+				vec4 sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
+				vec4 sobel = sqrt((sobel_edge_h * sobel_edge_h) + (sobel_edge_v * sobel_edge_v));
+				
+				gl_FragColor = n[4];
+				if (max(sobel.r, max(sobel.g, sobel.b)) > 20. * depthFactor) {
+					gl_FragColor = n[4] * 0.8;
+					gl_FragColor.a = 1.0;
+				}
+				if (sobel_depth > 0.2 * depthFactor) {
+					gl_FragColor = vec4(0.);
+					gl_FragColor.a = 1.0;
+				}
+			}
+        `;
+        let depthMap = scene.enableDepthRenderer(camera).getDepthMap();
+        let postProcess = new BABYLON.PostProcess("Edge", "Edge", ["width", "height"], ["depthSampler"], 1, camera);
+        postProcess.onApply = (effect) => {
+            effect.setTexture("depthSampler", depthMap);
+            effect.setFloat("width", engine.getRenderWidth());
+            effect.setFloat("height", engine.getRenderHeight());
+        };
+        return postProcess;
+    }
+}
 class PerformanceWatcher {
     constructor(game) {
         this.game = game;
@@ -1650,7 +1733,7 @@ class PerformanceWatcher {
         this.average = 24;
         this.worst = 24;
         this.isWorstTooLow = false;
-        this.devicePixelRationess = 5;
+        this.devicePixelRationess = 10;
         this.targetDevicePixelRationess = this.devicePixelRationess;
         this.devicePixelRatioSteps = 10;
         this.resizeCD = 0;
@@ -1677,6 +1760,7 @@ class PerformanceWatcher {
         }
     }
     update(rawDt) {
+        return;
         let fps = 1 / rawDt;
         if (isFinite(fps)) {
             this.average = 0.95 * this.average + 0.05 * fps;
@@ -1758,6 +1842,8 @@ class PlayerCamera extends BABYLON.FreeCamera {
         this.playerPosY = 0;
         this.dialogOffset = BABYLON.Vector3.Zero();
         this.dialogRotation = 0;
+        this.minZ = 0.1;
+        this.maxZ = 1000;
     }
     get verticalAngle() {
         return this._verticalAngle;
@@ -1952,7 +2038,7 @@ class Terrain {
         let masterSeed = Nabu.MasterSeed.GetFor("Paulita&Sven");
         let seededMap = Nabu.SeededMap.CreateFromMasterSeed(masterSeed, 4, 512);
         this.mapL = 1024;
-        this.generator = new Nabu.TerrainMapGenerator(seededMap, [2048, 512, 128, 64]);
+        this.generator = new Nabu.TerrainMapGenerator(seededMap, [32, 16]);
         this.material = new TerrainMaterial("terrain", this.game.scene);
         this.waterMaterial = new BABYLON.StandardMaterial("water-material");
         this.waterMaterial.specularColor.copyFromFloats(0.4, 0.4, 0.4);
@@ -1999,13 +2085,17 @@ class Terrain {
             while (j < 0) {
                 j += this.mapL;
             }
-            let h00 = (map.getClamped(i, j) - 128) * TILE_H;
-            let h10 = (map.getClamped(i + 1, j) - 128) * TILE_H;
-            let h01 = (map.getClamped(i, j + 1) - 128) * TILE_H;
-            let h11 = (map.getClamped(i + 1, j + 1) - 128) * TILE_H;
+            let h00 = (map.getClamped(i, j) - 128);
+            let h10 = (map.getClamped(i + 1, j) - 128);
+            let h01 = (map.getClamped(i, j + 1) - 128);
+            let h11 = (map.getClamped(i + 1, j + 1) - 128);
+            h00 = Math.floor(h00 / 16) + 1;
+            h10 = Math.floor(h10 / 16) + 1;
+            h01 = Math.floor(h01 / 16) + 1;
+            h11 = Math.floor(h11 / 16) + 1;
             let h0 = h00 * (1 - di) + h10 * di;
             let h1 = h01 * (1 - di) + h11 * di;
-            return h0 * (1 - dj) + h1 * dj;
+            return (h0 * (1 - dj) + h1 * dj) * TILE_H;
         }
         return 0;
     }
@@ -2044,6 +2134,7 @@ class Terrain {
         for (let j = 0; j <= l; j++) {
             for (let i = 0; i <= l; i++) {
                 let h = this.tmpMapGet(iOffset + i, jOffset + j) - 128;
+                h = Math.floor(h / 16) + 1;
                 positions.push(i * TILE_S, h * TILE_H, j * TILE_S);
             }
         }
@@ -2058,6 +2149,11 @@ class Terrain {
                 let hIM = this.tmpMapGet(iOffset + i - 1, jOffset + j) - 128;
                 let hJP = this.tmpMapGet(iOffset + i, jOffset + j + 1) - 128;
                 let hJM = this.tmpMapGet(iOffset + i, jOffset + j - 1) - 128;
+                h = Math.floor(h / 16) + 1;
+                hIP = Math.floor(hIP / 16) + 1;
+                hIM = Math.floor(hIM / 16) + 1;
+                hJP = Math.floor(hJP / 16) + 1;
+                hJM = Math.floor(hJM / 16) + 1;
                 pt0.copyFromFloats(1, hIP - h, 0);
                 pt1.copyFromFloats(0, hJP - h, 1);
                 pt2.copyFromFloats(-1, hIM - h, 0);
@@ -5813,7 +5909,7 @@ class Dodo extends Creature {
     }
     static OutlinedMesh(name) {
         let mesh = new BABYLON.Mesh(name);
-        mesh.renderOutline = true;
+        mesh.renderOutline = false;
         mesh.outlineColor.copyFromFloats(0, 0, 0);
         mesh.outlineWidth = 0.01;
         return mesh;
@@ -5954,6 +6050,9 @@ class Dodo extends Creature {
             this.hat.isVisible = true;
             if (this.hatType === 1) {
                 Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[8]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
+            }
+            else if (this.hatType === 2) {
+                Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[9]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
             }
         }
         //datas[1].applyToMesh(this.upperLegs[0]);
@@ -7637,13 +7736,13 @@ class NPCManager {
     initialize() {
         this.landServant = new Dodo("local-npc", "Boadicea Bipin", this.game, { style: "232a0f200101" });
         this.landServant.brain = new Brain(this.landServant, BrainMode.Idle);
-        this.landServant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.12, 0, -16);
+        this.landServant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.25, 0, 25.56);
         this.landServant.brain.initialize();
     }
     async instantiate() {
         await this.landServant.instantiate();
         this.landServant.unfold();
-        this.landServant.setWorldPosition(new BABYLON.Vector3(1.12, 0, -16));
+        this.landServant.setWorldPosition(new BABYLON.Vector3(1.25, 0, 25.56));
         this.game.npcDodos.push(this.landServant);
         this.landServant.brain.npcDialog = new NPCDialog(this.landServant, [
             new NPCDialogTextLine(0, "Good Morning Sir !"),

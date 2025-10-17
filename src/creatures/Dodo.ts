@@ -195,7 +195,7 @@ class Dodo extends Creature {
     public lowerLegs: BABYLON.Mesh[];
     public static OutlinedMesh(name: string): BABYLON.Mesh {
         let mesh = new BABYLON.Mesh(name);
-        mesh.renderOutline = true;
+        mesh.renderOutline = false;
         mesh.outlineColor.copyFromFloats(0, 0, 0);
         mesh.outlineWidth = 0.01;
         return mesh;
@@ -535,6 +535,9 @@ class Dodo extends Creature {
             this.hat.isVisible = true;
             if (this.hatType === 1) {
                 Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[8]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
+            }
+            else if (this.hatType === 2) {
+                Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[9]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
             }
         }
 

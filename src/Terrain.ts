@@ -30,7 +30,7 @@ class Terrain {
         let masterSeed = Nabu.MasterSeed.GetFor("Paulita&Sven");
         let seededMap = Nabu.SeededMap.CreateFromMasterSeed(masterSeed, 4, 512);
         this.mapL = 1024;
-        this.generator = new Nabu.TerrainMapGenerator(seededMap, [2048, 512, 128, 64]);
+        this.generator = new Nabu.TerrainMapGenerator(seededMap, [32, 16]);
         this.material = new TerrainMaterial("terrain", this.game.scene);
 
         this.waterMaterial = new BABYLON.StandardMaterial("water-material");
@@ -88,15 +88,20 @@ class Terrain {
                 j += this.mapL;
             }
 
-            let h00 = (map.getClamped(i, j) - 128) * TILE_H;
-            let h10 = (map.getClamped(i + 1, j) - 128) * TILE_H;
-            let h01 = (map.getClamped(i, j + 1) - 128) * TILE_H;
-            let h11 = (map.getClamped(i + 1, j + 1) - 128) * TILE_H;
+            let h00 = (map.getClamped(i, j) - 128);
+            let h10 = (map.getClamped(i + 1, j) - 128);
+            let h01 = (map.getClamped(i, j + 1) - 128);
+            let h11 = (map.getClamped(i + 1, j + 1) - 128);
+            
+            h00 = Math.floor(h00 / 16) + 1;
+            h10 = Math.floor(h10 / 16) + 1;
+            h01 = Math.floor(h01 / 16) + 1;
+            h11 = Math.floor(h11 / 16) + 1;
             
             let h0 = h00 * (1 - di) + h10 * di;
             let h1 = h01 * (1 - di) + h11 * di;
 
-            return h0 * (1 - dj) + h1 * dj;
+            return (h0 * (1 - dj) + h1 * dj) * TILE_H;
         }
         return 0;
     }
@@ -142,6 +147,7 @@ class Terrain {
         for (let j = 0; j <= l; j++) {
             for (let i = 0; i <= l; i++) {
                 let h = this.tmpMapGet(iOffset + i, jOffset + j) - 128;
+                h = Math.floor(h / 16) + 1;
                 positions.push(i * TILE_S, h * TILE_H, j * TILE_S);
             }
         }
@@ -158,6 +164,12 @@ class Terrain {
                 let hIM = this.tmpMapGet(iOffset + i - 1, jOffset + j) - 128;
                 let hJP = this.tmpMapGet(iOffset + i, jOffset + j + 1) - 128;
                 let hJM = this.tmpMapGet(iOffset + i, jOffset + j - 1) - 128;
+                
+                h = Math.floor(h / 16) + 1;
+                hIP = Math.floor(hIP / 16) + 1;
+                hIM = Math.floor(hIM / 16) + 1;
+                hJP = Math.floor(hJP / 16) + 1;
+                hJM = Math.floor(hJM / 16) + 1;
 
                 pt0.copyFromFloats(1, hIP - h, 0);
                 pt1.copyFromFloats(0, hJP - h, 1);

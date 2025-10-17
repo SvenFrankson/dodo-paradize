@@ -338,6 +338,7 @@ class Game {
         this.skybox.material = skyboxMaterial;
 
         this.camera = new PlayerCamera(this);
+        OutlinePostProcess.AddOutlinePostProcess(this.camera);
 
         if (window.localStorage.getItem("camera-position")) {
             let positionItem = JSON.parse(window.localStorage.getItem("camera-position"));
@@ -545,7 +546,7 @@ class Game {
 
             }
             else {
-                this.playerDodo.setWorldPosition(new BABYLON.Vector3(0, 1, 0));
+                this.playerDodo.setWorldPosition(new BABYLON.Vector3(this.terrain.chunckSize_m * 0.5, 10, this.terrain.chunckSize_m * 0.5));
                 this.playerDodo.r = 0;
             }
             this.playerDodo.unfold();

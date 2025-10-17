@@ -1,3 +1,4 @@
+
 class PerformanceWatcher {
 
     public supportTexture3D: boolean = false;
@@ -5,7 +6,7 @@ class PerformanceWatcher {
     public worst: number = 24;
 
     public isWorstTooLow: boolean = false;
-    public devicePixelRationess: number = 5;
+    public devicePixelRationess: number = 10;
     public targetDevicePixelRationess: number = this.devicePixelRationess;
     public devicePixelRatioSteps: number = 10;
     public get devicePixelRatio(): number {
@@ -37,6 +38,7 @@ class PerformanceWatcher {
     }
 
     public update(rawDt: number): void {
+        return;
         let fps = 1 / rawDt;
         if (isFinite(fps)) {
             this.average = 0.95 * this.average + 0.05 * fps;
