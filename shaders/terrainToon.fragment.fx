@@ -33,7 +33,8 @@ void main() {
       color = sandColor;
    }
 
-   // show grid
+      // show grid
+   /*
    float nrmzdX = vPositionL.x / 0.672;
    float nrmzdZ = vPositionL.z / 0.672;
 
@@ -53,6 +54,7 @@ void main() {
    if (dz < 0.01 || dz > 0.99) {
       color = vec3(0., 0., 0.);
    }
+   */
 
    outColor = vec4(color * sunLightFactor, 1.);
 }

@@ -225,30 +225,30 @@ class BrainPlayer extends SubBrain {
         this._pointerDown = false;
         let dX = this._pointerDownX - event.clientX;
         let dY = this._pointerDownY - event.clientY;
-        let distance = Math.sqrt(dX * dX + dY * dY);
+        let onScreenDistance = Math.sqrt(dX * dX + dY * dY);
         let duration = (performance.now() - this._pointerDownTime) / 1000;
         if (this.playMode === PlayMode.Playing) {
             if (this.currentAction) {
                 if (event.button === 0) {
                     if (this.currentAction.onPointerUp) {
-                        this.currentAction.onPointerUp(duration, distance);
+                        this.currentAction.onPointerUp(duration, onScreenDistance);
                     }
                 }
                 else if (event.button === 2) {
                     if (this.currentAction.onRightPointerUp) {
-                        this.currentAction.onRightPointerUp(duration, distance);
+                        this.currentAction.onRightPointerUp(duration, onScreenDistance);
                     }
                 }
             }
             else {
                 if (event.button === 0) {
                     if (this.defaultAction.onPointerUp) {
-                        this.defaultAction.onPointerUp(duration, distance);
+                        this.defaultAction.onPointerUp(duration, onScreenDistance);
                     }
                 }
                 else if (event.button === 2) {
                     if (this.defaultAction.onRightPointerUp) {
-                        this.defaultAction.onRightPointerUp(duration, distance);
+                        this.defaultAction.onRightPointerUp(duration, onScreenDistance);
                     }
                 }
             }

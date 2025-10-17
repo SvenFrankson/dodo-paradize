@@ -8,7 +8,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
     public set verticalAngle(v: number) {
         this._verticalAngle = Nabu.MinMax(v, - Math.PI / 2, Math.PI / 2);
     }
-    public pivotHeight: number = 1.5;
+    public pivotHeight: number = 2;
     public pivotHeightHome: number = 0.5;
     public pivotRecoil: number = 4;
     public playerPosY: number = 0;
@@ -51,7 +51,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 let f = Nabu.Easing.smoothNSec(1 / dt, 0.5);
                 if (this.game.playerBrain.inDialog) {
                     let dialogOffset = this.game.playerBrain.inDialog.dodo.position.subtract(this.player.position).scale(0.5);
-                    dialogOffset.y -= this.pivotHeight * 0.5;
+                    dialogOffset.y -= this.pivotHeight * 0.3;
                     BABYLON.Vector3.LerpToRef(this.dialogOffset, dialogOffset, 1 - f, this.dialogOffset);
                     this.dialogRotation = this.dialogRotation * f + Math.PI * 0.5 * (1 - f);
                 }

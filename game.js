@@ -967,7 +967,7 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.npcManager = new NPCManager(this);
         this.npcManager.initialize();
-        this.playerDodo = new Dodo("", "Player", this, { speed: 2, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("", "Player", this, { speed: 3, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.playerBrain = this.playerDodo.brain;
@@ -1752,7 +1752,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
         super("player-camera", BABYLON.Vector3.Zero());
         this.game = game;
         this._verticalAngle = 0;
-        this.pivotHeight = 1.5;
+        this.pivotHeight = 2;
         this.pivotHeightHome = 0.5;
         this.pivotRecoil = 4;
         this.playerPosY = 0;
@@ -1792,7 +1792,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 let f = Nabu.Easing.smoothNSec(1 / dt, 0.5);
                 if (this.game.playerBrain.inDialog) {
                     let dialogOffset = this.game.playerBrain.inDialog.dodo.position.subtract(this.player.position).scale(0.5);
-                    dialogOffset.y -= this.pivotHeight * 0.5;
+                    dialogOffset.y -= this.pivotHeight * 0.3;
                     BABYLON.Vector3.LerpToRef(this.dialogOffset, dialogOffset, 1 - f, this.dialogOffset);
                     this.dialogRotation = this.dialogRotation * f + Math.PI * 0.5 * (1 - f);
                 }
@@ -3833,6 +3833,8 @@ class PlayerActionDefault {
         return false;
     }
     static Create(player) {
+        let actionRange = 4;
+        let actionRangeSquared = actionRange * actionRange;
         let defaultAction = new PlayerAction("default-action", player);
         defaultAction.backgroundColor = "#FF00FF";
         defaultAction.iconUrl = "";
@@ -3864,26 +3866,28 @@ class PlayerActionDefault {
                     return PlayerActionDefault.IsAimable(mesh) && mesh != player.dodo.dodoCollider;
                 });
                 if (hit.hit && hit.pickedPoint) {
-                    if (hit.pickedMesh instanceof BrickMesh) {
-                        let brickRoot = hit.pickedMesh.brick.root;
-                        if (brickRoot) {
-                            let brick = brickRoot.getBrickForFaceId(hit.faceId);
-                            if (brick) {
-                                setAimedObject(brick);
+                    if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
+                        if (hit.pickedMesh instanceof BrickMesh) {
+                            let brickRoot = hit.pickedMesh.brick.root;
+                            if (brickRoot) {
+                                let brick = brickRoot.getBrickForFaceId(hit.faceId);
+                                if (brick) {
+                                    setAimedObject(brick);
+                                }
+                                return;
                             }
+                        }
+                        else if (hit.pickedMesh instanceof DodoCollider) {
+                            setAimedObject(hit.pickedMesh);
                             return;
                         }
-                    }
-                    else if (hit.pickedMesh instanceof DodoCollider) {
-                        setAimedObject(hit.pickedMesh);
-                        return;
                     }
                 }
             }
             setAimedObject(undefined);
         };
-        defaultAction.onPointerUp = (duration, distance) => {
-            if (distance > 4) {
+        defaultAction.onPointerUp = (duration, onScreenDistance) => {
+            if (onScreenDistance > 4) {
                 return;
             }
             if (duration > 0.3) {
@@ -3916,8 +3920,8 @@ class PlayerActionDefault {
                 }
             }
         };
-        defaultAction.onRightPointerUp = (duration, distance) => {
-            if (distance > 4) {
+        defaultAction.onRightPointerUp = (duration, onScreenDistance) => {
+            if (onScreenDistance > 4) {
                 return;
             }
             if (aimedObject instanceof Brick) {
@@ -6755,30 +6759,30 @@ class BrainPlayer extends SubBrain {
             this._pointerDown = false;
             let dX = this._pointerDownX - event.clientX;
             let dY = this._pointerDownY - event.clientY;
-            let distance = Math.sqrt(dX * dX + dY * dY);
+            let onScreenDistance = Math.sqrt(dX * dX + dY * dY);
             let duration = (performance.now() - this._pointerDownTime) / 1000;
             if (this.playMode === PlayMode.Playing) {
                 if (this.currentAction) {
                     if (event.button === 0) {
                         if (this.currentAction.onPointerUp) {
-                            this.currentAction.onPointerUp(duration, distance);
+                            this.currentAction.onPointerUp(duration, onScreenDistance);
                         }
                     }
                     else if (event.button === 2) {
                         if (this.currentAction.onRightPointerUp) {
-                            this.currentAction.onRightPointerUp(duration, distance);
+                            this.currentAction.onRightPointerUp(duration, onScreenDistance);
                         }
                     }
                 }
                 else {
                     if (event.button === 0) {
                         if (this.defaultAction.onPointerUp) {
-                            this.defaultAction.onPointerUp(duration, distance);
+                            this.defaultAction.onPointerUp(duration, onScreenDistance);
                         }
                     }
                     else if (event.button === 2) {
                         if (this.defaultAction.onRightPointerUp) {
-                            this.defaultAction.onRightPointerUp(duration, distance);
+                            this.defaultAction.onRightPointerUp(duration, onScreenDistance);
                         }
                     }
                 }

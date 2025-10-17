@@ -17,8 +17,8 @@ class PlayerAction {
     public onUpdate: () => void;
     public onPointerDown: () => void;
     public onRightPointerDown: () => void;
-    public onPointerUp: (duration?: number, distance?: number) => void;
-    public onRightPointerUp: (duration?: number, distance?: number) => void;
+    public onPointerUp: (duration?: number, onScreenDistance?: number) => void;
+    public onRightPointerUp: (duration?: number, onScreenDistance?: number) => void;
     public onWheel: (e: WheelEvent) => void;
     public onKeyDown: (e: KeyboardEvent) => void;
     public onKeyUp: (e: KeyboardEvent) => void;

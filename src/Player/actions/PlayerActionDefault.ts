@@ -17,6 +17,8 @@ class PlayerActionDefault {
     }
 
     public static Create(player: BrainPlayer): PlayerAction {
+        let actionRange: number = 4;
+        let actionRangeSquared: number = actionRange * actionRange;
         let defaultAction = new PlayerAction("default-action", player);
         defaultAction.backgroundColor = "#FF00FF";
         defaultAction.iconUrl = "";
@@ -55,27 +57,29 @@ class PlayerActionDefault {
                 )
 
                 if (hit.hit && hit.pickedPoint) {
-                    if (hit.pickedMesh instanceof BrickMesh) {
-                        let brickRoot = hit.pickedMesh.brick.root;
-                        if (brickRoot) {
-                            let brick = brickRoot.getBrickForFaceId(hit.faceId);
-                            if (brick) {
-                                setAimedObject(brick);
+                    if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
+                        if (hit.pickedMesh instanceof BrickMesh) {
+                            let brickRoot = hit.pickedMesh.brick.root;
+                            if (brickRoot) {
+                                let brick = brickRoot.getBrickForFaceId(hit.faceId);
+                                if (brick) {
+                                    setAimedObject(brick);
+                                }
+                                return;
                             }
+                        }
+                        else if (hit.pickedMesh instanceof DodoCollider) {
+                            setAimedObject(hit.pickedMesh);
                             return;
                         }
-                    }
-                    else if (hit.pickedMesh instanceof DodoCollider) {
-                        setAimedObject(hit.pickedMesh);
-                        return;
                     }
                 }
             }
             setAimedObject(undefined);
         }
 
-        defaultAction.onPointerUp = (duration, distance) => {
-            if (distance > 4) {
+        defaultAction.onPointerUp = (duration, onScreenDistance) => {
+            if (onScreenDistance > 4) {
                 return;
             }
             if (duration > 0.3) {
@@ -109,8 +113,8 @@ class PlayerActionDefault {
             }
         }
 
-        defaultAction.onRightPointerUp = (duration, distance) => {
-            if (distance > 4) {
+        defaultAction.onRightPointerUp = (duration, onScreenDistance) => {
+            if (onScreenDistance > 4) {
                 return;
             }
             if (aimedObject instanceof Brick) {
