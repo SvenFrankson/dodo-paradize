@@ -2001,6 +2001,35 @@ class Terrain {
         }
         return this._tmpMaps[iM][jM].get(i, j);
     }
+    worldPosToTerrainAltitude(position) {
+        let x = position.x - BRICK_S * 0.5;
+        let z = position.z - BRICK_S * 0.5;
+        let iTile = Math.floor(x / TILE_S);
+        let jTile = Math.floor(z / TILE_S);
+        let di = (x - iTile * TILE_S) / TILE_S;
+        let dj = (z - jTile * TILE_S) / TILE_S;
+        let IMap = this.worldZero + Math.floor(iTile / this.mapL);
+        let JMap = this.worldZero + Math.floor(jTile / this.mapL);
+        let map = this.generator.getMapIfLoaded(IMap, JMap);
+        if (map) {
+            let i = iTile % this.mapL;
+            while (i < 0) {
+                i += this.mapL;
+            }
+            let j = jTile % this.mapL;
+            while (j < 0) {
+                j += this.mapL;
+            }
+            let h00 = (map.getClamped(i, j) - 128) * TILE_H;
+            let h10 = (map.getClamped(i + 1, j) - 128) * TILE_H;
+            let h01 = (map.getClamped(i, j + 1) - 128) * TILE_H;
+            let h11 = (map.getClamped(i + 1, j + 1) - 128) * TILE_H;
+            let h0 = h00 * (1 - di) + h10 * di;
+            let h1 = h01 * (1 - di) + h11 * di;
+            return h0 * (1 - dj) + h1 * dj;
+        }
+        return 0;
+    }
     async generateChunck(iChunck, jChunck) {
         let IMap = this.worldZero + Math.floor(iChunck * this.chunckLength / this.mapL);
         let JMap = this.worldZero + Math.floor(jChunck * this.chunckLength / this.mapL);
@@ -4090,33 +4119,37 @@ class PlayerActionTemplate {
                     let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
                     if (hit.pickedMesh instanceof BrickMesh) {
                         let root = hit.pickedMesh.brick.root;
-                        let aimedBrick = root.getBrickForFaceId(hit.faceId);
-                        let pos = hit.pickedPoint.add(n);
-                        pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
-                        pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                        pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0);
-                        brick.position.copyFrom(pos);
-                        brick.r = r;
-                        brick.setParent(aimedBrick);
-                        brick.computeWorldMatrix(true);
-                        brick.updateMesh();
-                        root.construction.saveToLocalStorage();
-                        root.construction.saveToServer();
+                        if (root && root.construction.isPlayerAllowedToEdit()) {
+                            let aimedBrick = root.getBrickForFaceId(hit.faceId);
+                            let pos = hit.pickedPoint.add(n);
+                            pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
+                            pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
+                            pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
+                            let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0);
+                            brick.position.copyFrom(pos);
+                            brick.r = r;
+                            brick.setParent(aimedBrick);
+                            brick.computeWorldMatrix(true);
+                            brick.updateMesh();
+                            root.construction.saveToLocalStorage();
+                            root.construction.saveToServer();
+                        }
                     }
                     else if (hit.pickedMesh instanceof Chunck) {
                         let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
                         let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
-                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
-                        let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5)).subtractInPlace(construction.position);
-                        brick.posI = Math.round(pos.x / BRICK_S);
-                        brick.posJ = Math.round(pos.z / BRICK_S);
-                        brick.posK = Math.floor(pos.y / BRICK_H);
-                        brick.absoluteR = r;
-                        brick.construction = construction;
-                        brick.updateMesh();
-                        brick.construction.saveToLocalStorage();
-                        brick.construction.saveToServer();
+                        if (construction && construction.isPlayerAllowedToEdit()) {
+                            let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
+                            let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5)).subtractInPlace(construction.position);
+                            brick.posI = Math.round(pos.x / BRICK_S);
+                            brick.posJ = Math.round(pos.z / BRICK_S);
+                            brick.posK = Math.floor(pos.y / BRICK_H);
+                            brick.absoluteR = r;
+                            brick.construction = construction;
+                            brick.updateMesh();
+                            brick.construction.saveToLocalStorage();
+                            brick.construction.saveToServer();
+                        }
                     }
                 }
             }
@@ -5243,6 +5276,9 @@ class Construction extends BABYLON.Mesh {
         this.barycenter.x += Construction.SIZE_m * 0.5;
         this.barycenter.z += Construction.SIZE_m * 0.5;
     }
+    isPlayerAllowedToEdit() {
+        return this.terrain.game.devMode.activated || (this.i === this.terrain.game.networkManager.claimedConstructionI && this.j === this.terrain.game.networkManager.claimedConstructionJ);
+    }
     static worldPosToIJ(pos) {
         let i = Math.floor((pos.x + BRICK_S * 0.5) / Construction.SIZE_m);
         let j = Math.floor((pos.z + BRICK_S * 0.5) / Construction.SIZE_m);
@@ -5253,28 +5289,68 @@ class Construction extends BABYLON.Mesh {
             this.showLimits();
         }
     }
-    showLimits() {
+    async showLimits() {
         if (this.limits) {
             this.limits.dispose();
         }
         let min = new BABYLON.Vector3(-BRICK_S * 0.5, 0, -BRICK_S * 0.5);
         let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
-        this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.DOUBLESIDE });
+        this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.BACKSIDE });
         let material = new BABYLON.StandardMaterial("limit-material");
         material.specularColor.copyFromFloats(0, 0, 0);
         material.diffuseColor.copyFromFloats(0, 1, 1);
         this.limits.material = material;
         this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
-        this.limits.visibility = 0.3;
+        this.limits.visibility = 0.2;
         this.limits.parent = this;
-        for (let i = 0; i <= 1; i++) {
-            for (let j = 0; j <= 1; j++) {
-                let corner = BABYLON.MeshBuilder.CreateBox("corner", { width: 0.03, height: 256, depth: 0.03 });
-                corner.position.x = (i - 0.5) * Construction.SIZE_m;
-                corner.position.z = (j - 0.5) * Construction.SIZE_m;
-                corner.parent = this.limits;
+        let worldOffset = this.position.add(this.limits.position);
+        let points = [
+            new BABYLON.Vector3(-0.5 * Construction.SIZE_m, 0, -0.5 * Construction.SIZE_m),
+            new BABYLON.Vector3(0.5 * Construction.SIZE_m, 0, -0.5 * Construction.SIZE_m),
+            new BABYLON.Vector3(0.5 * Construction.SIZE_m, 0, 0.5 * Construction.SIZE_m),
+            new BABYLON.Vector3(-0.5 * Construction.SIZE_m, 0, 0.5 * Construction.SIZE_m),
+            new BABYLON.Vector3(-0.5 * Construction.SIZE_m, 0, -0.5 * Construction.SIZE_m)
+        ];
+        let N = BRICKS_PER_CONSTRUCTION;
+        let subdividedPoints = [];
+        for (let i = 0; i < 4; i++) {
+            let start = points[i];
+            let end = points[i + 1];
+            for (let n = 0; n < N; n++) {
+                let f = n / N;
+                let p = BABYLON.Vector3.Lerp(start, end, f);
+                if (n === 0) {
+                    //let r = p.clone().normalize();
+                    //p.subtractInPlace(r.scale(Construction.SIZE_m / N * 0.3));
+                }
+                subdividedPoints.push(p);
             }
         }
+        points = subdividedPoints;
+        points.forEach(pt => {
+            pt.addInPlace(worldOffset);
+            pt.y = this.terrain.worldPosToTerrainAltitude(pt);
+            pt.subtractInPlace(worldOffset);
+        });
+        //Mummu.CatmullRomClosedPathInPlace(points);
+        //Mummu.CatmullRomClosedPathInPlace(points);
+        points.push(points[0]);
+        //let border = BABYLON.MeshBuilder.CreateLines("border", { points: points });
+        //border.position.y = 1 * BRICK_H;
+        //border.parent = this.limits;
+        let lines = [
+            //points.map(pt => { return pt.clone().addInPlaceFromFloats(0, + 2 * BRICK_H, 0); }),
+            points.map(pt => { return pt.clone().addInPlaceFromFloats(0, +3 * BRICK_H, 0); }),
+        ];
+        //for (let i = 0; i < points.length; i++) {
+        //    let pt = points[i];
+        //    lines.push([
+        //        pt.clone().addInPlaceFromFloats(0, + 2 * BRICK_H, 0),
+        //        pt.clone().addInPlaceFromFloats(0, + 3 * BRICK_H, 0)
+        //    ])
+        //}
+        let border2 = BABYLON.MeshBuilder.CreateLineSystem("border2", { lines: lines });
+        border2.parent = this.limits;
     }
     hideLimits() {
         if (this.limits) {
@@ -6127,7 +6203,9 @@ class Dodo extends Creature {
         else {
             this.bodyTargetPos.y += Math.min(0.5 * this.bodyHeight, maxBodyHeight);
         }
-        //Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
+        Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
+        let altitude = this.game.terrain.worldPosToTerrainAltitude(this.position);
+        Mummu.DrawDebugPoint(new BABYLON.Vector3(this.position.x, altitude, this.position.z), 2, BABYLON.Color3.Red());
         let pForce = this.bodyTargetPos.subtract(this.body.position);
         let pForceValue = 80;
         if (!this.isGrounded) {

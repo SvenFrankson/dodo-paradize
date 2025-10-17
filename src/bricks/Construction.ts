@@ -23,6 +23,10 @@ class Construction extends BABYLON.Mesh {
         this.barycenter.z += Construction.SIZE_m * 0.5;
     }
 
+    public isPlayerAllowedToEdit(): boolean {
+        return this.terrain.game.devMode.activated || (this.i === this.terrain.game.networkManager.claimedConstructionI && this.j === this.terrain.game.networkManager.claimedConstructionJ);
+    }
+
     public static worldPosToIJ(pos: BABYLON.Vector3): { i: number, j: number} {
         let i = Math.floor((pos.x + BRICK_S * 0.5) / Construction.SIZE_m);
         let j = Math.floor((pos.z + BRICK_S * 0.5) / Construction.SIZE_m);
@@ -36,7 +40,7 @@ class Construction extends BABYLON.Mesh {
         }
     }
 
-    public showLimits(): void {
+    public async showLimits(): Promise<void> {
         if (this.limits) {
             this.limits.dispose();
         }
@@ -44,23 +48,70 @@ class Construction extends BABYLON.Mesh {
         let min = new BABYLON.Vector3(- BRICK_S * 0.5, 0, - BRICK_S * 0.5);
         let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
 
-        this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.DOUBLESIDE });
+        this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.BACKSIDE });
         let material = new BABYLON.StandardMaterial("limit-material");
         material.specularColor.copyFromFloats(0, 0, 0);
         material.diffuseColor.copyFromFloats(0, 1, 1);
         this.limits.material = material;
         this.limits.position.copyFrom(min).addInPlace(max).scaleInPlace(0.5);
-        this.limits.visibility = 0.3;
+        this.limits.visibility = 0.2;
         this.limits.parent = this;
 
-        for (let i = 0; i <= 1; i++) {
-            for (let j = 0; j <= 1; j++) {
-                let corner = BABYLON.MeshBuilder.CreateBox("corner", { width: 0.03, height: 256, depth: 0.03 });
-                corner.position.x = (i - 0.5) * Construction.SIZE_m;
-                corner.position.z = (j - 0.5) * Construction.SIZE_m;
-                corner.parent = this.limits;
+        let worldOffset = this.position.add(this.limits.position);
+        let points = [
+            new BABYLON.Vector3(- 0.5 * Construction.SIZE_m, 0, - 0.5 * Construction.SIZE_m),
+            new BABYLON.Vector3(0.5 * Construction.SIZE_m, 0, - 0.5 * Construction.SIZE_m),
+            new BABYLON.Vector3(0.5 * Construction.SIZE_m, 0, 0.5 * Construction.SIZE_m),
+            new BABYLON.Vector3(- 0.5 * Construction.SIZE_m, 0, 0.5 * Construction.SIZE_m),
+            new BABYLON.Vector3(- 0.5 * Construction.SIZE_m, 0, - 0.5 * Construction.SIZE_m)
+        ];
+
+        let N = BRICKS_PER_CONSTRUCTION;
+        let subdividedPoints = [];
+        for (let i = 0; i < 4; i++) {
+            let start = points[i];
+            let end = points[i + 1];
+            for (let n = 0; n < N; n++) {
+                let f = n / N;
+                let p = BABYLON.Vector3.Lerp(start, end, f)
+                if (n === 0) {
+                    //let r = p.clone().normalize();
+                    //p.subtractInPlace(r.scale(Construction.SIZE_m / N * 0.3));
+                }
+                subdividedPoints.push(p);
             }
         }
+        points = subdividedPoints;
+
+        points.forEach(pt => {
+            pt.addInPlace(worldOffset);
+            pt.y = this.terrain.worldPosToTerrainAltitude(pt);
+            pt.subtractInPlace(worldOffset);
+
+        });
+        //Mummu.CatmullRomClosedPathInPlace(points);
+        //Mummu.CatmullRomClosedPathInPlace(points);
+        points.push(points[0]);
+
+        //let border = BABYLON.MeshBuilder.CreateLines("border", { points: points });
+        //border.position.y = 1 * BRICK_H;
+        //border.parent = this.limits;
+
+        let lines = [
+            //points.map(pt => { return pt.clone().addInPlaceFromFloats(0, + 2 * BRICK_H, 0); }),
+            points.map(pt => { return pt.clone().addInPlaceFromFloats(0, + 3 * BRICK_H, 0); }),
+        ]
+
+        //for (let i = 0; i < points.length; i++) {
+        //    let pt = points[i];
+        //    lines.push([
+        //        pt.clone().addInPlaceFromFloats(0, + 2 * BRICK_H, 0),
+        //        pt.clone().addInPlaceFromFloats(0, + 3 * BRICK_H, 0)
+        //    ])
+        //}
+
+        let border2 = BABYLON.MeshBuilder.CreateLineSystem("border2", { lines: lines });
+        border2.parent = this.limits;
     }
 
     public hideLimits(): void {

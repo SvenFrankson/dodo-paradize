@@ -851,7 +851,9 @@ class Dodo extends Creature {
             this.bodyTargetPos.y += Math.min(0.5 * this.bodyHeight, maxBodyHeight);
         }
 
-        //Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
+        Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
+        let altitude = this.game.terrain.worldPosToTerrainAltitude(this.position);
+        Mummu.DrawDebugPoint(new BABYLON.Vector3(this.position.x, altitude, this.position.z), 2, BABYLON.Color3.Red());
         
         let pForce = this.bodyTargetPos.subtract(this.body.position);
         let pForceValue = 80;

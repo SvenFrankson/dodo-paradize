@@ -90,35 +90,39 @@ class PlayerActionTemplate {
                     let n =  hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
                     if (hit.pickedMesh instanceof BrickMesh) {
                         let root = hit.pickedMesh.brick.root;
-                        let aimedBrick = root.getBrickForFaceId(hit.faceId);
-                        let pos = hit.pickedPoint.add(n);
-                        pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
-                        pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                        pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0);
-                        brick.position.copyFrom(pos);
-                        brick.r = r;
-                        brick.setParent(aimedBrick);
-                        brick.computeWorldMatrix(true);
-                        brick.updateMesh();
+                        if (root && root.construction.isPlayerAllowedToEdit()) {
+                            let aimedBrick = root.getBrickForFaceId(hit.faceId);
+                            let pos = hit.pickedPoint.add(n);
+                            pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
+                            pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
+                            pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
+                            let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0);
+                            brick.position.copyFrom(pos);
+                            brick.r = r;
+                            brick.setParent(aimedBrick);
+                            brick.computeWorldMatrix(true);
+                            brick.updateMesh();
 
-                        root.construction.saveToLocalStorage();
-                        root.construction.saveToServer();
+                            root.construction.saveToLocalStorage();
+                            root.construction.saveToServer();
+                        }
                     }
                     else if (hit.pickedMesh instanceof Chunck) {
                         let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
                         let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
-                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
-                        let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5)).subtractInPlace(construction.position);
-                        brick.posI = Math.round(pos.x / BRICK_S);
-                        brick.posJ = Math.round(pos.z / BRICK_S);
-                        brick.posK = Math.floor(pos.y / BRICK_H);
-                        brick.absoluteR = r;
-                        brick.construction = construction;
-                        brick.updateMesh();
-                        
-                        brick.construction.saveToLocalStorage();
-                        brick.construction.saveToServer();
+                        if (construction && construction.isPlayerAllowedToEdit()) {
+                            let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
+                            let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5)).subtractInPlace(construction.position);
+                            brick.posI = Math.round(pos.x / BRICK_S);
+                            brick.posJ = Math.round(pos.z / BRICK_S);
+                            brick.posK = Math.floor(pos.y / BRICK_H);
+                            brick.absoluteR = r;
+                            brick.construction = construction;
+                            brick.updateMesh();
+                            
+                            brick.construction.saveToLocalStorage();
+                            brick.construction.saveToServer();
+                        }
                     }
                 }
             }

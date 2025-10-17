@@ -64,6 +64,43 @@ class Terrain {
         return this._tmpMaps[iM][jM].get(i, j);
     }
 
+    public worldPosToTerrainAltitude(position: BABYLON.Vector3): number {
+        let x = position.x - BRICK_S * 0.5;
+        let z = position.z - BRICK_S * 0.5;
+        let iTile = Math.floor(x / TILE_S);
+        let jTile = Math.floor(z / TILE_S);
+
+        let di = (x - iTile * TILE_S) / TILE_S;
+        let dj = (z - jTile * TILE_S) / TILE_S;
+        
+        let IMap = this.worldZero + Math.floor(iTile / this.mapL);
+        let JMap = this.worldZero + Math.floor(jTile / this.mapL);
+
+        let map = this.generator.getMapIfLoaded(IMap, JMap);
+
+        if (map) {
+            let i = iTile % this.mapL;
+            while (i < 0) {
+                i += this.mapL;
+            }
+            let j = jTile % this.mapL;
+            while (j < 0) {
+                j += this.mapL;
+            }
+
+            let h00 = (map.getClamped(i, j) - 128) * TILE_H;
+            let h10 = (map.getClamped(i + 1, j) - 128) * TILE_H;
+            let h01 = (map.getClamped(i, j + 1) - 128) * TILE_H;
+            let h11 = (map.getClamped(i + 1, j + 1) - 128) * TILE_H;
+            
+            let h0 = h00 * (1 - di) + h10 * di;
+            let h1 = h01 * (1 - di) + h11 * di;
+
+            return h0 * (1 - dj) + h1 * dj;
+        }
+        return 0;
+    }
+
     public async generateChunck(iChunck: number, jChunck: number): Promise<Chunck> {
         let IMap = this.worldZero + Math.floor(iChunck * this.chunckLength / this.mapL);
         let JMap = this.worldZero + Math.floor(jChunck * this.chunckLength / this.mapL);
