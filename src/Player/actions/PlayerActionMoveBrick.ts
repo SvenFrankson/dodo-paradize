@@ -88,15 +88,17 @@ class PlayerActionMoveBrick {
                             brick.updateMesh();
                         }
                         else {
-                            let root = hit.pickedMesh.brick.root;
-                            let rootPosition = root.position;
-                            let dp = hit.pickedPoint.add(n).subtractInPlace(rootPosition);
-                            dp.x = BRICK_S * Math.round(dp.x / BRICK_S);
-                            dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
-                            dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
-                            brick.root.position.copyFrom(dp);
+                            let pos = hit.pickedPoint.add(n).subtractInPlace(brick.construction.position);
+                            brick.posI = Math.round(pos.x / BRICK_S);
+                            brick.posJ = Math.round(pos.z / BRICK_S);
+                            brick.posK = Math.floor(pos.y / BRICK_H);
+                            brick.setParent(undefined);
                             brick.clampToConstruction();
+                            brick.updateMesh();
                             brick.updateRootPosition();
+
+                            brick.construction.saveToLocalStorage();
+                            brick.construction.saveToServer();
                         }
                     }
                     else {

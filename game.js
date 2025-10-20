@@ -4115,15 +4115,16 @@ class PlayerActionMoveBrick {
                             brick.updateMesh();
                         }
                         else {
-                            let root = hit.pickedMesh.brick.root;
-                            let rootPosition = root.position;
-                            let dp = hit.pickedPoint.add(n).subtractInPlace(rootPosition);
-                            dp.x = BRICK_S * Math.round(dp.x / BRICK_S);
-                            dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
-                            dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
-                            brick.root.position.copyFrom(dp);
+                            let pos = hit.pickedPoint.add(n).subtractInPlace(brick.construction.position);
+                            brick.posI = Math.round(pos.x / BRICK_S);
+                            brick.posJ = Math.round(pos.z / BRICK_S);
+                            brick.posK = Math.floor(pos.y / BRICK_H);
+                            brick.setParent(undefined);
                             brick.clampToConstruction();
+                            brick.updateMesh();
                             brick.updateRootPosition();
+                            brick.construction.saveToLocalStorage();
+                            brick.construction.saveToServer();
                         }
                     }
                     else {
@@ -4578,9 +4579,6 @@ class Brick extends BABYLON.TransformNode {
         let data = Brick.MergeVertexDatas(this.subMeshInfos, ...vDatas);
         if (!this.mesh) {
             this.mesh = new BrickMesh(this);
-            //this.mesh.renderOutline = true;
-            //this.mesh.outlineColor.copyFromFloats(0, 0, 0);
-            //this.mesh.outlineWidth = 0.005;
             this.mesh.layerMask |= 0x20000000;
             this.mesh.parent = this.construction;
             let brickMaterial = new BABYLON.StandardMaterial("brick-material");
@@ -4625,7 +4623,9 @@ class Brick extends BABYLON.TransformNode {
             return this.root.highlight();
         }
         if (this.mesh) {
+            this.mesh.renderOutline = true;
             this.mesh.outlineColor = new BABYLON.Color3(0, 1, 1);
+            this.mesh.outlineWidth = 0.03;
         }
     }
     unlit() {
@@ -4633,6 +4633,7 @@ class Brick extends BABYLON.TransformNode {
             return this.root.unlit();
         }
         if (this.mesh) {
+            this.mesh.renderOutline = false;
             this.mesh.outlineColor.copyFromFloats(0, 0, 0);
         }
     }
@@ -4909,13 +4910,20 @@ var BRICK_LIST = [
     "brick-corner-curved_8x1",
     "window-frame_2x2",
     "window-frame_2x3",
+    "window-frame_2x4",
+    "window-frame_2x5",
     "window-frame_3x2",
     "window-frame_3x3",
+    "window-frame_3x4",
+    "window-frame_3x5",
     "window-frame_4x2",
     "window-frame_4x3",
+    "window-frame_4x4",
+    "window-frame_4x5",
     "window-frame-corner-curved_3x2",
     "window-frame-corner-curved_3x3",
     "window-frame-corner-curved_3x4",
+    "window-frame-corner-curved_3x5",
     "plate-quarter_1x1",
     "plate-quarter_2x2",
     "plate-quarter_3x3",

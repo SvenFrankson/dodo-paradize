@@ -48,11 +48,21 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  168
+	processing begun of mesh:  3-window-frame-corner_3x6
+		WARNING: No materials have been assigned: 
+		num positions      :  178
+		num normals        :  178
+		num tangents       :  0
+		num uvs            :  356
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  168
 ========= Writing of JSON file started =========
 	writing mesh:  0-window-frame-corner_3x2
 	writing mesh:  1-window-frame-corner_3x3
 	writing mesh:  2-window-frame-corner_3x4
 	writing mesh:  3-window-frame-corner_3x5
+	writing mesh:  3-window-frame-corner_3x6
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.0349 secs
+elapsed time:  0 min, 0.1427 secs

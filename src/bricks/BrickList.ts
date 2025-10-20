@@ -107,14 +107,21 @@ var BRICK_LIST = [
 
     "window-frame_2x2",
     "window-frame_2x3",
+    "window-frame_2x4",
+    "window-frame_2x5",
     "window-frame_3x2",
     "window-frame_3x3",
+    "window-frame_3x4",
+    "window-frame_3x5",
     "window-frame_4x2",
     "window-frame_4x3",
+    "window-frame_4x4",
+    "window-frame_4x5",
 
     "window-frame-corner-curved_3x2",
     "window-frame-corner-curved_3x3",
     "window-frame-corner-curved_3x4",
+    "window-frame-corner-curved_3x5",
 
     "plate-quarter_1x1",
     "plate-quarter_2x2",
