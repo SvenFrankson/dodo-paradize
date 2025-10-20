@@ -957,6 +957,10 @@ class Game {
         this.defaultToonMaterial.setUseVertexColor(true);
         this.defaultToonMaterial.setDiffuseSharpness(-1);
         this.defaultToonMaterial.setDiffuseCount(2);
+        this.defaultHighlightMaterial = new BABYLON.StandardMaterial("default-highlight-material", this.scene);
+        this.defaultHighlightMaterial.emissiveColor.copyFromFloats(1, 1, 1);
+        this.defaultHighlightMaterial.specularColor.copyFromFloats(0, 0, 0);
+        this.defaultHighlightMaterial.alpha = 0.2;
         this.networkManager = new NetworkManager(this);
         this.colorPicker = document.querySelector("color-picker");
         this.colorPicker.initColorButtons(this);
@@ -3938,7 +3942,6 @@ class PlayerActionDefault {
         let aimedObject;
         let setAimedObject = (b) => {
             if (b != aimedObject) {
-                ScreenLoger.Log("setAimedObject " + (b != undefined ? b.name : "undefined"));
                 if (aimedObject) {
                     aimedObject.unlit();
                 }
@@ -4004,12 +4007,14 @@ class PlayerActionDefault {
                 if (player.playMode === PlayMode.Playing) {
                     if (aimedObject instanceof Brick) {
                         let construction = aimedObject.construction;
-                        let brickId = aimedObject.index;
-                        let brickColorIndex = aimedObject.colorIndex;
-                        let r = aimedObject.r;
-                        aimedObject.dispose();
-                        construction.updateMesh();
-                        player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
+                        if (construction && construction.isPlayerAllowedToEdit()) {
+                            let brickId = aimedObject.index;
+                            let brickColorIndex = aimedObject.colorIndex;
+                            let r = aimedObject.r;
+                            aimedObject.dispose();
+                            construction.updateMesh();
+                            player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
+                        }
                     }
                     else if (aimedObject instanceof DodoCollider) {
                         if (aimedObject.dodo.brain.npcDialog) {
@@ -4028,14 +4033,20 @@ class PlayerActionDefault {
             if (onScreenDistance > 4) {
                 return;
             }
-            if (aimedObject instanceof Brick) {
-                let prevParent = aimedObject.parent;
-                if (prevParent instanceof Brick) {
-                    aimedObject.setParent(undefined);
+            if (player.playMode === PlayMode.Playing) {
+                if (aimedObject instanceof Brick) {
+                    let construction = aimedObject.construction;
+                    if (construction && construction.isPlayerAllowedToEdit()) {
+                        aimedObject.dispose();
+                        construction.updateMesh();
+                        construction.saveToLocalStorage();
+                        construction.saveToServer();
+                    }
                 }
             }
         };
         defaultAction.onUnequip = () => {
+            ScreenLoger.Log("unequip default action");
             setAimedObject(undefined);
         };
         return defaultAction;
@@ -4239,7 +4250,6 @@ class PlayerActionTemplate {
                         brick.posJ = Math.round(pos.z / BRICK_S);
                         brick.posK = Math.floor(pos.y / BRICK_H);
                         brick.r = r;
-                        ScreenLoger.Log(brick.posI + " " + brick.posJ + " " + brick.posK);
                         construction.updateMesh();
                         construction.saveToLocalStorage();
                         construction.saveToServer();
@@ -4469,8 +4479,26 @@ class Brick extends BABYLON.TransformNode {
         return BABYLON.Vector3.TransformCoordinates(pos, matrix);
     }
     highlight() {
+        if (!this.lightMesh) {
+            this.lightMesh = new BABYLON.Mesh("light-mesh");
+            this.lightMesh.material = this.construction.terrain.game.defaultHighlightMaterial;
+            BrickTemplateManager.Instance.getTemplate(this.index).then(template => {
+                if (this.lightMesh && !this.lightMesh.isDisposed()) {
+                    let vData = Mummu.ShrinkVertexDataInPlace(Mummu.CloneVertexData(template.vertexData), 0.01);
+                    console.log(vData);
+                    vData.applyToMesh(this.lightMesh);
+                }
+            });
+        }
+        this.lightMesh.position = this.position;
+        this.lightMesh.rotation = this.rotation;
+        this.lightMesh.parent = this.construction;
     }
     unlit() {
+        if (this.lightMesh) {
+            this.lightMesh.dispose();
+            this.lightMesh = undefined;
+        }
     }
     async generateMeshVertexData(vDatas, subMeshInfos) {
         let template = await BrickTemplateManager.Instance.getTemplate(this.index);
@@ -4512,7 +4540,7 @@ class Brick extends BABYLON.TransformNode {
         s += this.r.toString(16).padStart(1, "0").substring(0, 1);
         return s;
     }
-    static Deserialize(data, parent) {
+    static Deserialize(data, construction) {
         let brick;
         let id = parseInt(data.substring(0, 3), 16);
         let colorIndex = parseInt(data.substring(3, 5), 16);
@@ -4520,14 +4548,7 @@ class Brick extends BABYLON.TransformNode {
         let posJ = parseInt(data.substring(7, 9), 16) - 64;
         let posK = parseInt(data.substring(9, 11), 16) - 64;
         let r = parseInt(data.substring(11, 12), 16);
-        if (parent instanceof Construction) {
-            brick = new Brick(id, colorIndex, parent);
-        }
-        else {
-            brick = new Brick(id, colorIndex);
-            brick.parent = parent;
-            brick.construction = parent.construction;
-        }
+        brick = new Brick(id, colorIndex, construction);
         brick.posI = posI;
         brick.posJ = posJ;
         brick.posK = posK;
@@ -5419,10 +5440,9 @@ class Construction extends BABYLON.Mesh {
     deserialize(dataString) {
         let data = JSON.parse(dataString);
         for (let i = 0; i < data.length; i++) {
-            let brick = Brick.Deserialize(data[i], this);
-            this.updateMesh();
-            this.bricks.push(brick);
+            Brick.Deserialize(data[i], this);
         }
+        this.updateMesh();
     }
 }
 Construction.SIZE_m = BRICKS_PER_CONSTRUCTION * BRICK_S;
@@ -6186,8 +6206,10 @@ class Dodo extends Creature {
             BABYLON.Vector3.TransformCoordinatesToRef(this._jumpingFootTargets[1], this.getWorldMatrix(), this._jumpingFootTargets[1]);
             BABYLON.Vector3.LerpToRef(this.feet[0].position, this._jumpingFootTargets[0], 0.2, this.feet[0].position);
             BABYLON.Vector3.LerpToRef(this.feet[1].position, this._jumpingFootTargets[1], 0.2, this.feet[1].position);
-            this.position.y -= this.gravityVelocity * dt;
-            this.gravityVelocity += 5 * dt;
+            if (this.isPlayerControlled) {
+                this.position.y -= this.gravityVelocity * dt;
+                this.gravityVelocity += 5 * dt;
+            }
         }
         let f = 0.5;
         let halfFeetDistance = BABYLON.Vector3.Distance(this.feet[0].position, this.feet[1].position) * 0.5;
@@ -6788,6 +6810,9 @@ class BrainPlayer extends SubBrain {
         }
         this._currentAction = action;
         if (this._currentAction && this._currentAction.onEquip) {
+            if (this._currentAction != this.defaultAction) {
+                this.defaultAction.onUnequip();
+            }
             this._currentAction.onEquip();
         }
     }

@@ -112,10 +112,10 @@ class Brick extends BABYLON.TransformNode {
         this.rotation.y = v * Math.PI * 0.5;
     }
 
-    constructor(index: number, colorIndex: number, construction?: Construction);
-    constructor(brickName: string, colorIndex: number, construction?: Construction);
-    constructor(brickId: number | string, colorIndex: number, construction?: Construction);
-    constructor(arg1: any, public colorIndex: number, construction?: Construction) {
+    constructor(index: number, colorIndex: number, construction: Construction);
+    constructor(brickName: string, colorIndex: number, construction: Construction);
+    constructor(brickId: number | string, colorIndex: number, construction: Construction);
+    constructor(arg1: any, public colorIndex: number, construction: Construction) {
         super("brick");
         this.index = Brick.BrickIdToIndex(arg1);
         if (construction) {
@@ -139,12 +139,29 @@ class Brick extends BABYLON.TransformNode {
         return BABYLON.Vector3.TransformCoordinates(pos, matrix);
     }
 
+    public lightMesh: BABYLON.Mesh;
     public highlight(): void {
-        
+        if (!this.lightMesh) {
+            this.lightMesh = new BABYLON.Mesh("light-mesh");
+            this.lightMesh.material = this.construction.terrain.game.defaultHighlightMaterial;
+            BrickTemplateManager.Instance.getTemplate(this.index).then(template => {
+                if (this.lightMesh && !this.lightMesh.isDisposed()) {
+                    let vData = Mummu.ShrinkVertexDataInPlace(Mummu.CloneVertexData(template.vertexData), 0.01);
+                    console.log(vData);
+                    vData.applyToMesh(this.lightMesh);
+                }
+            })
+        }
+        this.lightMesh.position = this.position;
+        this.lightMesh.rotation = this.rotation;
+        this.lightMesh.parent = this.construction;
     }
 
     public unlit(): void {
-        
+        if (this.lightMesh) {
+            this.lightMesh.dispose();
+            this.lightMesh = undefined;
+        }
     }
 
     public async generateMeshVertexData(vDatas: BABYLON.VertexData[], subMeshInfos: { faceId: number, brick: Brick }[]): Promise<void> {
@@ -193,7 +210,7 @@ class Brick extends BABYLON.TransformNode {
         return s;
     }
 
-    public static Deserialize(data: string, parent: Construction | Brick): Brick {
+    public static Deserialize(data: string, construction: Construction): Brick {
         let brick: Brick;
         let id = parseInt(data.substring(0, 3), 16);
         let colorIndex = parseInt(data.substring(3, 5), 16);
@@ -201,15 +218,8 @@ class Brick extends BABYLON.TransformNode {
         let posJ = parseInt(data.substring(7, 9), 16) - 64;
         let posK = parseInt(data.substring(9, 11), 16) - 64;
         let r = parseInt(data.substring(11, 12), 16);
-        if (parent instanceof Construction) {
-            brick = new Brick(id, colorIndex, parent);
-        }
-        else {
-            brick = new Brick(id, colorIndex);
-            brick.parent = parent;
-            brick.construction = parent.construction;
-        }
-        
+
+        brick = new Brick(id, colorIndex, construction);
         brick.posI = posI;
         brick.posJ = posJ;
         brick.posK = posK;

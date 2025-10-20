@@ -284,9 +284,8 @@ class Construction extends BABYLON.Mesh {
         let data: string[] = JSON.parse(dataString);
 
         for (let i = 0; i < data.length; i++) {
-            let brick = Brick.Deserialize(data[i], this);
-            this.updateMesh();
-            this.bricks.push(brick);
+            Brick.Deserialize(data[i], this);
         }
+        this.updateMesh();
     }
 }

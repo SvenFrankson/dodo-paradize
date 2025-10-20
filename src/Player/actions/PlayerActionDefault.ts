@@ -27,7 +27,6 @@ class PlayerActionDefault {
         let aimedObject: IAimable;
         let setAimedObject = (b: IAimable) => {
             if (b != aimedObject) {
-                ScreenLoger.Log("setAimedObject " + (b != undefined ? b.name : "undefined"));
                 if (aimedObject) {
                     aimedObject.unlit();
                 }
@@ -100,12 +99,14 @@ class PlayerActionDefault {
                 if (player.playMode === PlayMode.Playing) {
                     if (aimedObject instanceof Brick) {
                         let construction = aimedObject.construction;
-                        let brickId = aimedObject.index;
-                        let brickColorIndex = aimedObject.colorIndex;
-                        let r = aimedObject.r;
-                        aimedObject.dispose();
-                        construction.updateMesh();
-                        player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
+                        if (construction && construction.isPlayerAllowedToEdit()) {
+                            let brickId = aimedObject.index;
+                            let brickColorIndex = aimedObject.colorIndex;
+                            let r = aimedObject.r;
+                            aimedObject.dispose();
+                            construction.updateMesh();
+                            player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
+                        }
                     }
                     else if (aimedObject instanceof DodoCollider) {
                         if (aimedObject.dodo.brain.npcDialog) {
@@ -125,15 +126,21 @@ class PlayerActionDefault {
             if (onScreenDistance > 4) {
                 return;
             }
-            if (aimedObject instanceof Brick) {
-                let prevParent = aimedObject.parent;
-                if (prevParent instanceof Brick) {
-                    aimedObject.setParent(undefined);
+            if (player.playMode === PlayMode.Playing) {
+                if (aimedObject instanceof Brick) {
+                    let construction = aimedObject.construction;
+                    if (construction && construction.isPlayerAllowedToEdit()) {
+                        aimedObject.dispose();
+                        construction.updateMesh();
+                        construction.saveToLocalStorage();
+                        construction.saveToServer();
+                    }
                 }
             }
         }
 
         defaultAction.onUnequip = () => {
+            ScreenLoger.Log("unequip default action");
             setAimedObject(undefined);
         }
         

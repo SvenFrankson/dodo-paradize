@@ -21,6 +21,9 @@ class BrainPlayer extends SubBrain {
 
         this._currentAction = action;
         if (this._currentAction && this._currentAction.onEquip) {
+            if (this._currentAction != this.defaultAction) {
+                this.defaultAction.onUnequip();
+            }
             this._currentAction.onEquip();
         }
     }

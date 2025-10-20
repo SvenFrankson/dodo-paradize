@@ -242,6 +242,7 @@ class Game {
     public gameLoaded: boolean = false;
 
     public defaultToonMaterial: ToonMaterial;
+    public defaultHighlightMaterial: BABYLON.StandardMaterial;
     public configuration: GameConfiguration;
     public networkManager: NetworkManager;
     public homeMenuPlate: HomeMenuPlate;
@@ -443,6 +444,11 @@ class Game {
         this.defaultToonMaterial.setUseVertexColor(true);
         this.defaultToonMaterial.setDiffuseSharpness(-1);
         this.defaultToonMaterial.setDiffuseCount(2);
+
+        this.defaultHighlightMaterial = new BABYLON.StandardMaterial("default-highlight-material", this.scene);
+        this.defaultHighlightMaterial.emissiveColor.copyFromFloats(1, 1, 1);
+        this.defaultHighlightMaterial.specularColor.copyFromFloats(0, 0, 0);
+        this.defaultHighlightMaterial.alpha = 0.2;
 
         this.networkManager = new NetworkManager(this);
 

@@ -81,7 +81,6 @@ class PlayerActionTemplate {
                         brick.posK = Math.floor(pos.y / BRICK_H);
                         brick.r = r;
                         
-                        ScreenLoger.Log(brick.posI + " " + brick.posJ + " " + brick.posK);
                         construction.updateMesh();
                         construction.saveToLocalStorage();
                         construction.saveToServer();

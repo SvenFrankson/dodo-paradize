@@ -836,8 +836,10 @@ class Dodo extends Creature {
             BABYLON.Vector3.TransformCoordinatesToRef(this._jumpingFootTargets[1], this.getWorldMatrix(), this._jumpingFootTargets[1]);
             BABYLON.Vector3.LerpToRef(this.feet[0].position, this._jumpingFootTargets[0], 0.2, this.feet[0].position);
             BABYLON.Vector3.LerpToRef(this.feet[1].position, this._jumpingFootTargets[1], 0.2, this.feet[1].position);
-            this.position.y -= this.gravityVelocity * dt;
-            this.gravityVelocity += 5 * dt;
+            if (this.isPlayerControlled) {
+                this.position.y -= this.gravityVelocity * dt;
+                this.gravityVelocity += 5 * dt;
+            }
         }
 
         let f = 0.5;
