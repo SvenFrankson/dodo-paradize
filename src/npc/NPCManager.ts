@@ -1,6 +1,7 @@
 class NPCManager {
 
     public landServant: Dodo;
+    public brickMerchant: Dodo;
 
     constructor(public game: Game) {
         //232a0f200101
@@ -11,6 +12,11 @@ class NPCManager {
         this.landServant.brain = new Brain(this.landServant, BrainMode.Idle);
         (this.landServant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(1.25, 0, 25.56);
         this.landServant.brain.initialize();
+        
+        this.brickMerchant = new Dodo("brick-merchant", "Agostinho Timon", this.game, { style: "232a0f200101" });
+        this.brickMerchant.brain = new Brain(this.brickMerchant, BrainMode.Idle);
+        (this.brickMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(6.66, 0.53, 1.37);
+        this.brickMerchant.brain.initialize();
     }
 
     public async instantiate(): Promise<void> {
@@ -79,6 +85,29 @@ class NPCManager {
             new NPCDialogTextLine(30, "You already have a parcel assigned, don't be greedy."),
             new NPCDialogTextLine(40, "Something went wrong but I don't know what."),
             new NPCDialogTextLine(1000, "Have a nice day !",
+                new NPCDialogResponse("Thanks, bye !", -1)
+            )
+        ]);
+        
+        await this.brickMerchant.instantiate();
+        this.brickMerchant.unfold();
+        this.brickMerchant.setWorldPosition((this.brickMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero);
+        this.game.npcDodos.push(this.brickMerchant);
+        this.brickMerchant.brain.npcDialog = new NPCDialog(this.brickMerchant, [
+            new NPCDialogTextLine(0, "Good Morning Sir !"),
+            new NPCDialogTextLine(1, "My name is Agostinho Timon. I make sure every Dodo get a fair share of construction material."),
+            new NPCDialogTextLine(2, "Do you want some construction blocks ?",
+                new NPCDialogResponse("Yes, I would like to build something.", 10),
+                new NPCDialogResponse("No, thanks.", 100),
+            ),
+            new NPCDialogCheckLine(10, async () => {
+                for (let n = 0; n < 5; n++) {
+                    let brickIndex = Math.floor(BRICK_LIST.length * Math.random());
+                    this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex], InventoryCategory.Brick, this.game));
+                }
+                return 1000
+            }),
+            new NPCDialogTextLine(1000, "Here you go, have fun with your Blocks, see you soon !",
                 new NPCDialogResponse("Thanks, bye !", -1)
             )
         ]);

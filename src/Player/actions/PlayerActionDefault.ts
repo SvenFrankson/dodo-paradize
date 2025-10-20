@@ -102,9 +102,10 @@ class PlayerActionDefault {
                         let construction = aimedObject.construction;
                         let brickId = aimedObject.index;
                         let brickColorIndex = aimedObject.colorIndex;
+                        let r = aimedObject.r;
                         aimedObject.dispose();
                         construction.updateMesh();
-                        player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex);
+                        player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
                     }
                     else if (aimedObject instanceof DodoCollider) {
                         if (aimedObject.dodo.brain.npcDialog) {

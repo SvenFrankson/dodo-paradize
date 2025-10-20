@@ -4006,9 +4006,10 @@ class PlayerActionDefault {
                         let construction = aimedObject.construction;
                         let brickId = aimedObject.index;
                         let brickColorIndex = aimedObject.colorIndex;
+                        let r = aimedObject.r;
                         aimedObject.dispose();
                         construction.updateMesh();
-                        player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex);
+                        player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
                     }
                     else if (aimedObject instanceof DodoCollider) {
                         if (aimedObject.dodo.brain.npcDialog) {
@@ -4173,14 +4174,13 @@ class PlayerActionMoveBrick {
 var ACTIVE_DEBUG_PLAYER_ACTION = true;
 var ADD_BRICK_ANIMATION_DURATION = 1000;
 class PlayerActionTemplate {
-    static async CreateBrickAction(player, brickId, colorIndex) {
+    static async CreateBrickAction(player, brickId, colorIndex, r = 0, onlyOnce) {
         let brickIndex = Brick.BrickIdToIndex(brickId);
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
         brickAction.backgroundColor = "#000000";
         let previewMesh;
         //brickAction.iconUrl = "/datas/icons/bricks/" + Brick.BrickIdToName(brickId) + ".png";
         brickAction.iconUrl = await player.game.miniatureFactory.makeBrickIconString(brickId);
-        let r = 0;
         brickAction.onUpdate = () => {
             let terrain = player.game.terrain;
             if (player.playMode === PlayMode.Playing) {
@@ -4213,7 +4213,7 @@ class PlayerActionTemplate {
                 previewMesh.isVisible = false;
             }
         };
-        brickAction.onPointerDown = () => {
+        brickAction.onPointerUp = () => {
             if (player.playMode === PlayMode.Playing) {
                 let x;
                 let y;
@@ -4245,6 +4245,9 @@ class PlayerActionTemplate {
                         construction.saveToServer();
                     }
                 }
+            }
+            if (onlyOnce) {
+                player.currentAction = undefined;
             }
         };
         let rotateBrick = () => {
@@ -7613,6 +7616,10 @@ class NPCManager {
         this.landServant.brain = new Brain(this.landServant, BrainMode.Idle);
         this.landServant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.25, 0, 25.56);
         this.landServant.brain.initialize();
+        this.brickMerchant = new Dodo("brick-merchant", "Agostinho Timon", this.game, { style: "232a0f200101" });
+        this.brickMerchant.brain = new Brain(this.brickMerchant, BrainMode.Idle);
+        this.brickMerchant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(6.66, 0.53, 1.37);
+        this.brickMerchant.brain.initialize();
     }
     async instantiate() {
         await this.landServant.instantiate();
@@ -7668,6 +7675,23 @@ class NPCManager {
             new NPCDialogTextLine(30, "You already have a parcel assigned, don't be greedy."),
             new NPCDialogTextLine(40, "Something went wrong but I don't know what."),
             new NPCDialogTextLine(1000, "Have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
+        ]);
+        await this.brickMerchant.instantiate();
+        this.brickMerchant.unfold();
+        this.brickMerchant.setWorldPosition(this.brickMerchant.brain.subBrains[BrainMode.Idle].positionZero);
+        this.game.npcDodos.push(this.brickMerchant);
+        this.brickMerchant.brain.npcDialog = new NPCDialog(this.brickMerchant, [
+            new NPCDialogTextLine(0, "Good Morning Sir !"),
+            new NPCDialogTextLine(1, "My name is Agostinho Timon. I make sure every Dodo get a fair share of construction material."),
+            new NPCDialogTextLine(2, "Do you want some construction blocks ?", new NPCDialogResponse("Yes, I would like to build something.", 10), new NPCDialogResponse("No, thanks.", 100)),
+            new NPCDialogCheckLine(10, async () => {
+                for (let n = 0; n < 5; n++) {
+                    let brickIndex = Math.floor(BRICK_LIST.length * Math.random());
+                    this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex], InventoryCategory.Brick, this.game));
+                }
+                return 1000;
+            }),
+            new NPCDialogTextLine(1000, "Here you go, have fun with your Blocks, see you soon !", new NPCDialogResponse("Thanks, bye !", -1))
         ]);
     }
 }

@@ -4,15 +4,13 @@ var ADD_BRICK_ANIMATION_DURATION = 1000;
 
 class PlayerActionTemplate {
 
-    public static async CreateBrickAction(player: BrainPlayer, brickId: number | string, colorIndex?: number): Promise<PlayerAction> {
+    public static async CreateBrickAction(player: BrainPlayer, brickId: number | string, colorIndex?: number, r: number = 0, onlyOnce?: boolean): Promise<PlayerAction> {
         let brickIndex = Brick.BrickIdToIndex(brickId);
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
         brickAction.backgroundColor = "#000000";
         let previewMesh: BABYLON.Mesh;
         //brickAction.iconUrl = "/datas/icons/bricks/" + Brick.BrickIdToName(brickId) + ".png";
         brickAction.iconUrl = await player.game.miniatureFactory.makeBrickIconString(brickId);
-
-        let r = 0;
 
         brickAction.onUpdate = () => {
             let terrain = player.game.terrain;
@@ -52,7 +50,7 @@ class PlayerActionTemplate {
             }
         }
 
-        brickAction.onPointerDown = () => {
+        brickAction.onPointerUp = () => {
             if (player.playMode === PlayMode.Playing) {
                 let x: number;
                 let y: number;
@@ -89,6 +87,9 @@ class PlayerActionTemplate {
                         construction.saveToServer();
                     }
                 }
+            }
+            if (onlyOnce) {                
+                player.currentAction = undefined;
             }
         }
 
