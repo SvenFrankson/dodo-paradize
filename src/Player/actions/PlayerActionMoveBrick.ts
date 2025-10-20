@@ -1,6 +1,7 @@
 class PlayerActionMoveBrick {
 
     public static Create(player: BrainPlayer, brick: Brick): PlayerAction {
+        ScreenLoger.Log("PlayerActionMoveBrick.Create")
         let brickAction = new PlayerAction("move-brick-action", player);
         brickAction.backgroundColor = "#FF00FF";
         brickAction.iconUrl = "";
@@ -28,32 +29,14 @@ class PlayerActionMoveBrick {
                     }
                 )
                 if (hit && hit.pickedPoint) {
-                    /*
                     let n =  hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
-                    if (hit.pickedMesh instanceof ConstructionMesh) {
-                        console.log("tak")
-                        let root = hit.pickedMesh.brick.root;
-                        let rootPosition = root.position;
-                        let dp = hit.pickedPoint.add(n).subtract(rootPosition);
-                        dp.x = BRICK_S * Math.round(dp.x / BRICK_S);
-                        dp.y = BRICK_H * Math.floor(dp.y / BRICK_H);
-                        dp.z = BRICK_S * Math.round(dp.z / BRICK_S);
-                        brick.root.position.copyFrom(dp);
-                        brick.root.position.addInPlace(rootPosition);
-                        brick.clampToConstruction();
-                        brick.updateRootPosition();
-                        return;
-                    }
-                    else {
-                        let pos = hit.pickedPoint.add(n).subtract(brick.construction.position);
-                        pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
-                        pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                        pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                        brick.root.position.copyFrom(pos);
-                        brick.clampToConstruction();
-                        brick.updateRootPosition();
-                    }
-                    */
+                    let pos = hit.pickedPoint.add(n).subtract(brick.construction.position);
+                    brick.posI = Math.round(pos.x / BRICK_S);
+                    brick.posK = Math.floor(pos.y / BRICK_H);
+                    brick.posJ = Math.round(pos.z / BRICK_S);
+                    
+                    brick.clampToConstruction();
+                    brick.construction.updateMesh();
                 }
             }
         }

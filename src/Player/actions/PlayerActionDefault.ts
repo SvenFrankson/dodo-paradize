@@ -1,5 +1,6 @@
 interface IAimable {
 
+    name: string;
     highlight: () => void;
     unlit: () => void;
 }
@@ -26,6 +27,7 @@ class PlayerActionDefault {
         let aimedObject: IAimable;
         let setAimedObject = (b: IAimable) => {
             if (b != aimedObject) {
+                ScreenLoger.Log("setAimedObject " + (b != undefined ? b.name : "undefined"));
                 if (aimedObject) {
                     aimedObject.unlit();
                 }
@@ -59,9 +61,9 @@ class PlayerActionDefault {
                 if (hit.hit && hit.pickedPoint) {
                     if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
                         if (hit.pickedMesh instanceof ConstructionMesh) {
-                            let cosntruction = hit.pickedMesh.construction;
-                            if (cosntruction) {
-                                let brick = cosntruction.getBrickForFaceId(hit.faceId);
+                            let construction = hit.pickedMesh.construction;
+                            if (construction) {
+                                let brick = construction.getBrickForFaceId(hit.faceId);
                                 if (brick) {
                                     setAimedObject(brick);
                                 }
@@ -78,7 +80,7 @@ class PlayerActionDefault {
             setAimedObject(undefined);
         }
 
-        defaultAction.onPointerUp = (duration, onScreenDistance) => {
+        defaultAction.onPointerUp = async (duration, onScreenDistance) => {
             if (onScreenDistance > 4) {
                 return;
             }
@@ -96,11 +98,15 @@ class PlayerActionDefault {
             }
             else {
                 if (player.playMode === PlayMode.Playing) {
-                    if ((aimedObject instanceof Brick)) {
-                        console.log("go !");
-                        player.currentAction = PlayerActionMoveBrick.Create(player, aimedObject);
+                    if (aimedObject instanceof Brick) {
+                        let construction = aimedObject.construction;
+                        let brickId = aimedObject.index;
+                        let brickColorIndex = aimedObject.colorIndex;
+                        aimedObject.dispose();
+                        construction.updateMesh();
+                        player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex);
                     }
-                    if (aimedObject instanceof DodoCollider) {
+                    else if (aimedObject instanceof DodoCollider) {
                         if (aimedObject.dodo.brain.npcDialog) {
                             let canvas = aimedObject.dodo.game.canvas;
                             document.exitPointerLock();
