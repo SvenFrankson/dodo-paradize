@@ -13,7 +13,7 @@ class NPCManager {
         (this.landServant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(1.25, 0, 25.56);
         this.landServant.brain.initialize();
         
-        this.brickMerchant = new Dodo("brick-merchant", "Agostinho Timon", this.game, { style: "232a0f200101" });
+        this.brickMerchant = new Dodo("brick-merchant", "Agostinho Timon", this.game, { style: "232507230115" });
         this.brickMerchant.brain = new Brain(this.brickMerchant, BrainMode.Idle);
         (this.brickMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(6.66, 0.53, 1.37);
         this.brickMerchant.brain.initialize();
