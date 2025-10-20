@@ -120,7 +120,7 @@ class BrickMenuView extends HTMLElement implements Nabu.IPage {
         categoriesContainer.appendChild(this._anchorBtn);
         this._anchorBtn.onclick = () => {
             if (this._brick) {
-                this._brick.root.anchored = !this._brick.root.anchored;
+                //this._brick.root.anchored = !this._brick.root.anchored;
             }
             this.hide(0.1);
         }
@@ -138,7 +138,7 @@ class BrickMenuView extends HTMLElement implements Nabu.IPage {
         categoriesContainer.appendChild(this._copyWithChildrenBtn);
         this._copyWithChildrenBtn.onclick = () => {
             let clone = this._brick.cloneWithChildren();
-            clone.updateMesh();
+            //clone.updateMesh();
             this._player.currentAction = PlayerActionMoveBrick.Create(this._player, clone);
             this.hide(0.1);
         }

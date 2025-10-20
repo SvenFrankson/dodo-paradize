@@ -7,7 +7,7 @@ interface IAimable {
 class PlayerActionDefault {
 
     public static IsAimable(mesh: BABYLON.AbstractMesh): boolean {
-        if (mesh instanceof BrickMesh) {
+        if (mesh instanceof ConstructionMesh) {
             return true;
         }
         if (mesh instanceof DodoCollider) {
@@ -58,10 +58,10 @@ class PlayerActionDefault {
 
                 if (hit.hit && hit.pickedPoint) {
                     if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
-                        if (hit.pickedMesh instanceof BrickMesh) {
-                            let brickRoot = hit.pickedMesh.brick.root;
-                            if (brickRoot) {
-                                let brick = brickRoot.getBrickForFaceId(hit.faceId);
+                        if (hit.pickedMesh instanceof ConstructionMesh) {
+                            let cosntruction = hit.pickedMesh.construction;
+                            if (cosntruction) {
+                                let brick = cosntruction.getBrickForFaceId(hit.faceId);
                                 if (brick) {
                                     setAimedObject(brick);
                                 }
@@ -96,9 +96,9 @@ class PlayerActionDefault {
             }
             else {
                 if (player.playMode === PlayMode.Playing) {
-                    if ((aimedObject instanceof Brick) && !aimedObject.root.anchored) {
+                    if ((aimedObject instanceof Brick)) {
                         console.log("go !");
-                        player.currentAction = PlayerActionMoveBrick.Create(player, aimedObject.root);
+                        player.currentAction = PlayerActionMoveBrick.Create(player, aimedObject);
                     }
                     if (aimedObject instanceof DodoCollider) {
                         if (aimedObject.dodo.brain.npcDialog) {
@@ -122,8 +122,6 @@ class PlayerActionDefault {
                 let prevParent = aimedObject.parent;
                 if (prevParent instanceof Brick) {
                     aimedObject.setParent(undefined);
-                    aimedObject.updateMesh();
-                    prevParent.updateMesh();
                 }
             }
         }

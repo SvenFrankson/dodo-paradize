@@ -3100,7 +3100,7 @@ class BrickMenuView extends HTMLElement {
         categoriesContainer.appendChild(this._anchorBtn);
         this._anchorBtn.onclick = () => {
             if (this._brick) {
-                this._brick.root.anchored = !this._brick.root.anchored;
+                //this._brick.root.anchored = !this._brick.root.anchored;
             }
             this.hide(0.1);
         };
@@ -3116,7 +3116,7 @@ class BrickMenuView extends HTMLElement {
         categoriesContainer.appendChild(this._copyWithChildrenBtn);
         this._copyWithChildrenBtn.onclick = () => {
             let clone = this._brick.cloneWithChildren();
-            clone.updateMesh();
+            //clone.updateMesh();
             this._player.currentAction = PlayerActionMoveBrick.Create(this._player, clone);
             this.hide(0.1);
         };
@@ -3921,7 +3921,7 @@ function LoadPlayerPositionFromLocalStorage(game) {
 }
 class PlayerActionDefault {
     static IsAimable(mesh) {
-        if (mesh instanceof BrickMesh) {
+        if (mesh instanceof ConstructionMesh) {
             return true;
         }
         if (mesh instanceof DodoCollider) {
@@ -3964,10 +3964,10 @@ class PlayerActionDefault {
                 });
                 if (hit.hit && hit.pickedPoint) {
                     if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
-                        if (hit.pickedMesh instanceof BrickMesh) {
-                            let brickRoot = hit.pickedMesh.brick.root;
-                            if (brickRoot) {
-                                let brick = brickRoot.getBrickForFaceId(hit.faceId);
+                        if (hit.pickedMesh instanceof ConstructionMesh) {
+                            let cosntruction = hit.pickedMesh.construction;
+                            if (cosntruction) {
+                                let brick = cosntruction.getBrickForFaceId(hit.faceId);
                                 if (brick) {
                                     setAimedObject(brick);
                                 }
@@ -4001,9 +4001,9 @@ class PlayerActionDefault {
             }
             else {
                 if (player.playMode === PlayMode.Playing) {
-                    if ((aimedObject instanceof Brick) && !aimedObject.root.anchored) {
+                    if ((aimedObject instanceof Brick)) {
                         console.log("go !");
-                        player.currentAction = PlayerActionMoveBrick.Create(player, aimedObject.root);
+                        player.currentAction = PlayerActionMoveBrick.Create(player, aimedObject);
                     }
                     if (aimedObject instanceof DodoCollider) {
                         if (aimedObject.dodo.brain.npcDialog) {
@@ -4026,8 +4026,6 @@ class PlayerActionDefault {
                 let prevParent = aimedObject.parent;
                 if (prevParent instanceof Brick) {
                     aimedObject.setParent(undefined);
-                    aimedObject.updateMesh();
-                    prevParent.updateMesh();
                 }
             }
         };
@@ -4042,7 +4040,7 @@ class PlayerActionMoveBrick {
         let brickAction = new PlayerAction("move-brick-action", player);
         brickAction.backgroundColor = "#FF00FF";
         brickAction.iconUrl = "";
-        let initPos = brick.root.position.clone();
+        let initPos = brick.position.clone();
         brickAction.onUpdate = () => {
             let terrain = player.game.terrain;
             if (player.playMode === PlayMode.Playing) {
@@ -4057,12 +4055,13 @@ class PlayerActionMoveBrick {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return (mesh instanceof BrickMesh && mesh.brick != brick) || mesh instanceof Chunck;
+                    return (mesh instanceof ConstructionMesh) || mesh instanceof Chunck;
                 });
                 if (hit && hit.pickedPoint) {
-                    let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
-                    if (hit.pickedMesh instanceof BrickMesh) {
-                        console.log("tak");
+                    /*
+                    let n =  hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
+                    if (hit.pickedMesh instanceof ConstructionMesh) {
+                        console.log("tak")
                         let root = hit.pickedMesh.brick.root;
                         let rootPosition = root.position;
                         let dp = hit.pickedPoint.add(n).subtract(rootPosition);
@@ -4084,6 +4083,7 @@ class PlayerActionMoveBrick {
                         brick.clampToConstruction();
                         brick.updateRootPosition();
                     }
+                    */
                 }
             }
         };
@@ -4102,11 +4102,12 @@ class PlayerActionMoveBrick {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return (mesh instanceof BrickMesh && mesh.brick != brick) || mesh instanceof Chunck;
+                    return (mesh instanceof ConstructionMesh) || mesh instanceof Chunck;
                 });
                 if (hit && hit.pickedPoint) {
-                    let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
-                    if (hit.pickedMesh instanceof BrickMesh) {
+                    /*
+                    let n =  hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
+                    if (hit.pickedMesh instanceof ConstructionMesh) {
                         if (duration > 0.3) {
                             let root = hit.pickedMesh.brick.root;
                             let aimedBrick = root.getBrickForFaceId(hit.faceId);
@@ -4123,6 +4124,7 @@ class PlayerActionMoveBrick {
                             brick.clampToConstruction();
                             brick.updateMesh();
                             brick.updateRootPosition();
+
                             brick.construction.saveToLocalStorage();
                             brick.construction.saveToServer();
                         }
@@ -4136,9 +4138,11 @@ class PlayerActionMoveBrick {
                         brick.clampToConstruction();
                         brick.updateMesh();
                         brick.updateRootPosition();
+
                         brick.construction.saveToLocalStorage();
                         brick.construction.saveToServer();
                     }
+                    */
                 }
             }
             player.currentAction = undefined;
@@ -4163,6 +4167,7 @@ class PlayerActionMoveBrick {
             player.game.inputManager.removeMappedKeyDownListener(KeyInput.DELETE_SELECTED, deleteBrick);
         };
         brickAction.onWheel = (e) => {
+            /*
             if (brick.isRoot && brick.getChildTransformNodes().length === 0) {
                 if (e.deltaY > 0) {
                     brick.index = (brick.index + BRICK_LIST.length - 1) % BRICK_LIST.length;
@@ -4173,6 +4178,7 @@ class PlayerActionMoveBrick {
                     brick.updateMesh();
                 }
             }
+            */
         };
         return brickAction;
     }
@@ -4202,33 +4208,18 @@ class PlayerActionTemplate {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof Chunck || mesh instanceof BrickMesh;
+                    return mesh instanceof Chunck || mesh instanceof ConstructionMesh;
                 });
                 if (hit && hit.pickedPoint) {
-                    let n = hit.getNormal(true).scaleInPlace(0.05);
-                    if (hit.pickedMesh instanceof BrickMesh) {
-                        let root = hit.pickedMesh.brick.root;
-                        if (root.mesh) {
-                            let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5));
-                            pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
-                            pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                            pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                            previewMesh.position.copyFrom(pos);
-                            previewMesh.rotation.y = Math.PI * 0.5 * r;
-                            previewMesh.isVisible = true;
-                            return;
-                        }
-                    }
-                    else {
-                        let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5));
-                        pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
-                        pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                        pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                        previewMesh.position.copyFrom(pos);
-                        previewMesh.rotation.y = Math.PI * 0.5 * r;
-                        previewMesh.isVisible = true;
-                        return;
-                    }
+                    let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
+                    let pos = hit.pickedPoint.add(n);
+                    pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
+                    pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
+                    pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
+                    previewMesh.position.copyFrom(pos);
+                    previewMesh.rotation.y = Math.PI * 0.5 * r;
+                    previewMesh.isVisible = true;
+                    return;
                 }
             }
             if (previewMesh) {
@@ -4248,44 +4239,23 @@ class PlayerActionTemplate {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof Chunck || mesh instanceof BrickMesh;
+                    return mesh instanceof Chunck || mesh instanceof ConstructionMesh;
                 });
                 if (hit && hit.pickedPoint) {
                     let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
-                    if (hit.pickedMesh instanceof BrickMesh) {
-                        let root = hit.pickedMesh.brick.root;
-                        if (root && root.construction.isPlayerAllowedToEdit()) {
-                            let aimedBrick = root.getBrickForFaceId(hit.faceId);
-                            let pos = hit.pickedPoint.add(n);
-                            pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
-                            pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                            pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                            let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0);
-                            brick.position.copyFrom(pos);
-                            brick.r = r;
-                            brick.setParent(aimedBrick);
-                            brick.computeWorldMatrix(true);
-                            ScreenLoger.Log("BrickPos " + brick.position);
-                            brick.updateMesh();
-                            root.construction.saveToLocalStorage();
-                            root.construction.saveToServer();
-                        }
-                    }
-                    else if (hit.pickedMesh instanceof Chunck) {
-                        let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
-                        let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
-                        if (construction && construction.isPlayerAllowedToEdit()) {
-                            let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
-                            let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5)).subtractInPlace(construction.position);
-                            brick.posI = Math.round(pos.x / BRICK_S);
-                            brick.posJ = Math.round(pos.z / BRICK_S);
-                            brick.posK = Math.floor(pos.y / BRICK_H);
-                            brick.absoluteR = r;
-                            brick.construction = construction;
-                            brick.updateMesh();
-                            brick.construction.saveToLocalStorage();
-                            brick.construction.saveToServer();
-                        }
+                    let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
+                    let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
+                    if (construction && construction.isPlayerAllowedToEdit()) {
+                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
+                        let pos = hit.pickedPoint.add(n).subtractInPlace(construction.position);
+                        brick.posI = Math.round(pos.x / BRICK_S);
+                        brick.posJ = Math.round(pos.z / BRICK_S);
+                        brick.posK = Math.floor(pos.y / BRICK_H);
+                        brick.r = r;
+                        ScreenLoger.Log(brick.posI + " " + brick.posJ + " " + brick.posK);
+                        construction.updateMesh();
+                        construction.saveToLocalStorage();
+                        construction.saveToServer();
                     }
                 }
             }
@@ -4355,17 +4325,17 @@ class PlayerActionTemplate {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof BrickMesh;
+                    return mesh instanceof ConstructionMesh;
                 });
                 if (hit && hit.pickedPoint) {
-                    if (hit.pickedMesh instanceof BrickMesh) {
-                        let root = hit.pickedMesh.brick.root;
-                        let aimedBrick = root.getBrickForFaceId(hit.faceId);
+                    if (hit.pickedMesh instanceof ConstructionMesh) {
+                        let construction = hit.pickedMesh.construction;
+                        let aimedBrick = construction.getBrickForFaceId(hit.faceId);
                         aimedBrick.colorIndex = paintIndex;
                         //player.lastUsedPaintIndex = paintIndex;
-                        aimedBrick.updateMesh();
-                        root.construction.saveToLocalStorage();
-                        root.construction.saveToServer();
+                        construction.updateMesh();
+                        construction.saveToLocalStorage();
+                        construction.saveToServer();
                     }
                 }
             }
@@ -4409,32 +4379,22 @@ class PlayerActionTemplate {
         return paintAction;
     }
 }
-class BrickMesh extends BABYLON.Mesh {
-    constructor(brick) {
-        super("brick");
-        this.brick = brick;
+class ConstructionMesh extends BABYLON.Mesh {
+    constructor(construction) {
+        super("construction-mesh", construction.terrain.game.scene);
+        this.construction = construction;
     }
 }
 class Brick extends BABYLON.TransformNode {
     constructor(arg1, colorIndex, construction) {
         super("brick");
         this.colorIndex = colorIndex;
-        this.anchored = false;
         this.index = Brick.BrickIdToIndex(arg1);
         if (construction) {
             this.construction = construction;
             this.construction.bricks.push(this);
             this.parent = this.construction;
         }
-    }
-    get isRoot() {
-        return !(this.parent instanceof Brick);
-    }
-    get root() {
-        if (this.parent instanceof Brick) {
-            return this.parent.root;
-        }
-        return this;
     }
     get brickName() {
         return BRICK_LIST[this.index];
@@ -4454,17 +4414,6 @@ class Brick extends BABYLON.TransformNode {
         else {
             return BRICK_LIST[brickID];
         }
-    }
-    setParent(node, preserveScalingSign, updatePivot) {
-        if (node instanceof Brick) {
-            this.anchored = false;
-            this.construction = node.construction;
-            this.construction.bricks.remove(this);
-        }
-        else {
-            this.construction.bricks.push(this);
-        }
-        return super.setParent(node, preserveScalingSign, updatePivot);
     }
     get posI() {
         return Math.round(this.position.x / BRICK_S);
@@ -4501,7 +4450,7 @@ class Brick extends BABYLON.TransformNode {
         else if (jInConstruction >= BRICKS_PER_CONSTRUCTION) {
             overshoot.z = jInConstruction - (BRICKS_PER_CONSTRUCTION - 1);
         }
-        Mummu.RotateInPlace(overshoot, BABYLON.Axis.Y, -this.absoluteR * Math.PI / 0.5);
+        Mummu.RotateInPlace(overshoot, BABYLON.Axis.Y, -this.r * Math.PI / 0.5);
         this.posI -= overshoot.x;
         this.posJ -= overshoot.z;
     }
@@ -4518,40 +4467,8 @@ class Brick extends BABYLON.TransformNode {
     set r(v) {
         this.rotation.y = v * Math.PI * 0.5;
     }
-    get absoluteR() {
-        if (this.isRoot) {
-            return this.r;
-        }
-        let absR = this.parent.absoluteR + this.r;
-        while (absR < 0) {
-            absR += 4;
-        }
-        while (absR >= 4) {
-            absR -= 4;
-        }
-        return absR;
-    }
-    set absoluteR(v) {
-        if (this.isRoot) {
-            this.r = v;
-        }
-        else {
-            let parentAbsoluteRotation = this.parent.absoluteR;
-            this.r = v - parentAbsoluteRotation;
-        }
-    }
     dispose() {
-        if (this.isRoot) {
-            this.construction.bricks.remove(this);
-            if (this.mesh) {
-                this.mesh.dispose();
-            }
-        }
-        else {
-            let root = this.root;
-            this.setParent(undefined);
-            root.updateMesh();
-        }
+        this.construction.bricks.remove(this);
     }
     cloneWithChildren() {
         let data = this.serialize();
@@ -4561,84 +4478,11 @@ class Brick extends BABYLON.TransformNode {
         let matrix = this.getWorldMatrix().invert();
         return BABYLON.Vector3.TransformCoordinates(pos, matrix);
     }
-    async updateMesh() {
-        if (this != this.root) {
-            if (this.mesh) {
-                this.mesh.dispose();
-                this.mesh = undefined;
-            }
-            this.subMeshInfos = undefined;
-            this.root.updateMesh();
-            return;
-        }
-        this.computeWorldMatrix(true);
-        this._invRootWorldMatrix = this.getWorldMatrix().clone().invert();
-        let vDatas = [];
-        this.subMeshInfos = [];
-        await this.generateMeshVertexData(vDatas, this.subMeshInfos);
-        let data = Brick.MergeVertexDatas(this.subMeshInfos, ...vDatas);
-        if (!this.mesh) {
-            this.mesh = new BrickMesh(this);
-            this.mesh.layerMask |= 0x20000000;
-            this.mesh.parent = this.construction;
-            let brickMaterial = new BABYLON.StandardMaterial("brick-material");
-            brickMaterial.specularColor.copyFromFloats(0, 0, 0);
-            //brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
-            //brickMaterial.invertNormalMapX = true;
-            //brickMaterial.diffuseTexture = new BABYLON.Texture("./datas/textures/red-white-squares.png");
-            /*
-            let steelMaterial = new ToonMaterial("steel", this.mesh._scene);
-            steelMaterial.setDiffuse(BABYLON.Color3.FromHexString("#868b8a"));
-            steelMaterial.setSpecularIntensity(1);
-            steelMaterial.setSpecularCount(4);
-            steelMaterial.setSpecularPower(32);
-            steelMaterial.setUseVertexColor(true);
-
-            let logoMaterial = new ToonMaterial("logo", this.mesh._scene);
-            logoMaterial.setDiffuse(BABYLON.Color3.FromHexString("#262b2a"));
-            logoMaterial.setSpecularIntensity(0.5);
-            logoMaterial.setSpecularCount(1);
-            logoMaterial.setSpecularPower(16);
-            logoMaterial.setUseLightFromPOV(true);
-            logoMaterial.setUseFlatSpecular(true);
-            */
-            this.mesh.material = this.construction.terrain.game.defaultToonMaterial;
-        }
-        data.applyToMesh(this.mesh);
-        this.updateRootPosition();
-    }
-    updateRootPosition() {
-        if (!this.isRoot) {
-            return this.root.updateRootPosition();
-        }
-        if (this.mesh) {
-            this.mesh.position = this.position;
-            this.mesh.rotation.y = this.r * Math.PI * 0.5;
-            this.mesh.computeWorldMatrix(true);
-            this.mesh.refreshBoundingInfo();
-        }
-    }
     highlight() {
-        if (this != this.root) {
-            return this.root.highlight();
-        }
-        if (this.mesh) {
-            this.mesh.renderOutline = true;
-            this.mesh.outlineColor = new BABYLON.Color3(0, 1, 1);
-            this.mesh.outlineWidth = 0.03;
-        }
     }
     unlit() {
-        if (this != this.root) {
-            return this.root.unlit();
-        }
-        if (this.mesh) {
-            this.mesh.renderOutline = false;
-            this.mesh.outlineColor.copyFromFloats(0, 0, 0);
-        }
     }
-    async generateMeshVertexData(vDatas, subMeshInfos, depth = 0) {
-        this.computeWorldMatrix(true);
+    async generateMeshVertexData(vDatas, subMeshInfos) {
         let template = await BrickTemplateManager.Instance.getTemplate(this.index);
         let vData = Mummu.CloneVertexData(template.vertexData);
         let colors = [];
@@ -4663,57 +4507,10 @@ class Brick extends BABYLON.TransformNode {
             uvs[2 * i + 1] = sina * u + cosa * v + dV;
         }
         vData.uvs = uvs;
-        if (depth > 0) {
-            Mummu.RotateAngleAxisVertexDataInPlace(vData, (this.absoluteR - this.root.r) * Math.PI * 0.5, BABYLON.Axis.Y);
-            Mummu.TranslateVertexDataInPlace(vData, BABYLON.Vector3.TransformCoordinates(this.absolutePosition, this.root._invRootWorldMatrix));
-        }
+        Mummu.RotateAngleAxisVertexDataInPlace(vData, this.r * Math.PI * 0.5, BABYLON.Axis.Y);
+        Mummu.TranslateVertexDataInPlace(vData, this.position);
         vDatas.push(vData);
         subMeshInfos.push({ faceId: 0, brick: this });
-        let children = this.getChildTransformNodes(true);
-        for (let i = 0; i < children.length; i++) {
-            let child = children[i];
-            if (child instanceof Brick) {
-                await child.generateMeshVertexData(vDatas, subMeshInfos, depth + 1);
-            }
-        }
-    }
-    getBrickForFaceId(faceId) {
-        for (let i = 0; i < this.subMeshInfos.length; i++) {
-            if (this.subMeshInfos[i].faceId > faceId) {
-                return this.subMeshInfos[i].brick;
-            }
-        }
-    }
-    static MergeVertexDatas(subMeshInfos, ...datas) {
-        let mergedData = new BABYLON.VertexData();
-        let positions = [];
-        let indices = [];
-        let normals = [];
-        let uvs = [];
-        let colors = [];
-        for (let i = 0; i < datas.length; i++) {
-            let offset = positions.length / 3;
-            positions.push(...datas[i].positions);
-            indices.push(...datas[i].indices.map(index => { return index + offset; }));
-            normals.push(...datas[i].normals);
-            if (datas[i].uvs) {
-                uvs.push(...datas[i].uvs);
-            }
-            if (datas[i].colors) {
-                colors.push(...datas[i].colors);
-            }
-            subMeshInfos[i].faceId = indices.length / 3;
-        }
-        mergedData.positions = positions;
-        mergedData.indices = indices;
-        mergedData.normals = normals;
-        if (uvs.length > 0) {
-            mergedData.uvs = uvs;
-        }
-        if (colors.length > 0) {
-            mergedData.colors = colors;
-        }
-        return mergedData;
     }
     serialize() {
         let s = "";
@@ -4723,18 +4520,6 @@ class Brick extends BABYLON.TransformNode {
         s += (this.posJ + 64).toString(16).padStart(2, "0").substring(0, 2);
         s += (this.posK + 64).toString(16).padStart(2, "0").substring(0, 2);
         s += this.r.toString(16).padStart(1, "0").substring(0, 1);
-        let children = this.getChildTransformNodes(true).filter(n => { return n instanceof Brick; });
-        if (children.length > 0) {
-            s += "[";
-            for (let i = 0; i < children.length; i++) {
-                let child = children[i];
-                s += child.serialize();
-                if (i < children.length - 1) {
-                    s += ",";
-                }
-            }
-            s += "]";
-        }
         return s;
     }
     static Deserialize(data, parent) {
@@ -4757,38 +4542,6 @@ class Brick extends BABYLON.TransformNode {
         brick.posJ = posJ;
         brick.posK = posK;
         brick.r = r;
-        if (data[12] === "[") {
-            let directChildIndexes = [];
-            let closeIndex = 12;
-            let nestedOpen = 1;
-            let done = false;
-            while (!done && closeIndex < data.length) {
-                closeIndex++;
-                let c = data[closeIndex];
-                if (c === "[") {
-                    nestedOpen++;
-                }
-                else if (c === "]") {
-                    nestedOpen--;
-                    if (nestedOpen === 0) {
-                        directChildIndexes.push(closeIndex);
-                        done = true;
-                    }
-                }
-                else if (c === "," && nestedOpen === 1) {
-                    directChildIndexes.push(closeIndex);
-                }
-            }
-            let childrenDatas = data.substring(13, closeIndex);
-            for (let i = 0; i < directChildIndexes.length; i++) {
-                let c0 = 13;
-                if (i > 0) {
-                    c0 = directChildIndexes[i - 1] + 1;
-                }
-                let c1 = directChildIndexes[i];
-                Brick.Deserialize(data.substring(c0, c1), brick);
-            }
-        }
         return brick;
     }
 }
@@ -5466,6 +5219,80 @@ class Construction extends BABYLON.Mesh {
             this.showLimits();
         }
     }
+    getBrickForFaceId(faceId) {
+        for (let i = 0; i < this.subMeshInfos.length; i++) {
+            if (this.subMeshInfos[i].faceId > faceId) {
+                return this.subMeshInfos[i].brick;
+            }
+        }
+    }
+    async updateMesh() {
+        let vDatas = [];
+        this.subMeshInfos = [];
+        for (let i = 0; i < this.bricks.length; i++) {
+            await this.bricks.get(i).generateMeshVertexData(vDatas, this.subMeshInfos);
+        }
+        let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
+        if (!this.mesh) {
+            this.mesh = new ConstructionMesh(this);
+            //this.mesh.layerMask |= 0x20000000;
+            //this.mesh.parent = this;
+            //let brickMaterial = new BABYLON.StandardMaterial("brick-material");
+            //brickMaterial.specularColor.copyFromFloats(0, 0, 0);
+            //brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
+            //brickMaterial.invertNormalMapX = true;
+            //brickMaterial.diffuseTexture = new BABYLON.Texture("./datas/textures/red-white-squares.png");
+            /*
+            let steelMaterial = new ToonMaterial("steel", this.mesh._scene);
+            steelMaterial.setDiffuse(BABYLON.Color3.FromHexString("#868b8a"));
+            steelMaterial.setSpecularIntensity(1);
+            steelMaterial.setSpecularCount(4);
+            steelMaterial.setSpecularPower(32);
+            steelMaterial.setUseVertexColor(true);
+
+            let logoMaterial = new ToonMaterial("logo", this.mesh._scene);
+            logoMaterial.setDiffuse(BABYLON.Color3.FromHexString("#262b2a"));
+            logoMaterial.setSpecularIntensity(0.5);
+            logoMaterial.setSpecularCount(1);
+            logoMaterial.setSpecularPower(16);
+            logoMaterial.setUseLightFromPOV(true);
+            logoMaterial.setUseFlatSpecular(true);
+            */
+            this.mesh.material = this.terrain.game.defaultToonMaterial;
+        }
+        data.applyToMesh(this.mesh);
+    }
+    static MergeVertexDatas(subMeshInfos, ...datas) {
+        let mergedData = new BABYLON.VertexData();
+        let positions = [];
+        let indices = [];
+        let normals = [];
+        let uvs = [];
+        let colors = [];
+        for (let i = 0; i < datas.length; i++) {
+            let offset = positions.length / 3;
+            positions.push(...datas[i].positions);
+            indices.push(...datas[i].indices.map(index => { return index + offset; }));
+            normals.push(...datas[i].normals);
+            if (datas[i].uvs) {
+                uvs.push(...datas[i].uvs);
+            }
+            if (datas[i].colors) {
+                colors.push(...datas[i].colors);
+            }
+            subMeshInfos[i].faceId = indices.length / 3;
+        }
+        mergedData.positions = positions;
+        mergedData.indices = indices;
+        mergedData.normals = normals;
+        if (uvs.length > 0) {
+            mergedData.uvs = uvs;
+        }
+        if (colors.length > 0) {
+            mergedData.colors = colors;
+        }
+        return mergedData;
+    }
     async showLimits() {
         if (this.limits) {
             this.limits.dispose();
@@ -5603,7 +5430,7 @@ class Construction extends BABYLON.Mesh {
         let data = JSON.parse(dataString);
         for (let i = 0; i < data.length; i++) {
             let brick = Brick.Deserialize(data[i], this);
-            brick.updateMesh();
+            this.updateMesh();
             this.bricks.push(brick);
         }
     }
@@ -6298,7 +6125,7 @@ class Dodo extends Creature {
                     //Mummu.DrawDebugPoint(origin, 5, BABYLON.Color3.Red());
                     let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1.5);
                     let pick = this._scene.pickWithRay(ray, (mesh => {
-                        return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate || mesh instanceof BrickMesh;
+                        return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate || mesh instanceof ConstructionMesh;
                     }));
                     if (pick.hit) {
                         origin = pick.pickedPoint;
@@ -6406,21 +6233,19 @@ class Dodo extends Creature {
             for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
                 let construction = this.getCurrentConstruction(di, dj);
                 if (construction) {
-                    construction.bricks.forEach(brick => {
-                        if (brick && brick.root && brick.root.mesh) {
-                            let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
-                            if (col.hit) {
-                                Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
-                                let delta = col.normal.scale(col.depth);
-                                this.position.addInPlace(delta);
-                                let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
-                                this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
-                                if (col.normal.y > 0.5) {
-                                    this.gravityVelocity *= 0.5;
-                                }
+                    if (construction.mesh) {
+                        let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, construction.mesh, true);
+                        if (col.hit) {
+                            Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
+                            let delta = col.normal.scale(col.depth);
+                            this.position.addInPlace(delta);
+                            let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
+                            this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
+                            if (col.normal.y > 0.5) {
+                                this.gravityVelocity *= 0.5;
                             }
                         }
-                    });
+                    }
                 }
             }
         }

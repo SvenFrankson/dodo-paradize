@@ -751,7 +751,7 @@ class Dodo extends Creature {
 
                     let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1.5);
                     let pick = this._scene.pickWithRay(ray, (mesh => {
-                        return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate || mesh instanceof BrickMesh;
+                        return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate || mesh instanceof ConstructionMesh;
                     }));
 
                     if (pick.hit) {
@@ -880,22 +880,20 @@ class Dodo extends Creature {
             for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
                 let construction = this.getCurrentConstruction(di, dj);
                 if (construction) {
-                    construction.bricks.forEach(brick => {
-                        if (brick && brick.root && brick.root.mesh) {
-                            let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, brick.root.mesh, true);
-                            if (col.hit) {
-                                Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
-                                let delta = col.normal.scale(col.depth);
-                                this.position.addInPlace(delta);
+                    if (construction.mesh) {
+                        let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, construction.mesh, true);
+                        if (col.hit) {
+                            Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
+                            let delta = col.normal.scale(col.depth);
+                            this.position.addInPlace(delta);
 
-                                let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
-                                this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
-                                if (col.normal.y > 0.5) {
-                                    this.gravityVelocity *= 0.5;
-                                }
+                            let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
+                            this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
+                            if (col.normal.y > 0.5) {
+                                this.gravityVelocity *= 0.5;
                             }
                         }
-                    })
+                    }
                 }
             }
         }

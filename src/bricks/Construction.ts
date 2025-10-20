@@ -11,6 +11,7 @@ class Construction extends BABYLON.Mesh {
     public static SIZE_m: number = BRICKS_PER_CONSTRUCTION * BRICK_S;
 
     public bricks: Nabu.UniqueList<Brick> = new Nabu.UniqueList<Brick>();
+    public mesh: ConstructionMesh;
 
     public limits: BABYLON.Mesh;
     public barycenter: BABYLON.Vector3 = BABYLON.Vector3.Zero();
@@ -38,6 +39,93 @@ class Construction extends BABYLON.Mesh {
         if (this.terrain.game.devMode.activated || this.terrain.game.networkManager.claimedConstructionI === this.i && this.terrain.game.networkManager.claimedConstructionJ === this.j) {
             this.showLimits();
         }
+    }
+
+    public subMeshInfos: { faceId: number, brick: Brick }[];
+    public getBrickForFaceId(faceId: number): Brick {
+        for (let i = 0; i < this.subMeshInfos.length; i++) {
+            if (this.subMeshInfos[i].faceId > faceId) {
+                return this.subMeshInfos[i].brick;
+            }
+        }
+    }
+
+    public async updateMesh(): Promise<void> {
+        let vDatas: BABYLON.VertexData[] = []
+        this.subMeshInfos = [];
+        for (let i = 0; i < this.bricks.length; i++) {
+            await this.bricks.get(i).generateMeshVertexData(vDatas, this.subMeshInfos);
+        }
+        let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
+        if (!this.mesh) {
+            this.mesh = new ConstructionMesh(this);
+            
+            //this.mesh.layerMask |= 0x20000000;
+            //this.mesh.parent = this;
+
+            //let brickMaterial = new BABYLON.StandardMaterial("brick-material");
+            //brickMaterial.specularColor.copyFromFloats(0, 0, 0);
+            //brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
+            //brickMaterial.invertNormalMapX = true;
+            //brickMaterial.diffuseTexture = new BABYLON.Texture("./datas/textures/red-white-squares.png");
+
+            /*
+            let steelMaterial = new ToonMaterial("steel", this.mesh._scene);
+            steelMaterial.setDiffuse(BABYLON.Color3.FromHexString("#868b8a"));
+            steelMaterial.setSpecularIntensity(1);
+            steelMaterial.setSpecularCount(4);
+            steelMaterial.setSpecularPower(32);
+            steelMaterial.setUseVertexColor(true);
+
+            let logoMaterial = new ToonMaterial("logo", this.mesh._scene);
+            logoMaterial.setDiffuse(BABYLON.Color3.FromHexString("#262b2a"));
+            logoMaterial.setSpecularIntensity(0.5);
+            logoMaterial.setSpecularCount(1);
+            logoMaterial.setSpecularPower(16);
+            logoMaterial.setUseLightFromPOV(true);
+            logoMaterial.setUseFlatSpecular(true);
+            */
+
+            this.mesh.material = this.terrain.game.defaultToonMaterial;
+        }
+        
+        data.applyToMesh(this.mesh);
+    }    
+
+    public static MergeVertexDatas(subMeshInfos: { faceId: number, brick: Brick }[], ...datas: BABYLON.VertexData[]): BABYLON.VertexData {
+        let mergedData = new BABYLON.VertexData();
+        
+        let positions = [];
+        let indices = [];
+        let normals = [];
+        let uvs = [];
+        let colors = [];
+
+        for (let i = 0; i < datas.length; i++) {
+            let offset = positions.length / 3;
+            positions.push(...datas[i].positions);
+            indices.push(...datas[i].indices.map(index => { return index + offset; }));
+            normals.push(...datas[i].normals);
+            if (datas[i].uvs) {
+                uvs.push(...datas[i].uvs);
+            }
+            if (datas[i].colors) {
+                colors.push(...datas[i].colors);
+            }
+            subMeshInfos[i].faceId = indices.length / 3;
+        }
+
+        mergedData.positions = positions;
+        mergedData.indices = indices;
+        mergedData.normals = normals;
+        if (uvs.length > 0) {
+            mergedData.uvs = uvs;
+        }
+        if (colors.length > 0) {
+            mergedData.colors = colors;
+        }
+
+        return mergedData;
     }
 
     public async showLimits(): Promise<void> {
@@ -197,7 +285,7 @@ class Construction extends BABYLON.Mesh {
 
         for (let i = 0; i < data.length; i++) {
             let brick = Brick.Deserialize(data[i], this);
-            brick.updateMesh();
+            this.updateMesh();
             this.bricks.push(brick);
         }
     }

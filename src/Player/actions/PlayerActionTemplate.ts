@@ -31,34 +31,19 @@ class PlayerActionTemplate {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof Chunck || mesh instanceof BrickMesh;
+                        return mesh instanceof Chunck || mesh instanceof ConstructionMesh;
                     }
                 )
                 if (hit && hit.pickedPoint) {
-                    let n =  hit.getNormal(true).scaleInPlace(0.05);
-                    if (hit.pickedMesh instanceof BrickMesh) {
-                        let root = hit.pickedMesh.brick.root;
-                        if (root.mesh) {
-                            let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5));
-                            pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
-                            pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                            pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                            previewMesh.position.copyFrom(pos);
-                            previewMesh.rotation.y = Math.PI * 0.5 * r;
-                            previewMesh.isVisible = true;
-                            return;
-                        }
-                    }
-                    else {
-                        let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5));
-                        pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
-                        pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                        pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                        previewMesh.position.copyFrom(pos);
-                        previewMesh.rotation.y = Math.PI * 0.5 * r;
-                        previewMesh.isVisible = true;
-                        return;
-                    }
+                    let n =  hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
+                    let pos = hit.pickedPoint.add(n);
+                    pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
+                    pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
+                    pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
+                    previewMesh.position.copyFrom(pos);
+                    previewMesh.rotation.y = Math.PI * 0.5 * r;
+                    previewMesh.isVisible = true;
+                    return;
                 }
             }
             
@@ -83,47 +68,25 @@ class PlayerActionTemplate {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof Chunck || mesh instanceof BrickMesh;
+                        return mesh instanceof Chunck || mesh instanceof ConstructionMesh;
                     }
                 )
                 if (hit && hit.pickedPoint) {
                     let n =  hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
-                    if (hit.pickedMesh instanceof BrickMesh) {
-                        let root = hit.pickedMesh.brick.root;
-                        if (root && root.construction.isPlayerAllowedToEdit()) {
-                            let aimedBrick = root.getBrickForFaceId(hit.faceId);
-                            let pos = hit.pickedPoint.add(n);
-                            pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
-                            pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                            pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
-                            let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0);
-                            brick.position.copyFrom(pos);
-                            brick.r = r;
-                            brick.setParent(aimedBrick);
-                            brick.computeWorldMatrix(true);
-                            ScreenLoger.Log("BrickPos " + brick.position)
-                            brick.updateMesh();
-
-                            root.construction.saveToLocalStorage();
-                            root.construction.saveToServer();
-                        }
-                    }
-                    else if (hit.pickedMesh instanceof Chunck) {
-                        let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
-                        let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
-                        if (construction && construction.isPlayerAllowedToEdit()) {
-                            let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
-                            let pos = hit.pickedPoint.add(hit.getNormal(true).scale(BRICK_H * 0.5)).subtractInPlace(construction.position);
-                            brick.posI = Math.round(pos.x / BRICK_S);
-                            brick.posJ = Math.round(pos.z / BRICK_S);
-                            brick.posK = Math.floor(pos.y / BRICK_H);
-                            brick.absoluteR = r;
-                            brick.construction = construction;
-                            brick.updateMesh();
-                            
-                            brick.construction.saveToLocalStorage();
-                            brick.construction.saveToServer();
-                        }
+                    let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
+                    let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
+                    if (construction && construction.isPlayerAllowedToEdit()) {
+                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
+                        let pos = hit.pickedPoint.add(n).subtractInPlace(construction.position);
+                        brick.posI = Math.round(pos.x / BRICK_S);
+                        brick.posJ = Math.round(pos.z / BRICK_S);
+                        brick.posK = Math.floor(pos.y / BRICK_H);
+                        brick.r = r;
+                        
+                        ScreenLoger.Log(brick.posI + " " + brick.posJ + " " + brick.posK);
+                        construction.updateMesh();
+                        construction.saveToLocalStorage();
+                        construction.saveToServer();
                     }
                 }
             }
@@ -208,19 +171,19 @@ class PlayerActionTemplate {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof BrickMesh;
+                        return mesh instanceof ConstructionMesh;
                     }
                 )
                 if (hit && hit.pickedPoint) {
-                    if (hit.pickedMesh instanceof BrickMesh) {
-                        let root = hit.pickedMesh.brick.root;
-                        let aimedBrick = root.getBrickForFaceId(hit.faceId);
+                    if (hit.pickedMesh instanceof ConstructionMesh) {
+                        let construction = hit.pickedMesh.construction;
+                        let aimedBrick = construction.getBrickForFaceId(hit.faceId);
                         aimedBrick.colorIndex = paintIndex;
                         //player.lastUsedPaintIndex = paintIndex;
-                        aimedBrick.updateMesh();
+                        construction.updateMesh();
                         
-                        root.construction.saveToLocalStorage();
-                        root.construction.saveToServer();
+                        construction.saveToLocalStorage();
+                        construction.saveToServer();
                     }
                 }
             }

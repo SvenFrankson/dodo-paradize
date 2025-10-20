@@ -5,7 +5,7 @@ class PlayerActionMoveBrick {
         brickAction.backgroundColor = "#FF00FF";
         brickAction.iconUrl = "";
 
-        let initPos = brick.root.position.clone();
+        let initPos = brick.position.clone();
 
         brickAction.onUpdate = () => {
             let terrain = player.game.terrain;
@@ -24,12 +24,13 @@ class PlayerActionMoveBrick {
                     x,
                     y,
                     (mesh) => {
-                        return (mesh instanceof BrickMesh && mesh.brick != brick) || mesh instanceof Chunck;
+                        return (mesh instanceof ConstructionMesh) || mesh instanceof Chunck;
                     }
                 )
                 if (hit && hit.pickedPoint) {
+                    /*
                     let n =  hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
-                    if (hit.pickedMesh instanceof BrickMesh) {
+                    if (hit.pickedMesh instanceof ConstructionMesh) {
                         console.log("tak")
                         let root = hit.pickedMesh.brick.root;
                         let rootPosition = root.position;
@@ -52,6 +53,7 @@ class PlayerActionMoveBrick {
                         brick.clampToConstruction();
                         brick.updateRootPosition();
                     }
+                    */
                 }
             }
         }
@@ -74,12 +76,13 @@ class PlayerActionMoveBrick {
                     x,
                     y,
                     (mesh) => {
-                        return (mesh instanceof BrickMesh && mesh.brick != brick) || mesh instanceof Chunck;
+                        return (mesh instanceof ConstructionMesh) || mesh instanceof Chunck;
                     }
                 )
                 if (hit && hit.pickedPoint) {
+                    /*
                     let n =  hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
-                    if (hit.pickedMesh instanceof BrickMesh) {
+                    if (hit.pickedMesh instanceof ConstructionMesh) {
                         if (duration > 0.3) {
                             let root = hit.pickedMesh.brick.root;
                             let aimedBrick = root.getBrickForFaceId(hit.faceId);
@@ -114,6 +117,7 @@ class PlayerActionMoveBrick {
                         brick.construction.saveToLocalStorage();
                         brick.construction.saveToServer();
                     }
+                    */
                 }
             }
             player.currentAction = undefined;
@@ -143,6 +147,7 @@ class PlayerActionMoveBrick {
         }
 
         brickAction.onWheel = (e: WheelEvent) => {
+            /*
             if (brick.isRoot && brick.getChildTransformNodes().length === 0) {
                 if (e.deltaY > 0) {
                     brick.index = (brick.index + BRICK_LIST.length - 1) % BRICK_LIST.length;
@@ -153,6 +158,7 @@ class PlayerActionMoveBrick {
                     brick.updateMesh();
                 }
             }
+            */
         }
         
         return brickAction;
