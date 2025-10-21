@@ -196,7 +196,7 @@ class Dodo extends Creature {
     public tailTargetPos: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public tailFeathers: BABYLON.Mesh[];
     public hat: BABYLON.Mesh;
-    public hatType: number = 0;
+    public hatIndex: number = 0;
     public hatColor: number = 0;
     //public topEyelids: BABYLON.Mesh[];
     //public bottomEyelids: BABYLON.Mesh[];
@@ -327,7 +327,7 @@ class Dodo extends Creature {
         this.dodoCollider.parent = this;
         this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight + 0.05, 0);
         BABYLON.CreateSphereVertexData({ diameter: 2 * BRICK_S }).applyToMesh(this.dodoCollider);
-        this.dodoCollider.visibility = 0;
+        this.dodoCollider.visibility = 0.5;
 
         this.dodoInteractCollider = new DodoInteractCollider(this);
         this.dodoInteractCollider.parent = this.body;
@@ -448,7 +448,7 @@ class Dodo extends Creature {
         this.colors[1] = DodoColors[this.getStyleValue(StyleValueTypes.Color1)].color;
         this.colors[2] = DodoColors[this.getStyleValue(StyleValueTypes.Color2)].color;
         this.eyeColor = this.getStyleValue(StyleValueTypes.EyeColor);
-        this.hatType = this.getStyleValue(StyleValueTypes.HatIndex);
+        this.hatIndex = this.getStyleValue(StyleValueTypes.HatIndex);
         this.hatColor = this.getStyleValue(StyleValueTypes.HatColor);
 
         SavePlayerToLocalStorage(this.game);
@@ -461,6 +461,9 @@ class Dodo extends Creature {
     public setName(name: string): void {
         this.name = name;
         if (this.nameTag) {
+            if (this.nameTag.material) {
+                this.nameTag.material.dispose(true, true);
+            }
             let material = new BABYLON.StandardMaterial("name-tag-material");
             material.emissiveColor.copyFromFloats(1, 1, 1);
             material.useAlphaFromDiffuseTexture = true;
@@ -609,19 +612,22 @@ class Dodo extends Creature {
         
         datas[7].applyToMesh(this.jaw);
 
-        if (this.hatType === 0) {
+        if (this.hatIndex === 0) {
             this.hat.isVisible = false;
         }
         else {
             this.hat.isVisible = true;
-            if (this.hatType === 1) {
+            if (this.hatIndex === 1) {
                 Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[8]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
             }
-            else if (this.hatType === 2) {
+            else if (this.hatIndex === 2) {
                 Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[9]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
             }
-            else if (this.hatType === 3) {
+            else if (this.hatIndex === 3) {
                 Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[10]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
+            }
+            else if (this.hatIndex === 4) {
+                Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[11]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
             }
         }
 
@@ -829,7 +835,7 @@ class Dodo extends Creature {
                 BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
 
                 if (!this.jumping) {
-                    origin.y += 1;
+                    origin.y += this.bodyHeight;
                     if (this.isPlayerControlled) {
                         let groundedOrigin = origin.clone();
                         groundedOrigin.y = 0;
@@ -846,14 +852,45 @@ class Dodo extends Creature {
 
                     //Mummu.DrawDebugPoint(origin, 5, BABYLON.Color3.Red());
 
-                    let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1.5);
-                    let pick = this._scene.pickWithRay(ray, (mesh => {
-                        return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate || mesh instanceof ConstructionMesh;
-                    }));
+                    let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1);
+                    let bestIntersection: BABYLON.PickingInfo;
+                    if (this.isPlayerControlled && this.game.gameMode === GameMode.Home) {
+                        bestIntersection = ray.intersectsMesh(this.game.homeMenuPlate);
+                    }
+                    for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
+                        for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
+                            let construction = this.getCurrentConstruction(di, dj);
+                            if (construction) {
+                                if (construction.mesh) {
+                                    let intersection = ray.intersectsMesh(construction.mesh);
+                                    if (intersection.hit) {
+                                        if (!bestIntersection || bestIntersection.distance > intersection.distance) {
+                                            bestIntersection = intersection;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (!bestIntersection) {
+                        for (let di = this._chunckRange.di0; di <= this._chunckRange.di1; di++) {
+                            for (let dj = this._chunckRange.dj0; dj <= this._chunckRange.dj1; dj++) {
+                                let chunck = this.getCurrentChunck(di, dj);
+                                if (chunck) {
+                                    let intersection = ray.intersectsMesh(chunck);
+                                    if (intersection.hit) {
+                                        if (!bestIntersection || bestIntersection.distance > intersection.distance) {
+                                            bestIntersection = intersection;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
-                    if (pick.hit) {
-                        origin = pick.pickedPoint;
-                        up = pick.getNormal(true, false);
+                    if (bestIntersection && bestIntersection.hit) {
+                        origin = bestIntersection.pickedPoint;
+                        up = bestIntersection.getNormal(true, false);
                         this.isGrounded = true;
                         
                         let foot = this.feet[this.footIndex];
@@ -911,7 +948,16 @@ class Dodo extends Creature {
             this.kwak();
         }
 
-        this.walk();
+        if (this.game.gameMode === GameMode.Home) {
+            this.walk();
+        }
+        else {
+            if (this.currentChuncks[1][1]) {
+                if (this.currentConstructions[1][1] && this.currentConstructions[1][1].isMeshUpdated) {
+                    this.walk();
+                }
+            }
+        }
 
         let dR = this.r - this._lastR;
         this._lastR = this.r;
@@ -934,8 +980,12 @@ class Dodo extends Creature {
             BABYLON.Vector3.LerpToRef(this.feet[0].position, this._jumpingFootTargets[0], 0.2, this.feet[0].position);
             BABYLON.Vector3.LerpToRef(this.feet[1].position, this._jumpingFootTargets[1], 0.2, this.feet[1].position);
             if (this.isPlayerControlled) {
-                this.position.y -= this.gravityVelocity * dt;
-                this.gravityVelocity += 5 * dt;
+                if (this.currentChuncks[1][1]) {
+                    if (this.currentConstructions[1][1] && this.currentConstructions[1][1].isMeshUpdated) {
+                        this.position.y -= this.gravityVelocity * dt;
+                        this.gravityVelocity += 5 * dt;
+                    }
+                }
             }
         }
 
@@ -982,14 +1032,16 @@ class Dodo extends Creature {
                     if (construction.mesh) {
                         let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, construction.mesh, true);
                         if (col.hit) {
-                            Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
-                            let delta = col.normal.scale(col.depth);
+                            let delta = col.normal.scale(col.depth * 1.2);
                             this.position.addInPlace(delta);
 
                             let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
                             this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
                             if (col.normal.y > 0.5) {
                                 this.gravityVelocity *= 0.5;
+                            }
+                            else if (col.normal.y < -0.5) {
+                                this.gravityVelocity = Math.min(this.gravityVelocity, 0);
                             }
                         }
                     }
@@ -1126,6 +1178,7 @@ class Dodo extends Creature {
             this.updateCurrentConstruction();
         }
 
+        this.updateChunckDIDJRange();
         if (this.needUpdateCurrentChunck()) {
             this.updateCurrentChunck();
         }
@@ -1210,18 +1263,18 @@ class Dodo extends Creature {
         let center = this.currentChuncks[1][1];
         if (center) {
             let dx = Math.abs(this.position.x - center.position.x);
-            if (dx < Construction.SIZE_m * 0.1) {
+            if (dx < Chunck.SIZE_m * 0.15) {
                 this._chunckRange.di0--;
             }
-            if (dx > Construction.SIZE_m * 0.9) {
+            if (dx > Chunck.SIZE_m * 0.85) {
                 this._chunckRange.di1++;
             }
 
             let dz = Math.abs(this.position.z - center.position.z);
-            if (dz < Construction.SIZE_m * 0.15) {
+            if (dz < Chunck.SIZE_m * 0.15) {
                 this._chunckRange.dj0--;
             }
-            if (dz > Construction.SIZE_m * 0.85) {
+            if (dz > Chunck.SIZE_m * 0.85) {
                 this._chunckRange.dj1++;
             }
         }

@@ -547,8 +547,8 @@ class HomeMenuPlate extends BABYLON.Mesh {
             return DodoColors[v].name;
         };
         this.customizeHatLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-hat"));
-        this.customizeHatLine.maxValue = 4;
-        var customizeHatLineLabels = ["None", "Top Hat", "Cap", "Straw"];
+        this.customizeHatLine.maxValue = 5;
+        var customizeHatLineLabels = ["None", "Top Hat", "Cap", "Straw", "Crown"];
         this.customizeHatLine.toString = (v) => {
             return customizeHatLineLabels[v];
         };
@@ -981,7 +981,7 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.npcManager = new NPCManager(this);
         this.npcManager.initialize();
-        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 3, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 2, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.playerBrain = this.playerDodo.brain;
@@ -5308,6 +5308,7 @@ class Construction extends BABYLON.Mesh {
         this.terrain = terrain;
         this.bricks = new Nabu.UniqueList();
         this.barycenter = BABYLON.Vector3.Zero();
+        this.isMeshUpdated = false;
         this.position.copyFromFloats(this.i * Construction.SIZE_m, 0, this.j * Construction.SIZE_m);
         this.barycenter.copyFrom(this.position);
         this.barycenter.x += Construction.SIZE_m * 0.5;
@@ -5334,6 +5335,7 @@ class Construction extends BABYLON.Mesh {
         }
     }
     async updateMesh() {
+        this.isMeshUpdated = false;
         let vDatas = [];
         this.subMeshInfos = [];
         for (let i = 0; i < this.bricks.length; i++) {
@@ -5344,29 +5346,6 @@ class Construction extends BABYLON.Mesh {
             if (!this.mesh) {
                 this.mesh = new ConstructionMesh(this);
                 this.mesh.parent = this;
-                //this.mesh.layerMask |= 0x20000000;
-                //this.mesh.parent = this;
-                //let brickMaterial = new BABYLON.StandardMaterial("brick-material");
-                //brickMaterial.specularColor.copyFromFloats(0, 0, 0);
-                //brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
-                //brickMaterial.invertNormalMapX = true;
-                //brickMaterial.diffuseTexture = new BABYLON.Texture("./datas/textures/red-white-squares.png");
-                /*
-                let steelMaterial = new ToonMaterial("steel", this.mesh._scene);
-                steelMaterial.setDiffuse(BABYLON.Color3.FromHexString("#868b8a"));
-                steelMaterial.setSpecularIntensity(1);
-                steelMaterial.setSpecularCount(4);
-                steelMaterial.setSpecularPower(32);
-                steelMaterial.setUseVertexColor(true);
-
-                let logoMaterial = new ToonMaterial("logo", this.mesh._scene);
-                logoMaterial.setDiffuse(BABYLON.Color3.FromHexString("#262b2a"));
-                logoMaterial.setSpecularIntensity(0.5);
-                logoMaterial.setSpecularCount(1);
-                logoMaterial.setSpecularPower(16);
-                logoMaterial.setUseLightFromPOV(true);
-                logoMaterial.setUseFlatSpecular(true);
-                */
                 this.mesh.material = this.terrain.game.defaultToonMaterial;
             }
             data.applyToMesh(this.mesh);
@@ -5377,6 +5356,7 @@ class Construction extends BABYLON.Mesh {
                 this.mesh = undefined;
             }
         }
+        this.isMeshUpdated = true;
     }
     static MergeVertexDatas(subMeshInfos, ...datas) {
         let mergedData = new BABYLON.VertexData();
@@ -5755,7 +5735,7 @@ class Dodo extends Creature {
         this.bodyVelocity = BABYLON.Vector3.Zero();
         this.headVelocity = BABYLON.Vector3.Zero();
         this.tailTargetPos = BABYLON.Vector3.Zero();
-        this.hatType = 0;
+        this.hatIndex = 0;
         this.hatColor = 0;
         //public topEyelids: BABYLON.Mesh[];
         //public bottomEyelids: BABYLON.Mesh[];
@@ -5856,7 +5836,7 @@ class Dodo extends Creature {
         this.dodoCollider.parent = this;
         this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight + 0.05, 0);
         BABYLON.CreateSphereVertexData({ diameter: 2 * BRICK_S }).applyToMesh(this.dodoCollider);
-        this.dodoCollider.visibility = 0;
+        this.dodoCollider.visibility = 0.5;
         this.dodoInteractCollider = new DodoInteractCollider(this);
         this.dodoInteractCollider.parent = this.body;
         this.dodoInteractCollider.position.copyFromFloats(0, 0.2, 0.1);
@@ -5986,7 +5966,7 @@ class Dodo extends Creature {
         this.colors[1] = DodoColors[this.getStyleValue(StyleValueTypes.Color1)].color;
         this.colors[2] = DodoColors[this.getStyleValue(StyleValueTypes.Color2)].color;
         this.eyeColor = this.getStyleValue(StyleValueTypes.EyeColor);
-        this.hatType = this.getStyleValue(StyleValueTypes.HatIndex);
+        this.hatIndex = this.getStyleValue(StyleValueTypes.HatIndex);
         this.hatColor = this.getStyleValue(StyleValueTypes.HatColor);
         SavePlayerToLocalStorage(this.game);
         if (this._instantiated) {
@@ -5996,6 +5976,9 @@ class Dodo extends Creature {
     setName(name) {
         this.name = name;
         if (this.nameTag) {
+            if (this.nameTag.material) {
+                this.nameTag.material.dispose(true, true);
+            }
             let material = new BABYLON.StandardMaterial("name-tag-material");
             material.emissiveColor.copyFromFloats(1, 1, 1);
             material.useAlphaFromDiffuseTexture = true;
@@ -6108,19 +6091,22 @@ class Dodo extends Creature {
         await this.feet[0].instantiate();
         await this.feet[1].instantiate();
         datas[7].applyToMesh(this.jaw);
-        if (this.hatType === 0) {
+        if (this.hatIndex === 0) {
             this.hat.isVisible = false;
         }
         else {
             this.hat.isVisible = true;
-            if (this.hatType === 1) {
+            if (this.hatIndex === 1) {
                 Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[8]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
             }
-            else if (this.hatType === 2) {
+            else if (this.hatIndex === 2) {
                 Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[9]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
             }
-            else if (this.hatType === 3) {
+            else if (this.hatIndex === 3) {
                 Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[10]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
+            }
+            else if (this.hatIndex === 4) {
+                Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[11]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
             }
         }
         //datas[1].applyToMesh(this.upperLegs[0]);
@@ -6300,7 +6286,7 @@ class Dodo extends Creature {
                 let up = BABYLON.Vector3.Up();
                 BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
                 if (!this.jumping) {
-                    origin.y += 1;
+                    origin.y += this.bodyHeight;
                     if (this.isPlayerControlled) {
                         let groundedOrigin = origin.clone();
                         groundedOrigin.y = 0;
@@ -6314,13 +6300,44 @@ class Dodo extends Creature {
                     }
                     origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.4)).addInPlace(this.right.scale(animatedSpeedRight * 0.4));
                     //Mummu.DrawDebugPoint(origin, 5, BABYLON.Color3.Red());
-                    let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1.5);
-                    let pick = this._scene.pickWithRay(ray, (mesh => {
-                        return mesh.name.startsWith("chunck") || mesh instanceof HomeMenuPlate || mesh instanceof ConstructionMesh;
-                    }));
-                    if (pick.hit) {
-                        origin = pick.pickedPoint;
-                        up = pick.getNormal(true, false);
+                    let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1);
+                    let bestIntersection;
+                    if (this.isPlayerControlled && this.game.gameMode === GameMode.Home) {
+                        bestIntersection = ray.intersectsMesh(this.game.homeMenuPlate);
+                    }
+                    for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
+                        for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
+                            let construction = this.getCurrentConstruction(di, dj);
+                            if (construction) {
+                                if (construction.mesh) {
+                                    let intersection = ray.intersectsMesh(construction.mesh);
+                                    if (intersection.hit) {
+                                        if (!bestIntersection || bestIntersection.distance > intersection.distance) {
+                                            bestIntersection = intersection;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (!bestIntersection) {
+                        for (let di = this._chunckRange.di0; di <= this._chunckRange.di1; di++) {
+                            for (let dj = this._chunckRange.dj0; dj <= this._chunckRange.dj1; dj++) {
+                                let chunck = this.getCurrentChunck(di, dj);
+                                if (chunck) {
+                                    let intersection = ray.intersectsMesh(chunck);
+                                    if (intersection.hit) {
+                                        if (!bestIntersection || bestIntersection.distance > intersection.distance) {
+                                            bestIntersection = intersection;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (bestIntersection && bestIntersection.hit) {
+                        origin = bestIntersection.pickedPoint;
+                        up = bestIntersection.getNormal(true, false);
                         this.isGrounded = true;
                         let foot = this.feet[this.footIndex];
                         if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
@@ -6368,7 +6385,16 @@ class Dodo extends Creature {
         if (Math.random() < 0.01) {
             this.kwak();
         }
-        this.walk();
+        if (this.game.gameMode === GameMode.Home) {
+            this.walk();
+        }
+        else {
+            if (this.currentChuncks[1][1]) {
+                if (this.currentConstructions[1][1] && this.currentConstructions[1][1].isMeshUpdated) {
+                    this.walk();
+                }
+            }
+        }
         let dR = this.r - this._lastR;
         this._lastR = this.r;
         this.animatedRSpeed = dR / dt;
@@ -6388,8 +6414,12 @@ class Dodo extends Creature {
             BABYLON.Vector3.LerpToRef(this.feet[0].position, this._jumpingFootTargets[0], 0.2, this.feet[0].position);
             BABYLON.Vector3.LerpToRef(this.feet[1].position, this._jumpingFootTargets[1], 0.2, this.feet[1].position);
             if (this.isPlayerControlled) {
-                this.position.y -= this.gravityVelocity * dt;
-                this.gravityVelocity += 5 * dt;
+                if (this.currentChuncks[1][1]) {
+                    if (this.currentConstructions[1][1] && this.currentConstructions[1][1].isMeshUpdated) {
+                        this.position.y -= this.gravityVelocity * dt;
+                        this.gravityVelocity += 5 * dt;
+                    }
+                }
             }
         }
         let f = 0.5;
@@ -6429,13 +6459,15 @@ class Dodo extends Creature {
                     if (construction.mesh) {
                         let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, construction.mesh, true);
                         if (col.hit) {
-                            Mummu.DrawDebugHit(col.point, col.normal, 200, BABYLON.Color3.Red());
-                            let delta = col.normal.scale(col.depth);
+                            let delta = col.normal.scale(col.depth * 1.2);
                             this.position.addInPlace(delta);
                             let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
                             this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
                             if (col.normal.y > 0.5) {
                                 this.gravityVelocity *= 0.5;
+                            }
+                            else if (col.normal.y < -0.5) {
+                                this.gravityVelocity = Math.min(this.gravityVelocity, 0);
                             }
                         }
                     }
@@ -6547,6 +6579,7 @@ class Dodo extends Creature {
         if (this.needUpdateCurrentConstruction()) {
             this.updateCurrentConstruction();
         }
+        this.updateChunckDIDJRange();
         if (this.needUpdateCurrentChunck()) {
             this.updateCurrentChunck();
         }
@@ -6619,17 +6652,17 @@ class Dodo extends Creature {
         let center = this.currentChuncks[1][1];
         if (center) {
             let dx = Math.abs(this.position.x - center.position.x);
-            if (dx < Construction.SIZE_m * 0.1) {
+            if (dx < Chunck.SIZE_m * 0.15) {
                 this._chunckRange.di0--;
             }
-            if (dx > Construction.SIZE_m * 0.9) {
+            if (dx > Chunck.SIZE_m * 0.85) {
                 this._chunckRange.di1++;
             }
             let dz = Math.abs(this.position.z - center.position.z);
-            if (dz < Construction.SIZE_m * 0.15) {
+            if (dz < Chunck.SIZE_m * 0.15) {
                 this._chunckRange.dj0--;
             }
-            if (dz > Construction.SIZE_m * 0.85) {
+            if (dz > Chunck.SIZE_m * 0.85) {
                 this._chunckRange.dj1++;
             }
         }
@@ -6814,31 +6847,6 @@ class Brain {
         });
     }
     update(dt) {
-        if (this.mode === BrainMode.Idle) {
-            if (this.subBrains[BrainMode.Travel]) {
-                if (Math.random() < 0.005) {
-                    let destination = BABYLON.Vector3.Zero();
-                    destination.y += 100;
-                    destination.x += -100 + 200 * Math.random();
-                    destination.z += -100 + 200 * Math.random();
-                    let ray = new BABYLON.Ray(destination, new BABYLON.Vector3(0, -1, 0));
-                    let pick = this.dodo.game.scene.pickWithRay(ray, (mesh => {
-                        return mesh.name.startsWith("chunck");
-                    }));
-                    if (pick.hit) {
-                        destination = pick.pickedPoint;
-                        this.subBrains[BrainMode.Travel].destination = destination;
-                        this.subBrains[BrainMode.Travel].onReach = () => {
-                            this.mode = BrainMode.Idle;
-                        };
-                        this.subBrains[BrainMode.Travel].onCantFindPath = () => {
-                            this.mode = BrainMode.Idle;
-                        };
-                        this.mode = BrainMode.Travel;
-                    }
-                }
-            }
-        }
         let subBrain = this.subBrains[this.mode];
         if (subBrain) {
             subBrain.update(dt);
@@ -7950,6 +7958,11 @@ class NPCManager {
         this.welcomeDodo.brain = new Brain(this.welcomeDodo, BrainMode.Idle);
         this.welcomeDodo.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.85, 0, 14.31);
         this.welcomeDodo.brain.initialize();
+        this.notKingDodo = new Dodo("not-king-dodo", "LUIS", this.game, { style: "232a20270409", role: "Not The King" });
+        this.notKingDodo.brain = new Brain(this.notKingDodo, BrainMode.Idle);
+        this.notKingDodo.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(-6.88, 2.14, 14.50);
+        this.notKingDodo.brain.subBrains[BrainMode.Idle].positionRadius = 0.5;
+        this.notKingDodo.brain.initialize();
     }
     async instantiate() {
         await this.landServant.instantiate();
@@ -8036,6 +8049,31 @@ class NPCManager {
             new NPCDialogTextLineNextIndex(30, "Dodopolis is writen in Typescript and runs in your browser. BabylonJS is used for 3D rendering. PeerJS connects the Dodos together. A server hosts your constructions.", 2),
             new NPCDialogTextLineNextIndex(40, "Dodopolis is developped by me, SVEN, from Tiaratum Games.", 2),
             new NPCDialogTextLine(1000, "Thanks for hanging around, have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
+        ]);
+        await this.notKingDodo.instantiate();
+        this.notKingDodo.unfold();
+        this.notKingDodo.setWorldPosition(this.notKingDodo.brain.subBrains[BrainMode.Idle].positionZero);
+        this.game.npcDodos.push(this.notKingDodo);
+        this.notKingDodo.brain.npcDialog = new NPCDialog(this.notKingDodo, [
+            new NPCDialogTextLine(0, "Hello there !"),
+            new NPCDialogTextLine(1, "Am I a king ? Of course not."),
+            new NPCDialogTextLine(2, "Don't be ridiculous, a Dodo has no king !"),
+            new NPCDialogTextLine(3, "I am " + this.notKingDodo.name + ", the crown maker. I make crowns for Dodos who like to wear crowns."),
+            new NPCDialogTextLine(4, "Would you like to wear a crown ?", new NPCDialogResponse("I would love to !", 10), new NPCDialogResponse("Not really...", 20)),
+            new NPCDialogTextLine(10, "Great ! What kind of crown do you want ?", new NPCDialogResponse("A golden one please.", 50), new NPCDialogResponse("Surprise me !", 60)),
+            new NPCDialogTextLineNextIndex(20, "As you wish.", 1000),
+            new NPCDialogCheckLine(50, async () => {
+                this.game.playerDodo.setStyleValue(4, StyleValueTypes.HatIndex);
+                this.game.playerDodo.setStyleValue(9, StyleValueTypes.HatColor);
+                return 90;
+            }),
+            new NPCDialogCheckLine(60, async () => {
+                this.game.playerDodo.setStyleValue(4, StyleValueTypes.HatIndex);
+                this.game.playerDodo.setStyleValue(Math.floor(Math.random() * DodoColors.length), StyleValueTypes.HatColor);
+                return 90;
+            }),
+            new NPCDialogTextLineNextIndex(90, "Ta-dam ! You look fantastic !", 1000),
+            new NPCDialogTextLine(1000, "Have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
         ]);
     }
 }

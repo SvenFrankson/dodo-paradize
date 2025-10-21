@@ -16,6 +16,8 @@ class Construction extends BABYLON.Mesh {
     public limits: BABYLON.Mesh;
     public barycenter: BABYLON.Vector3 = BABYLON.Vector3.Zero();
 
+    public isMeshUpdated: boolean = false;
+
     constructor(public i: number, public j: number, public terrain: Terrain) {
         super("construction_" + i.toFixed(0) + "_" + j.toFixed(0));
         this.position.copyFromFloats(this.i * Construction.SIZE_m, 0, this.j * Construction.SIZE_m);
@@ -51,6 +53,7 @@ class Construction extends BABYLON.Mesh {
     }
 
     public async updateMesh(): Promise<void> {
+        this.isMeshUpdated = false;
         let vDatas: BABYLON.VertexData[] = []
         this.subMeshInfos = [];
         for (let i = 0; i < this.bricks.length; i++) {
@@ -61,32 +64,6 @@ class Construction extends BABYLON.Mesh {
             if (!this.mesh) {
                 this.mesh = new ConstructionMesh(this);
                 this.mesh.parent = this;
-                
-                //this.mesh.layerMask |= 0x20000000;
-                //this.mesh.parent = this;
-
-                //let brickMaterial = new BABYLON.StandardMaterial("brick-material");
-                //brickMaterial.specularColor.copyFromFloats(0, 0, 0);
-                //brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
-                //brickMaterial.invertNormalMapX = true;
-                //brickMaterial.diffuseTexture = new BABYLON.Texture("./datas/textures/red-white-squares.png");
-
-                /*
-                let steelMaterial = new ToonMaterial("steel", this.mesh._scene);
-                steelMaterial.setDiffuse(BABYLON.Color3.FromHexString("#868b8a"));
-                steelMaterial.setSpecularIntensity(1);
-                steelMaterial.setSpecularCount(4);
-                steelMaterial.setSpecularPower(32);
-                steelMaterial.setUseVertexColor(true);
-
-                let logoMaterial = new ToonMaterial("logo", this.mesh._scene);
-                logoMaterial.setDiffuse(BABYLON.Color3.FromHexString("#262b2a"));
-                logoMaterial.setSpecularIntensity(0.5);
-                logoMaterial.setSpecularCount(1);
-                logoMaterial.setSpecularPower(16);
-                logoMaterial.setUseLightFromPOV(true);
-                logoMaterial.setUseFlatSpecular(true);
-                */
 
                 this.mesh.material = this.terrain.game.defaultToonMaterial;
             }
@@ -99,6 +76,7 @@ class Construction extends BABYLON.Mesh {
                 this.mesh = undefined;
             }
         }
+        this.isMeshUpdated = true;
     }    
 
     public static MergeVertexDatas(subMeshInfos: { faceId: number, brick: Brick }[], ...datas: BABYLON.VertexData[]): BABYLON.VertexData {

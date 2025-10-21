@@ -3,6 +3,7 @@ class NPCManager {
     public landServant: Dodo;
     public brickMerchant: Dodo;
     public welcomeDodo: Dodo;
+    public notKingDodo: Dodo;
 
     constructor(public game: Game) {
         //232a0f200101
@@ -24,6 +25,12 @@ class NPCManager {
         this.welcomeDodo.brain = new Brain(this.welcomeDodo, BrainMode.Idle);
         (this.welcomeDodo.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(1.85, 0, 14.31);
         this.welcomeDodo.brain.initialize();
+
+        this.notKingDodo = new Dodo("not-king-dodo", "LUIS", this.game, { style: "232a20270409", role: "Not The King" });
+        this.notKingDodo.brain = new Brain(this.notKingDodo, BrainMode.Idle);
+        (this.notKingDodo.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(-6.88, 2.14, 14.50);
+        (this.notKingDodo.brain.subBrains[BrainMode.Idle] as BrainIdle).positionRadius = 0.5;
+        this.notKingDodo.brain.initialize();
     }
 
     public async instantiate(): Promise<void> {
@@ -138,6 +145,40 @@ class NPCManager {
             new NPCDialogTextLineNextIndex(30, "Dodopolis is writen in Typescript and runs in your browser. BabylonJS is used for 3D rendering. PeerJS connects the Dodos together. A server hosts your constructions.", 2),
             new NPCDialogTextLineNextIndex(40, "Dodopolis is developped by me, SVEN, from Tiaratum Games.", 2),
             new NPCDialogTextLine(1000, "Thanks for hanging around, have a nice day !",
+                new NPCDialogResponse("Thanks, bye !", -1)
+            )
+        ]);
+        
+        await this.notKingDodo.instantiate();
+        this.notKingDodo.unfold();
+        this.notKingDodo.setWorldPosition((this.notKingDodo.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero);
+        this.game.npcDodos.push(this.notKingDodo);
+        this.notKingDodo.brain.npcDialog = new NPCDialog(this.notKingDodo, [
+            new NPCDialogTextLine(0, "Hello there !"),
+            new NPCDialogTextLine(1, "Am I a king ? Of course not."),
+            new NPCDialogTextLine(2, "Don't be ridiculous, a Dodo has no king !"),
+            new NPCDialogTextLine(3, "I am " + this.notKingDodo.name + ", the crown maker. I make crowns for Dodos who like to wear crowns."),
+            new NPCDialogTextLine(4, "Would you like to wear a crown ?",
+                new NPCDialogResponse("I would love to !", 10),
+                new NPCDialogResponse("Not really...", 20)
+            ),
+            new NPCDialogTextLine(10, "Great ! What kind of crown do you want ?",
+                new NPCDialogResponse("A golden one please.", 50),
+                new NPCDialogResponse("Surprise me !", 60)
+            ),
+            new NPCDialogTextLineNextIndex(20, "As you wish.", 1000),
+            new NPCDialogCheckLine(50, async () => {
+                this.game.playerDodo.setStyleValue(4, StyleValueTypes.HatIndex);
+                this.game.playerDodo.setStyleValue(9, StyleValueTypes.HatColor);
+                return 90;
+            }),
+            new NPCDialogCheckLine(60, async () => {
+                this.game.playerDodo.setStyleValue(4, StyleValueTypes.HatIndex);
+                this.game.playerDodo.setStyleValue(Math.floor(Math.random() * DodoColors.length), StyleValueTypes.HatColor);
+                return 90;
+            }),
+            new NPCDialogTextLineNextIndex(90, "Ta-dam ! You look fantastic !", 1000),
+            new NPCDialogTextLine(1000, "Have a nice day !",
                 new NPCDialogResponse("Thanks, bye !", -1)
             )
         ]);

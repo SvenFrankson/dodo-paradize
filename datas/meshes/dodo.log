@@ -129,6 +129,19 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  112
+	processing begun of mesh:  11-crown
+		processing begun of material:  Blue
+		processing begun of material:  Red
+		registered as also a user of material:  Blue
+		registered as also a user of material:  Red
+		processing begun of multimaterial:  dodo.Multimaterial#4
+		num positions      :  64
+		num normals        :  64
+		num tangents       :  0
+		num uvs            :  128
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  128
 ========= Writing of JSON file started =========
 	writing mesh:  00-body
 	writing mesh:  01-upper-leg
@@ -141,6 +154,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 	writing mesh:  08-hat
 	writing mesh:  09-cap
 	writing mesh:  10-queen
+	writing mesh:  11-crown
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.0648 secs
+elapsed time:  0 min, 0.0694 secs
