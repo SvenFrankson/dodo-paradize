@@ -31,7 +31,7 @@ class BrickTemplateManager {
 class BrickTemplate {
     public vertexData: BABYLON.VertexData;
     public get name(): string {
-        return BRICK_LIST[this.index];
+        return BRICK_LIST[this.index].name;
     }
 
     constructor(public index: number, public brickTemplateManager: BrickTemplateManager) {
@@ -43,7 +43,8 @@ class BrickTemplate {
         if (this.name.startsWith("brick_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
             let w = parseInt(this.name.split("_")[1].split("x")[1]);
-            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 3, w, lod);
+            let h = parseInt(this.name.split("_")[1].split("x")[2]);
+            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 3 * h, w, lod);
         }
         else if (this.name.startsWith("plate-corner-cut_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);

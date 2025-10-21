@@ -33,7 +33,7 @@ class Brick extends BABYLON.TransformNode {
     public construction: Construction;
     public index: number;
     public get brickName(): string {
-        return BRICK_LIST[this.index];
+        return BRICK_LIST[this.index].name;
     }
 
     public static BrickIdToIndex(brickID: number | string): number {
@@ -41,7 +41,7 @@ class Brick extends BABYLON.TransformNode {
             return brickID;
         }
         else {
-            return BRICK_LIST.indexOf(brickID);
+            return BRICK_LIST.findIndex(template => { return template.name === brickID; });
         }
     }
 
@@ -50,8 +50,12 @@ class Brick extends BABYLON.TransformNode {
             return brickID;
         }
         else {
-            return BRICK_LIST[brickID];
+            return BRICK_LIST[brickID].name;
         }
+    }
+
+    public get stackable(): boolean {
+        return BRICK_LIST[this.index].stackable;
     }
 
     public get posI(): number {
@@ -73,6 +77,50 @@ class Brick extends BABYLON.TransformNode {
     }
     public set posK(v: number) {
         this.position.y = v * BRICK_H;
+    }
+
+    public stack(): void {
+        if (this.stackable) {
+            let i = this.posI;
+            let j = this.posJ;
+            let rootNameSplit = this.name.split("x");
+            let h = parseInt(rootNameSplit.pop());
+            let rootName = rootNameSplit.reduce((s1, s2) => { return s1 + "x" + s2; });
+            let potentialMatches = this.construction.bricks.array.filter(b => {
+                if (b.posI === i) {
+                    if (b.posJ === j) {
+                        if (b.r === this.r) {
+                            if (b.name.startsWith(rootName)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            });
+
+            let match: Brick;
+            let matchH: number;
+            for (let dk = 0; dk < MAX_STACK && !match; dk++) {
+                let k = this.posK - MAX_STACK - 1 + dk;
+                match = potentialMatches.find(b => {
+                    if (b.posK === k) {
+                        let mH = parseInt(b.name.split("x").pop());
+                        if (b.posK + mH === this.posK) {
+                            matchH = mH;
+                            return true;
+                        }
+                    }
+                })
+            }
+
+            if (match) {
+                let newH = matchH + h;
+                if (newH <= MAX_STACK) {
+                    let newName = match.name.split("x");
+                }
+            }
+        }
     }
 
     public clampToConstruction(): void {
@@ -123,6 +171,10 @@ class Brick extends BABYLON.TransformNode {
             this.construction.bricks.push(this);
             this.parent = this.construction;
         }
+    }
+    
+    public tryToStack(): void {
+
     }
 
     public dispose(): void {

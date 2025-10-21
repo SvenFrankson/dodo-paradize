@@ -84,7 +84,6 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 else {
                     this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + this.pivotRecoil * (1 - fRecoilSmooth);
                 }
-                console.log(this.currentPivotRecoil.toFixed(3));
 
                 let target = camDir.scale(- this.currentPivotRecoil);
                 target.addInPlace(camPivot);

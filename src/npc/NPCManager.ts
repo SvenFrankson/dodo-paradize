@@ -103,7 +103,7 @@ class NPCManager {
             new NPCDialogCheckLine(10, async () => {
                 for (let n = 0; n < 5; n++) {
                     let brickIndex = Math.floor(BRICK_LIST.length * Math.random());
-                    this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex], InventoryCategory.Brick, this.game));
+                    this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
                 }
                 return 1000
             }),

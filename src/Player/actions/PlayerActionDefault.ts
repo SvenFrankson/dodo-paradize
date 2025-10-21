@@ -140,7 +140,6 @@ class PlayerActionDefault {
         }
 
         defaultAction.onUnequip = () => {
-            ScreenLoger.Log("unequip default action");
             setAimedObject(undefined);
         }
         

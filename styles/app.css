@@ -236,7 +236,7 @@ body.vertical #dodo-color-picker {
 
 #dialog-container {
     position: fixed;
-    left: 500px;
+    left: calc(50vw - 400px);
     bottom: 0;
     color: white;
     font-family: Roboto;
@@ -249,6 +249,14 @@ body.vertical #dodo-color-picker {
     border-right: 1px solid white;
     border-top-left-radius: 5px;
     border-top-right-radius: 5px;
+}
+
+@media (width > 1800px) {
+    #dialog-container {
+        left: calc(50vw - 500px);
+        font-size: 20px;
+        width: 1000px;
+    }
 }
 
 #dialog-lines-container {

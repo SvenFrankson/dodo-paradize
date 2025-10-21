@@ -304,6 +304,7 @@ class CompletionBar extends HTMLElement {
 }
 customElements.define("completion-bar", CompletionBar);
 var BRICKS_PER_CONSTRUCTION = 32;
+var MAX_STACK = 6;
 var ONE_cm_SQUARED = 0.01 * 0.01;
 var ONE_mm_SQUARED = 0.01 * 0.01;
 class DevMode {
@@ -1047,12 +1048,12 @@ class Game {
             this.playerDodo.unfold();
             this.networkManager.initialize();
             let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
-            let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
+            let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1x1", 0);
             playerBrain.playerActionManager.linkAction(action, 1);
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick-corner-curved_3x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("tile_4x4", InventoryCategory.Brick, this));
             this.npcManager.instantiate();
@@ -1908,7 +1909,6 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 else {
                     this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + this.pivotRecoil * (1 - fRecoilSmooth);
                 }
-                console.log(this.currentPivotRecoil.toFixed(3));
                 let target = camDir.scale(-this.currentPivotRecoil);
                 target.addInPlace(camPivot);
                 let targetLook = camDir.scale(10);
@@ -4052,7 +4052,6 @@ class PlayerActionDefault {
             }
         };
         defaultAction.onUnequip = () => {
-            ScreenLoger.Log("unequip default action");
             setAimedObject(undefined);
         };
         return defaultAction;
@@ -4403,14 +4402,14 @@ class Brick extends BABYLON.TransformNode {
         }
     }
     get brickName() {
-        return BRICK_LIST[this.index];
+        return BRICK_LIST[this.index].name;
     }
     static BrickIdToIndex(brickID) {
         if (typeof (brickID) === "number") {
             return brickID;
         }
         else {
-            return BRICK_LIST.indexOf(brickID);
+            return BRICK_LIST.findIndex(template => { return template.name === brickID; });
         }
     }
     static BrickIdToName(brickID) {
@@ -4418,8 +4417,11 @@ class Brick extends BABYLON.TransformNode {
             return brickID;
         }
         else {
-            return BRICK_LIST[brickID];
+            return BRICK_LIST[brickID].name;
         }
+    }
+    get stackable() {
+        return BRICK_LIST[this.index].stackable;
     }
     get posI() {
         return Math.round(this.position.x / BRICK_S);
@@ -4438,6 +4440,47 @@ class Brick extends BABYLON.TransformNode {
     }
     set posK(v) {
         this.position.y = v * BRICK_H;
+    }
+    stack() {
+        if (this.stackable) {
+            let i = this.posI;
+            let j = this.posJ;
+            let rootNameSplit = this.name.split("x");
+            let h = parseInt(rootNameSplit.pop());
+            let rootName = rootNameSplit.reduce((s1, s2) => { return s1 + "x" + s2; });
+            let potentialMatches = this.construction.bricks.array.filter(b => {
+                if (b.posI === i) {
+                    if (b.posJ === j) {
+                        if (b.r === this.r) {
+                            if (b.name.startsWith(rootName)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            });
+            let match;
+            let matchH;
+            for (let dk = 0; dk < MAX_STACK && !match; dk++) {
+                let k = this.posK - MAX_STACK - 1 + dk;
+                match = potentialMatches.find(b => {
+                    if (b.posK === k) {
+                        let mH = parseInt(b.name.split("x").pop());
+                        if (b.posK + mH === this.posK) {
+                            matchH = mH;
+                            return true;
+                        }
+                    }
+                });
+            }
+            if (match) {
+                let newH = matchH + h;
+                if (newH <= MAX_STACK) {
+                    let newName = match.name.split("x");
+                }
+            }
+        }
     }
     clampToConstruction() {
         let posInConstruction = this.absolutePosition.subtract(this.construction.position);
@@ -4472,6 +4515,8 @@ class Brick extends BABYLON.TransformNode {
     }
     set r(v) {
         this.rotation.y = v * Math.PI * 0.5;
+    }
+    tryToStack() {
     }
     dispose() {
         this.construction.bricks.remove(this);
@@ -4580,136 +4625,136 @@ Brick.depthColors = [
 ];
 var ALLBRICKS = [];
 var BRICK_LIST = [
-    "tile_1x1",
-    "tile_2x1",
-    "tile_3x1",
-    "tile_4x1",
-    "tile_5x1",
-    "tile_6x1",
-    "tile_7x1",
-    "tile_8x1",
-    "tile_9x1",
-    "tile_10x1",
-    "tile_11x1",
-    "tile_12x1",
-    "tile_13x1",
-    "tile_14x1",
-    "tile_15x1",
-    "tile_16x1",
-    "tile_2x2",
-    "tile_3x2",
-    "tile_4x2",
-    "tile_5x2",
-    "tile_6x2",
-    "tile_7x2",
-    "tile_8x2",
-    "tile_9x2",
-    "tile_10x2",
-    "tile_11x2",
-    "tile_12x2",
-    "tile_13x2",
-    "tile_14x2",
-    "tile_15x2",
-    "tile_16x2",
-    "tile_3x3",
-    "tile_4x4",
-    "tile_5x5",
-    "tile_6x6",
-    "tile_7x7",
-    "tile_8x8",
-    "tile_9x9",
-    "tile_10x10",
-    "tile_11x11",
-    "tile_12x12",
-    "tile_13x13",
-    "tile_14x14",
-    "tile_15x15",
-    "tile_16x16",
-    "brick_1x1",
-    "brick_2x1",
-    "brick_3x1",
-    "brick_4x1",
-    "brick_5x1",
-    "brick_6x1",
-    "brick_7x1",
-    "brick_8x1",
-    "brick_9x1",
-    "brick_10x1",
-    "brick_11x1",
-    "brick_12x1",
-    "brick_13x1",
-    "brick_14x1",
-    "brick_15x1",
-    "brick_16x1",
-    "brick-corner-round_1x1",
-    "brick-round_1x1",
-    "brick-round_2x1",
-    "brick-round_3x1",
-    "brick-round_4x1",
-    "brick-round_5x1",
-    "brick-round_6x1",
-    "brick-round_7x1",
-    "brick-round_8x1",
-    "brick-round_9x1",
-    "brick-round_10x1",
-    "brick-round_11x1",
-    "brick-round_12x1",
-    "brick-round_13x1",
-    "brick-round_14x1",
-    "brick-round_15x1",
-    "brick-round_16x1",
-    "tile-corner-curved_2x1",
-    "tile-corner-curved_3x1",
-    "tile-corner-curved_4x1",
-    "tile-corner-curved_5x1",
-    "tile-corner-curved_6x1",
-    "tile-corner-curved_7x1",
-    "tile-corner-curved_8x1",
-    "tile-corner-curved_3x2",
-    "tile-corner-curved_4x2",
-    "tile-corner-curved_5x2",
-    "tile-corner-curved_6x2",
-    "tile-corner-curved_7x2",
-    "tile-corner-curved_8x2",
-    "brick-corner-curved_2x1",
-    "brick-corner-curved_3x1",
-    "brick-corner-curved_4x1",
-    "brick-corner-curved_5x1",
-    "brick-corner-curved_6x1",
-    "brick-corner-curved_7x1",
-    "brick-corner-curved_8x1",
-    "window-frame_2x2",
-    "window-frame_2x3",
-    "window-frame_2x4",
-    "window-frame_2x5",
-    "window-frame_3x2",
-    "window-frame_3x3",
-    "window-frame_3x4",
-    "window-frame_3x5",
-    "window-frame_4x2",
-    "window-frame_4x3",
-    "window-frame_4x4",
-    "window-frame_4x5",
-    "window-frame-corner-curved_3x2",
-    "window-frame-corner-curved_3x3",
-    "window-frame-corner-curved_3x4",
-    "window-frame-corner-curved_3x5",
-    "plate-quarter_1x1",
-    "plate-quarter_2x2",
-    "plate-quarter_3x3",
-    "plate-quarter_4x4",
-    "plate-quarter_5x5",
-    "plate-quarter_6x6",
-    "plate-quarter_7x7",
-    "plate-quarter_8x8",
-    "brick-quarter_1x1",
-    "brick-quarter_2x2",
-    "brick-quarter_3x3",
-    "brick-quarter_4x4",
-    "brick-quarter_5x5",
-    "brick-quarter_6x6",
-    "brick-quarter_7x7",
-    "brick-quarter_8x8",
+    { name: "tile_1x1", stackable: false },
+    { name: "tile_2x1", stackable: false },
+    { name: "tile_3x1", stackable: false },
+    { name: "tile_4x1", stackable: false },
+    { name: "tile_5x1", stackable: false },
+    { name: "tile_6x1", stackable: false },
+    { name: "tile_7x1", stackable: false },
+    { name: "tile_8x1", stackable: false },
+    { name: "tile_9x1", stackable: false },
+    { name: "tile_10x1", stackable: false },
+    { name: "tile_11x1", stackable: false },
+    { name: "tile_12x1", stackable: false },
+    { name: "tile_13x1", stackable: false },
+    { name: "tile_14x1", stackable: false },
+    { name: "tile_15x1", stackable: false },
+    { name: "tile_16x1", stackable: false },
+    { name: "tile_2x2", stackable: false },
+    { name: "tile_3x2", stackable: false },
+    { name: "tile_4x2", stackable: false },
+    { name: "tile_5x2", stackable: false },
+    { name: "tile_6x2", stackable: false },
+    { name: "tile_7x2", stackable: false },
+    { name: "tile_8x2", stackable: false },
+    { name: "tile_9x2", stackable: false },
+    { name: "tile_10x2", stackable: false },
+    { name: "tile_11x2", stackable: false },
+    { name: "tile_12x2", stackable: false },
+    { name: "tile_13x2", stackable: false },
+    { name: "tile_14x2", stackable: false },
+    { name: "tile_15x2", stackable: false },
+    { name: "tile_16x2", stackable: false },
+    { name: "tile_3x3", stackable: false },
+    { name: "tile_4x4", stackable: false },
+    { name: "tile_5x5", stackable: false },
+    { name: "tile_6x6", stackable: false },
+    { name: "tile_7x7", stackable: false },
+    { name: "tile_8x8", stackable: false },
+    { name: "tile_9x9", stackable: false },
+    { name: "tile_10x10", stackable: false },
+    { name: "tile_11x11", stackable: false },
+    { name: "tile_12x12", stackable: false },
+    { name: "tile_13x13", stackable: false },
+    { name: "tile_14x14", stackable: false },
+    { name: "tile_15x15", stackable: false },
+    { name: "tile_16x16", stackable: false },
+    { name: "brick_1x1x1", stackable: true },
+    { name: "brick_2x1x1", stackable: true },
+    { name: "brick_3x1x1", stackable: true },
+    { name: "brick_4x1x1", stackable: true },
+    { name: "brick_5x1x1", stackable: true },
+    { name: "brick_6x1x1", stackable: true },
+    { name: "brick_7x1x1", stackable: true },
+    { name: "brick_8x1x1", stackable: true },
+    { name: "brick_9x1x1", stackable: true },
+    { name: "brick_10x1x1", stackable: true },
+    { name: "brick_11x1x1", stackable: true },
+    { name: "brick_12x1x1", stackable: true },
+    { name: "brick_13x1x1", stackable: true },
+    { name: "brick_14x1x1", stackable: true },
+    { name: "brick_15x1x1", stackable: true },
+    { name: "brick_16x1x1", stackable: true },
+    { name: "brick-corner-round_1x1", stackable: false },
+    { name: "brick-round_1x1", stackable: false },
+    { name: "brick-round_2x1", stackable: false },
+    { name: "brick-round_3x1", stackable: false },
+    { name: "brick-round_4x1", stackable: false },
+    { name: "brick-round_5x1", stackable: false },
+    { name: "brick-round_6x1", stackable: false },
+    { name: "brick-round_7x1", stackable: false },
+    { name: "brick-round_8x1", stackable: false },
+    { name: "brick-round_9x1", stackable: false },
+    { name: "brick-round_10x1", stackable: false },
+    { name: "brick-round_11x1", stackable: false },
+    { name: "brick-round_12x1", stackable: false },
+    { name: "brick-round_13x1", stackable: false },
+    { name: "brick-round_14x1", stackable: false },
+    { name: "brick-round_15x1", stackable: false },
+    { name: "brick-round_16x1", stackable: false },
+    { name: "tile-corner-curved_2x1", stackable: false },
+    { name: "tile-corner-curved_3x1", stackable: false },
+    { name: "tile-corner-curved_4x1", stackable: false },
+    { name: "tile-corner-curved_5x1", stackable: false },
+    { name: "tile-corner-curved_6x1", stackable: false },
+    { name: "tile-corner-curved_7x1", stackable: false },
+    { name: "tile-corner-curved_8x1", stackable: false },
+    { name: "tile-corner-curved_3x2", stackable: false },
+    { name: "tile-corner-curved_4x2", stackable: false },
+    { name: "tile-corner-curved_5x2", stackable: false },
+    { name: "tile-corner-curved_6x2", stackable: false },
+    { name: "tile-corner-curved_7x2", stackable: false },
+    { name: "tile-corner-curved_8x2", stackable: false },
+    { name: "brick-corner-curved_2x1", stackable: false },
+    { name: "brick-corner-curved_3x1", stackable: false },
+    { name: "brick-corner-curved_4x1", stackable: false },
+    { name: "brick-corner-curved_5x1", stackable: false },
+    { name: "brick-corner-curved_6x1", stackable: false },
+    { name: "brick-corner-curved_7x1", stackable: false },
+    { name: "brick-corner-curved_8x1", stackable: false },
+    { name: "window-frame_2x2", stackable: false },
+    { name: "window-frame_2x3", stackable: false },
+    { name: "window-frame_2x4", stackable: false },
+    { name: "window-frame_2x5", stackable: false },
+    { name: "window-frame_3x2", stackable: false },
+    { name: "window-frame_3x3", stackable: false },
+    { name: "window-frame_3x4", stackable: false },
+    { name: "window-frame_3x5", stackable: false },
+    { name: "window-frame_4x2", stackable: false },
+    { name: "window-frame_4x3", stackable: false },
+    { name: "window-frame_4x4", stackable: false },
+    { name: "window-frame_4x5", stackable: false },
+    { name: "window-frame-corner-curved_3x2", stackable: false },
+    { name: "window-frame-corner-curved_3x3", stackable: false },
+    { name: "window-frame-corner-curved_3x4", stackable: false },
+    { name: "window-frame-corner-curved_3x5", stackable: false },
+    { name: "plate-quarter_1x1", stackable: false },
+    { name: "plate-quarter_2x2", stackable: false },
+    { name: "plate-quarter_3x3", stackable: false },
+    { name: "plate-quarter_4x4", stackable: false },
+    { name: "plate-quarter_5x5", stackable: false },
+    { name: "plate-quarter_6x6", stackable: false },
+    { name: "plate-quarter_7x7", stackable: false },
+    { name: "plate-quarter_8x8", stackable: false },
+    { name: "brick-quarter_1x1", stackable: false },
+    { name: "brick-quarter_2x2", stackable: false },
+    { name: "brick-quarter_3x3", stackable: false },
+    { name: "brick-quarter_4x4", stackable: false },
+    { name: "brick-quarter_5x5", stackable: false },
+    { name: "brick-quarter_6x6", stackable: false },
+    { name: "brick-quarter_7x7", stackable: false },
+    { name: "brick-quarter_8x8", stackable: false }
 ];
 class BrickTemplateManager {
     constructor(vertexDataLoader) {
@@ -4740,14 +4785,15 @@ class BrickTemplate {
         this.brickTemplateManager = brickTemplateManager;
     }
     get name() {
-        return BRICK_LIST[this.index];
+        return BRICK_LIST[this.index].name;
     }
     async load(lod = 0) {
         //this.vertexData = (await this.brickTemplateManager.vertexDataLoader.get("./datas/meshes/plate_1x1.babylon"))[0];
         if (this.name.startsWith("brick_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
             let w = parseInt(this.name.split("_")[1].split("x")[1]);
-            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 3, w, lod);
+            let h = parseInt(this.name.split("_")[1].split("x")[2]);
+            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 3 * h, w, lod);
         }
         else if (this.name.startsWith("plate-corner-cut_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
@@ -5249,35 +5295,37 @@ class Construction extends BABYLON.Mesh {
         for (let i = 0; i < this.bricks.length; i++) {
             await this.bricks.get(i).generateMeshVertexData(vDatas, this.subMeshInfos);
         }
-        let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
-        if (!this.mesh) {
-            this.mesh = new ConstructionMesh(this);
-            //this.mesh.layerMask |= 0x20000000;
-            //this.mesh.parent = this;
-            //let brickMaterial = new BABYLON.StandardMaterial("brick-material");
-            //brickMaterial.specularColor.copyFromFloats(0, 0, 0);
-            //brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
-            //brickMaterial.invertNormalMapX = true;
-            //brickMaterial.diffuseTexture = new BABYLON.Texture("./datas/textures/red-white-squares.png");
-            /*
-            let steelMaterial = new ToonMaterial("steel", this.mesh._scene);
-            steelMaterial.setDiffuse(BABYLON.Color3.FromHexString("#868b8a"));
-            steelMaterial.setSpecularIntensity(1);
-            steelMaterial.setSpecularCount(4);
-            steelMaterial.setSpecularPower(32);
-            steelMaterial.setUseVertexColor(true);
+        if (vDatas.length > 0) {
+            let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
+            if (!this.mesh) {
+                this.mesh = new ConstructionMesh(this);
+                //this.mesh.layerMask |= 0x20000000;
+                //this.mesh.parent = this;
+                //let brickMaterial = new BABYLON.StandardMaterial("brick-material");
+                //brickMaterial.specularColor.copyFromFloats(0, 0, 0);
+                //brickMaterial.bumpTexture = new BABYLON.Texture("./datas/textures/test-steel-normal-dx.png", undefined, undefined, true);
+                //brickMaterial.invertNormalMapX = true;
+                //brickMaterial.diffuseTexture = new BABYLON.Texture("./datas/textures/red-white-squares.png");
+                /*
+                let steelMaterial = new ToonMaterial("steel", this.mesh._scene);
+                steelMaterial.setDiffuse(BABYLON.Color3.FromHexString("#868b8a"));
+                steelMaterial.setSpecularIntensity(1);
+                steelMaterial.setSpecularCount(4);
+                steelMaterial.setSpecularPower(32);
+                steelMaterial.setUseVertexColor(true);
 
-            let logoMaterial = new ToonMaterial("logo", this.mesh._scene);
-            logoMaterial.setDiffuse(BABYLON.Color3.FromHexString("#262b2a"));
-            logoMaterial.setSpecularIntensity(0.5);
-            logoMaterial.setSpecularCount(1);
-            logoMaterial.setSpecularPower(16);
-            logoMaterial.setUseLightFromPOV(true);
-            logoMaterial.setUseFlatSpecular(true);
-            */
-            this.mesh.material = this.terrain.game.defaultToonMaterial;
+                let logoMaterial = new ToonMaterial("logo", this.mesh._scene);
+                logoMaterial.setDiffuse(BABYLON.Color3.FromHexString("#262b2a"));
+                logoMaterial.setSpecularIntensity(0.5);
+                logoMaterial.setSpecularCount(1);
+                logoMaterial.setSpecularPower(16);
+                logoMaterial.setUseLightFromPOV(true);
+                logoMaterial.setUseFlatSpecular(true);
+                */
+                this.mesh.material = this.terrain.game.defaultToonMaterial;
+            }
+            data.applyToMesh(this.mesh);
         }
-        data.applyToMesh(this.mesh);
     }
     static MergeVertexDatas(subMeshInfos, ...datas) {
         let mergedData = new BABYLON.VertexData();
@@ -7718,7 +7766,7 @@ class NPCManager {
             new NPCDialogCheckLine(10, async () => {
                 for (let n = 0; n < 5; n++) {
                     let brickIndex = Math.floor(BRICK_LIST.length * Math.random());
-                    this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex], InventoryCategory.Brick, this.game));
+                    this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
                 }
                 return 1000;
             }),
