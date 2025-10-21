@@ -87,6 +87,10 @@ class NetworkManager {
 
         await this.connectToTiaratumServer();
 
+        await this.updateServerPlayersList();
+    }
+
+    public async updateServerPlayersList(): Promise<void> {
         try {
             const responseExistingPlayers = await fetch(SHARE_SERVICE_PATH + "get_players", {
                 method: "GET",
@@ -126,10 +130,12 @@ class NetworkManager {
         if (!existingDodo) {
             let playerDesc = this.serverPlayersList.find(p => { return p.peerId === conn.peer; });
             let style = "00000000";
+            let name = "Unknown";
             if (playerDesc) {
                 style = playerDesc.style;
+                name = playerDesc.displayName;
             }
-            existingDodo = await this.createDodo("Unknown", conn.peer, style);
+            existingDodo = await this.createDodo(name, conn.peer, style);
             this.game.networkDodos.push(existingDodo);
         }
 
@@ -140,7 +146,7 @@ class NetworkManager {
             }
         );
 
-        conn.send(JSON.stringify({ style: this.game.playerDodo.style }));
+        conn.send(JSON.stringify({ name: this.game.playerDodo.name, style: this.game.playerDodo.style }));
         
         setInterval(() => {
             conn.send(JSON.stringify({
@@ -162,6 +168,7 @@ class NetworkManager {
         if (IsStyleNetworkData(data)) {
             let dodo = this.game.networkDodos.find(dodo => { return dodo.peerId === conn.peer; });
             if (dodo) {
+                dodo.setName(data.name);
                 dodo.setStyle(data.style);
             }
         }

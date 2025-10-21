@@ -10,11 +10,12 @@ interface IDodoProp {
 }
 
 interface IStyleNetworkData {
+    name: string;
     style: string;
 }
 
 function IsStyleNetworkData(v: any): boolean {
-    if (v.style) {
+    if (v.name && v.style) {
         return true;
     }
     return false;
@@ -1096,7 +1097,7 @@ class Dodo extends Creature {
         this.feet[1].update(dt);
 
         if (!this.isPlayerControlled) {
-            this.nameTag.position.copyFrom(this.position);
+            this.nameTag.position.copyFrom(this.body.position);
             this.nameTag.position.y = Math.min(this.feet[0].position.y, this.feet[1].position.y);
             this.nameTag.position.y += 1.8;
             let cam = this.game.camera;

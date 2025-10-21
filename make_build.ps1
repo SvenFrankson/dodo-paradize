@@ -41,7 +41,7 @@ if (Test-Path ("../" + $build_name + ".zip")) {
 New-Item ("../" + $build_name + "") -ItemType "directory"
 
 
-Copy-Item -Path "./*" -Destination ("../" + $build_name + "/") -Recurse -Force -Exclude ".git", "src", "lib", "work", ".vscode"
+Copy-Item -Path "./*" -Destination ("../" + $build_name + "/") -Recurse -Force -Exclude ".git", "src", "lib", "work", ".vscode", "server"
 
 New-Item ("../" + $build_name + "/lib") -ItemType "directory"
 New-Item ("../" + $build_name + "/lib/nabu") -ItemType "directory"
