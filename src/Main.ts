@@ -339,7 +339,7 @@ class Game {
         this.skybox.material = skyboxMaterial;
 
         this.camera = new PlayerCamera(this);
-        OutlinePostProcess.AddOutlinePostProcess(this.camera);
+        //OutlinePostProcess.AddOutlinePostProcess(this.camera);
 
         if (window.localStorage.getItem("camera-position")) {
             let positionItem = JSON.parse(window.localStorage.getItem("camera-position"));
@@ -499,6 +499,8 @@ class Game {
         this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();
 
+        LoadPlayerFromLocalStorage(this);
+
         this.homeMenuPlate.initialize();
 
         document.querySelector("#start").addEventListener("click", () => {
@@ -510,8 +512,6 @@ class Game {
         //brick.updateMesh();
 
         this.gameLoaded = true;
-
-        LoadPlayerFromLocalStorage(this);
 
         this.setGameMode(GameMode.Home);
 

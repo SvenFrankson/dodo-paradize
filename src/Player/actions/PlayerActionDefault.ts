@@ -11,14 +11,14 @@ class PlayerActionDefault {
         if (mesh instanceof ConstructionMesh) {
             return true;
         }
-        if (mesh instanceof DodoCollider) {
+        if (mesh instanceof DodoInteractCollider) {
             return true;
         }
         return false;
     }
 
     public static Create(player: BrainPlayer): PlayerAction {
-        let actionRange: number = 4;
+        let actionRange: number = 6;
         let actionRangeSquared: number = actionRange * actionRange;
         let defaultAction = new PlayerAction("default-action", player);
         defaultAction.backgroundColor = "#FF00FF";
@@ -53,7 +53,7 @@ class PlayerActionDefault {
                     x,
                     y,
                     (mesh) => {
-                        return PlayerActionDefault.IsAimable(mesh) && mesh != player.dodo.dodoCollider;
+                        return PlayerActionDefault.IsAimable(mesh) && mesh != player.dodo.dodoInteractCollider;
                     }
                 )
 
@@ -69,7 +69,7 @@ class PlayerActionDefault {
                                 return;
                             }
                         }
-                        else if (hit.pickedMesh instanceof DodoCollider) {
+                        else if (hit.pickedMesh instanceof DodoInteractCollider) {
                             setAimedObject(hit.pickedMesh);
                             return;
                         }
@@ -108,11 +108,13 @@ class PlayerActionDefault {
                             player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
                         }
                     }
-                    else if (aimedObject instanceof DodoCollider) {
+                    else if (aimedObject instanceof DodoInteractCollider) {
                         if (aimedObject.dodo.brain.npcDialog) {
                             let canvas = aimedObject.dodo.game.canvas;
                             document.exitPointerLock();
+                            player.game.inputManager.temporaryNoPointerLock = true;
                             aimedObject.dodo.brain.npcDialog.onNextStop = () => {
+                                player.game.inputManager.temporaryNoPointerLock = false;
                                 canvas.requestPointerLock();
                             }
                             aimedObject.dodo.brain.npcDialog.start();

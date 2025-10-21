@@ -12,7 +12,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		Texture directory   :  C:\Users\svent\Documents\sven-frankson\dodo-paradize\datas\meshes\
 	Python World class constructor completed
 	WARNING: No active camera has been assigned, or is not in a currently selected Blender layer
-	processing begun of mesh:  0-body
+	processing begun of mesh:  00-body
 		processing begun of material:  Green
 		num positions      :  130
 		num normals        :  130
@@ -21,7 +21,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  192
-	processing begun of mesh:  1-upper-leg
+	processing begun of mesh:  01-upper-leg
 		processing begun of material:  Green
 		registered as also a user of material:  Green
 		num positions      :  63
@@ -31,7 +31,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  64
-	processing begun of mesh:  2-lower-leg
+	processing begun of mesh:  02-lower-leg
 		processing begun of material:  Red
 		num positions      :  43
 		num normals        :  43
@@ -40,7 +40,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  32
-	processing begun of mesh:  3-head
+	processing begun of mesh:  03-head
 		processing begun of material:  Blue
 		processing begun of material:  Red
 		registered as also a user of material:  Red
@@ -52,7 +52,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  264
-	processing begun of mesh:  4-eye
+	processing begun of mesh:  04-eye
 		processing begun of material:  White
 		num positions      :  141
 		num normals        :  141
@@ -61,7 +61,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  120
-	processing begun of mesh:  5-tail
+	processing begun of mesh:  05-tail
 		processing begun of material:  Blue
 		registered as also a user of material:  Blue
 		num positions      :  9
@@ -71,7 +71,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  13
-	processing begun of mesh:  6-tail-side
+	processing begun of mesh:  06-tail-side
 		WARNING: No materials have been assigned: 
 		num positions      :  9
 		num normals        :  9
@@ -80,7 +80,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  13
-	processing begun of mesh:  7-jaw
+	processing begun of mesh:  07-jaw
 		processing begun of material:  Blue
 		processing begun of material:  Red
 		registered as also a user of material:  Blue
@@ -93,7 +93,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  32
-	processing begun of mesh:  8-hat
+	processing begun of mesh:  08-hat
 		processing begun of material:  Red
 		registered as also a user of material:  Red
 		num positions      :  62
@@ -103,7 +103,7 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  96
-	processing begun of mesh:  9-cap
+	processing begun of mesh:  09-cap
 		processing begun of material:  Blue
 		processing begun of material:  Red
 		registered as also a user of material:  Blue
@@ -116,17 +116,31 @@ Exporter version: 6.4.5, Blender version: 2.90.1
 		num uvs2           :  0
 		num colors         :  0
 		num triangles      :  42
+	processing begun of mesh:  10-queen
+		processing begun of material:  Blue
+		processing begun of material:  Red
+		registered as also a user of material:  Blue
+		registered as also a user of material:  Red
+		processing begun of multimaterial:  dodo.Multimaterial#3
+		num positions      :  132
+		num normals        :  132
+		num tangents       :  0
+		num uvs            :  264
+		num uvs2           :  0
+		num colors         :  0
+		num triangles      :  112
 ========= Writing of JSON file started =========
-	writing mesh:  0-body
-	writing mesh:  1-upper-leg
-	writing mesh:  2-lower-leg
-	writing mesh:  3-head
-	writing mesh:  4-eye
-	writing mesh:  5-tail
-	writing mesh:  6-tail-side
-	writing mesh:  7-jaw
-	writing mesh:  8-hat
-	writing mesh:  9-cap
+	writing mesh:  00-body
+	writing mesh:  01-upper-leg
+	writing mesh:  02-lower-leg
+	writing mesh:  03-head
+	writing mesh:  04-eye
+	writing mesh:  05-tail
+	writing mesh:  06-tail-side
+	writing mesh:  07-jaw
+	writing mesh:  08-hat
+	writing mesh:  09-cap
+	writing mesh:  10-queen
 ========= Writing of JSON file completed =========
 ========= end of processing =========
-elapsed time:  0 min, 0.0549 secs
+elapsed time:  0 min, 0.0648 secs

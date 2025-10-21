@@ -4,13 +4,13 @@ class DodoFoot extends BABYLON.Mesh {
     public groundPos: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public groundUp: BABYLON.Vector3 = BABYLON.Vector3.Up();
 
-    constructor(name: string, public joey: Dodo) {
+    constructor(name: string, public dodo: Dodo) {
         super(name);
         this.scaling.copyFromFloats(1.3, 1.3, 1.3);
         this.claws = [
-            Dodo.OutlinedMesh("clawR"),
-            Dodo.OutlinedMesh("clawL"),
-            Dodo.OutlinedMesh("clawB")
+            Dodo.OutlinedMesh("clawR", dodo),
+            Dodo.OutlinedMesh("clawL", dodo),
+            Dodo.OutlinedMesh("clawB", dodo)
         ];
         this.claws[0].position.copyFromFloats(- 0.103, -0.025, 0.101);
         this.claws[0].rotation.y = - Math.PI / 8;
@@ -24,20 +24,20 @@ class DodoFoot extends BABYLON.Mesh {
     }
 
     public async instantiate(): Promise<void> {
-        let datas = await this.joey.game.vertexDataLoader.get("./datas/meshes/dodo.babylon");
+        let datas = await this.dodo.game.vertexDataLoader.get("./datas/meshes/dodo.babylon");
         datas = datas.map(vertexData => {
-            return Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(vertexData), this.joey.colors[2], new BABYLON.Color3(0, 1, 0));
+            return Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(vertexData), this.dodo.colors[2], new BABYLON.Color3(0, 1, 0));
         });
 
         //datas[8].applyToMesh(this);
-        this.material = this.joey.material;
+        this.material = this.dodo.material;
 
         //datas[9].applyToMesh(this.claws[0]);
         //datas[9].applyToMesh(this.claws[1]);
         //datas[9].applyToMesh(this.claws[2]);
-        this.claws[0].material = this.joey.material;
-        this.claws[1].material = this.joey.material;
-        this.claws[2].material = this.joey.material;
+        this.claws[0].material = this.dodo.material;
+        this.claws[1].material = this.dodo.material;
+        this.claws[2].material = this.dodo.material;
     }
 
     public update(dt: number): void {

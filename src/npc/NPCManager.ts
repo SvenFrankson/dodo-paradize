@@ -2,6 +2,7 @@ class NPCManager {
 
     public landServant: Dodo;
     public brickMerchant: Dodo;
+    public welcomeDodo: Dodo;
 
     constructor(public game: Game) {
         //232a0f200101
@@ -17,6 +18,13 @@ class NPCManager {
         this.brickMerchant.brain = new Brain(this.brickMerchant, BrainMode.Idle);
         (this.brickMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(6.66, 0.53, 1.37);
         this.brickMerchant.brain.initialize();
+        
+        this.welcomeDodo = new Dodo("welcome-dodo", "Sven", this.game, { style: "1511280e0309" });
+        this.welcomeDodo.brain = new Brain(this.welcomeDodo, BrainMode.Idle);
+        (this.welcomeDodo.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(0, 1, 0);
+        this.welcomeDodo.brain.initialize();
+
+        
     }
 
     public async instantiate(): Promise<void> {
@@ -108,6 +116,29 @@ class NPCManager {
                 return 1000
             }),
             new NPCDialogTextLine(1000, "Here you go, have fun with your Blocks, see you soon !",
+                new NPCDialogResponse("Thanks, bye !", -1)
+            )
+        ]);
+        
+        await this.welcomeDodo.instantiate();
+        this.welcomeDodo.unfold();
+        this.welcomeDodo.setWorldPosition((this.welcomeDodo.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero);
+        this.game.npcDodos.push(this.welcomeDodo);
+        this.welcomeDodo.brain.npcDialog = new NPCDialog(this.welcomeDodo, [
+            new NPCDialogTextLine(0, "Salut !"),
+            new NPCDialogTextLine(1, "My name is " + this.welcomeDodo.name + ". Welcome to Dodopolis."),
+            new NPCDialogTextLine(2, "If you have question about this place, I can try to answer it !",
+                new NPCDialogResponse("What is Dodopolis ?", 10),
+                new NPCDialogResponse("What can I do here ?", 20),
+                new NPCDialogResponse("How does Dodopolis run ?", 30),
+                new NPCDialogResponse("Who made Dodopolis ?", 40),
+                new NPCDialogResponse("No thanks.", 1000),
+            ),
+            new NPCDialogTextLineNextIndex(10, "Dodopolis is a multiplayer construction game. It was made during the Revival Jam 2025, hosted by the Society of Play.", 2),
+            new NPCDialogTextLineNextIndex(20, "You can enjoy other players construction, and borrow a piece of land to create your own things.", 2),
+            new NPCDialogTextLineNextIndex(30, "Dodopolis is writen in Typescript and runs in your browser. BabylonJS is used for 3D rendering. PeerJS connects the Dodos together. A server hosts your constructions.", 2),
+            new NPCDialogTextLineNextIndex(40, "Dodopolis is developped by me, Sven, from Tiaratum Games.", 2),
+            new NPCDialogTextLine(1000, "Thanks for hanging around, have a nice day !",
                 new NPCDialogResponse("Thanks, bye !", -1)
             )
         ]);

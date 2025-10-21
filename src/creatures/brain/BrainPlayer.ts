@@ -328,6 +328,14 @@ class BrainPlayer extends SubBrain {
             if (this.brain.inDialog) {
                 this._targetLook.copyFrom(this.brain.inDialog.dodo.head.absolutePosition);
                 f = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+                let dir = this.dodo.position.subtract(this.brain.inDialog.dodo.position);
+                let dist = dir.length();
+                if (dist - 2.5 < - 0.1) {
+                    this.dodo.position.addInPlace(this.dodo.forward.scale(- 1 * dt)); 
+                }
+                else if (dist - 2.5 > 0.1) {
+                    this.dodo.position.addInPlace(this.dodo.forward.scale(1 * dt)); 
+                }
             }
             else {
                 let aimRay = this.game.camera.getForwardRay(50);

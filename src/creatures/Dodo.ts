@@ -132,11 +132,30 @@ class DodoCollider extends BABYLON.Mesh {
     }
 
     public highlight(): void {
-        this.visibility = 0.5;
+        
     }
 
     public unlit(): void {
-        this.visibility = 0;
+        
+    }
+}
+
+class DodoInteractCollider extends BABYLON.Mesh {
+
+    constructor(public dodo: Dodo) {
+        super("dodo-collider");
+    }
+
+    public highlight(): void {
+        this.dodo.meshes.forEach(mesh => {
+            mesh.renderOutline = true;
+        })
+    }
+
+    public unlit(): void {
+        this.dodo.meshes.forEach(mesh => {
+            mesh.renderOutline = false;
+        })
     }
 }
 
@@ -154,11 +173,13 @@ class Dodo extends Creature {
     public brain: Brain;
 
     public dodoCollider: DodoCollider;
+    public dodoInteractCollider: DodoInteractCollider;
     public currentChuncks: Chunck[][] = [[undefined, undefined, undefined], [undefined, undefined, undefined], [undefined, undefined, undefined]];
     public currentConstructions: Construction[][] = [[undefined, undefined, undefined], [undefined, undefined, undefined], [undefined, undefined, undefined]];
 
     public targetLook: BABYLON.Vector3 = BABYLON.Vector3.Zero();
 
+    public meshes: BABYLON.Mesh[] = [];
     public body: BABYLON.Mesh;
     public bodyTargetPos: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public bodyVelocity: BABYLON.Vector3 = BABYLON.Vector3.Zero();
@@ -193,11 +214,12 @@ class Dodo extends Creature {
     public lowerLegLength: number = 0.224;
     public upperLegs: BABYLON.Mesh[];
     public lowerLegs: BABYLON.Mesh[];
-    public static OutlinedMesh(name: string): BABYLON.Mesh {
+    public static OutlinedMesh(name: string, dodo: Dodo): BABYLON.Mesh {
         let mesh = new BABYLON.Mesh(name);
         mesh.renderOutline = false;
-        mesh.outlineColor.copyFromFloats(0, 0, 0);
+        mesh.outlineColor.copyFromFloats(1, 1, 1);
         mesh.outlineWidth = 0.01;
+        dodo.meshes.push(mesh);
         return mesh;
     }
     public eyeMaterial: BABYLON.StandardMaterial;
@@ -247,16 +269,16 @@ class Dodo extends Creature {
         }
 
         this.rotationQuaternion = BABYLON.Quaternion.Identity();
-        this.body = Dodo.OutlinedMesh("body");
+        this.body = Dodo.OutlinedMesh("body", this);
 
-        this.head = Dodo.OutlinedMesh("head");
+        this.head = Dodo.OutlinedMesh("head", this);
         this.head.rotationQuaternion = BABYLON.Quaternion.Identity();
 
-        this.hat = Dodo.OutlinedMesh("hat");
+        this.hat = Dodo.OutlinedMesh("hat", this);
         this.hat.parent = this.head;
 
         
-        this.jaw = Dodo.OutlinedMesh("jaw");
+        this.jaw = Dodo.OutlinedMesh("jaw", this);
         this.jaw.parent = this.head;
         this.jaw.position.copyFromFloats(0, -0.078575, 0.055646);
 
@@ -274,9 +296,9 @@ class Dodo extends Creature {
         this.tail.parent = this.body;
 
         this.tailFeathers = [
-            Dodo.OutlinedMesh("tailFeatherR"),
-            Dodo.OutlinedMesh("tailFeatherM"),
-            Dodo.OutlinedMesh("tailFeatherL")
+            Dodo.OutlinedMesh("tailFeatherR", this),
+            Dodo.OutlinedMesh("tailFeatherM", this),
+            Dodo.OutlinedMesh("tailFeatherL", this)
         ];
         this.tailFeathers[0].parent = this.tail;
         this.tailFeathers[0].position.copyFromFloats(0.020, - 0.03, -0.02);
@@ -298,6 +320,12 @@ class Dodo extends Creature {
         this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight + 0.05, 0);
         BABYLON.CreateSphereVertexData({ diameter: 2 * BRICK_S }).applyToMesh(this.dodoCollider);
         this.dodoCollider.visibility = 0;
+
+        this.dodoInteractCollider = new DodoInteractCollider(this);
+        this.dodoInteractCollider.parent = this.body;
+        this.dodoInteractCollider.position.copyFromFloats(0, 0.2, 0.1);
+        BABYLON.CreateBoxVertexData({ width: 0.6, height: 1, depth: 1 }).applyToMesh(this.dodoInteractCollider);
+        this.dodoInteractCollider.visibility = 0;
 
         /*
         this.topEyelids = [
@@ -332,14 +360,14 @@ class Dodo extends Creature {
         }
         */
         this.upperLegs = [
-            Dodo.OutlinedMesh("upperLegR"),
-            Dodo.OutlinedMesh("upperLegL")
+            Dodo.OutlinedMesh("upperLegR", this),
+            Dodo.OutlinedMesh("upperLegL", this)
         ];
         this.upperLegs[0].rotationQuaternion = BABYLON.Quaternion.Identity();
         this.upperLegs[1].rotationQuaternion = BABYLON.Quaternion.Identity();
         this.lowerLegs = [
-            Dodo.OutlinedMesh("lowerLegR"),
-            Dodo.OutlinedMesh("lowerLegL")
+            Dodo.OutlinedMesh("lowerLegR", this),
+            Dodo.OutlinedMesh("lowerLegL", this)
         ];
         this.lowerLegs[0].rotationQuaternion = BABYLON.Quaternion.Identity();
         this.lowerLegs[1].rotationQuaternion = BABYLON.Quaternion.Identity();
@@ -351,7 +379,7 @@ class Dodo extends Creature {
         this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
         this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
 
-        this.neck = Dodo.OutlinedMesh("neck");
+        this.neck = Dodo.OutlinedMesh("neck", this);
 
         this.hitCollider = new BABYLON.Mesh("hit-collider");
         this.hitCollider.parent = this;
@@ -538,6 +566,9 @@ class Dodo extends Creature {
             }
             else if (this.hatType === 2) {
                 Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[9]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
+            }
+            else if (this.hatType === 3) {
+                Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[10]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
             }
         }
 
@@ -857,9 +888,9 @@ class Dodo extends Creature {
             this.bodyTargetPos.y += Math.min(0.5 * this.bodyHeight, maxBodyHeight);
         }
 
-        Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
-        let altitude = this.game.terrain.worldPosToTerrainAltitude(this.position);
-        Mummu.DrawDebugPoint(new BABYLON.Vector3(this.position.x, altitude, this.position.z), 2, BABYLON.Color3.Red());
+        //Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
+        //let altitude = this.game.terrain.worldPosToTerrainAltitude(this.position);
+        //Mummu.DrawDebugPoint(new BABYLON.Vector3(this.position.x, altitude, this.position.z), 2, BABYLON.Color3.Red());
         
         let pForce = this.bodyTargetPos.subtract(this.body.position);
         let pForceValue = 80;

@@ -10,10 +10,11 @@ class NPCDialogResponse {
 
 class NPCDialogLine {
 
+    public nextIndex: number;
     constructor(
         public index: number
     ) {
-        
+        this.nextIndex = index + 1;
     }
 }
 
@@ -28,6 +29,20 @@ class NPCDialogTextLine extends NPCDialogLine {
     ) {
         super(index);
         this.responses.push(...responses);
+    }
+}
+
+class NPCDialogTextLineNextIndex extends NPCDialogTextLine {
+
+    public responses: NPCDialogResponse[] = [];
+
+    constructor(
+        index: number,
+        text: string,
+        nextIndex: number
+    ) {
+        super(index, text);
+        this.nextIndex = nextIndex;
     }
 }
 
@@ -103,7 +118,7 @@ class NPCDialog {
                 }
                 else {
                     setTimeout(() => {
-                        this.writeLine(this.getLine(dialogLine.index + 1));
+                        this.writeLine(this.getLine(dialogLine.nextIndex));
                     }, 1000);
                 }
             }

@@ -545,8 +545,8 @@ class HomeMenuPlate extends BABYLON.Mesh {
             return DodoColors[v].name;
         };
         this.customizeHatLine = new HomeMenuCustomizeLine(document.querySelector("#dodo-customize-hat"));
-        this.customizeHatLine.maxValue = 3;
-        var customizeHatLineLabels = ["None", "Top Hat", "Cap"];
+        this.customizeHatLine.maxValue = 4;
+        var customizeHatLineLabels = ["None", "Top Hat", "Cap", "Straw"];
         this.customizeHatLine.toString = (v) => {
             return customizeHatLineLabels[v];
         };
@@ -874,7 +874,7 @@ class Game {
         skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
         this.skybox.material = skyboxMaterial;
         this.camera = new PlayerCamera(this);
-        OutlinePostProcess.AddOutlinePostProcess(this.camera);
+        //OutlinePostProcess.AddOutlinePostProcess(this.camera);
         if (window.localStorage.getItem("camera-position")) {
             let positionItem = JSON.parse(window.localStorage.getItem("camera-position"));
             let position = new BABYLON.Vector3(positionItem.x, positionItem.y, positionItem.z);
@@ -998,6 +998,7 @@ class Game {
         }
         this.camera.player = this.playerDodo;
         await this.playerDodo.instantiate();
+        LoadPlayerFromLocalStorage(this);
         this.homeMenuPlate.initialize();
         document.querySelector("#start").addEventListener("click", () => {
             this.setGameMode(GameMode.Playing);
@@ -1006,7 +1007,6 @@ class Game {
         //brick.position.copyFromFloats(0, TILE_H, 0);
         //brick.updateMesh();
         this.gameLoaded = true;
-        LoadPlayerFromLocalStorage(this);
         this.setGameMode(GameMode.Home);
         I18Nizer.Translate(LOCALE);
         if (USE_POKI_SDK) {
@@ -1855,7 +1855,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
         return this._verticalAngle;
     }
     set verticalAngle(v) {
-        this._verticalAngle = Nabu.MinMax(v, -Math.PI / 2, Math.PI / 2);
+        this._verticalAngle = Nabu.MinMax(v, -Math.PI / 2 * 0.99, Math.PI / 2 * 0.99);
     }
     onUpdate(dt) {
         if (this.player) {
@@ -3934,13 +3934,13 @@ class PlayerActionDefault {
         if (mesh instanceof ConstructionMesh) {
             return true;
         }
-        if (mesh instanceof DodoCollider) {
+        if (mesh instanceof DodoInteractCollider) {
             return true;
         }
         return false;
     }
     static Create(player) {
-        let actionRange = 4;
+        let actionRange = 6;
         let actionRangeSquared = actionRange * actionRange;
         let defaultAction = new PlayerAction("default-action", player);
         defaultAction.backgroundColor = "#FF00FF";
@@ -3970,7 +3970,7 @@ class PlayerActionDefault {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return PlayerActionDefault.IsAimable(mesh) && mesh != player.dodo.dodoCollider;
+                    return PlayerActionDefault.IsAimable(mesh) && mesh != player.dodo.dodoInteractCollider;
                 });
                 if (hit.hit && hit.pickedPoint) {
                     if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
@@ -3984,7 +3984,7 @@ class PlayerActionDefault {
                                 return;
                             }
                         }
-                        else if (hit.pickedMesh instanceof DodoCollider) {
+                        else if (hit.pickedMesh instanceof DodoInteractCollider) {
                             setAimedObject(hit.pickedMesh);
                             return;
                         }
@@ -4022,11 +4022,13 @@ class PlayerActionDefault {
                             player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
                         }
                     }
-                    else if (aimedObject instanceof DodoCollider) {
+                    else if (aimedObject instanceof DodoInteractCollider) {
                         if (aimedObject.dodo.brain.npcDialog) {
                             let canvas = aimedObject.dodo.game.canvas;
                             document.exitPointerLock();
+                            player.game.inputManager.temporaryNoPointerLock = true;
                             aimedObject.dodo.brain.npcDialog.onNextStop = () => {
+                                player.game.inputManager.temporaryNoPointerLock = false;
                                 canvas.requestPointerLock();
                             };
                             aimedObject.dodo.brain.npcDialog.start();
@@ -5667,10 +5669,24 @@ class DodoCollider extends BABYLON.Mesh {
         this.dodo = dodo;
     }
     highlight() {
-        this.visibility = 0.5;
     }
     unlit() {
-        this.visibility = 0;
+    }
+}
+class DodoInteractCollider extends BABYLON.Mesh {
+    constructor(dodo) {
+        super("dodo-collider");
+        this.dodo = dodo;
+    }
+    highlight() {
+        this.dodo.meshes.forEach(mesh => {
+            mesh.renderOutline = true;
+        });
+    }
+    unlit() {
+        this.dodo.meshes.forEach(mesh => {
+            mesh.renderOutline = false;
+        });
     }
 }
 class Dodo extends Creature {
@@ -5684,6 +5700,7 @@ class Dodo extends Creature {
         this.currentChuncks = [[undefined, undefined, undefined], [undefined, undefined, undefined], [undefined, undefined, undefined]];
         this.currentConstructions = [[undefined, undefined, undefined], [undefined, undefined, undefined], [undefined, undefined, undefined]];
         this.targetLook = BABYLON.Vector3.Zero();
+        this.meshes = [];
         this.bodyTargetPos = BABYLON.Vector3.Zero();
         this.bodyVelocity = BABYLON.Vector3.Zero();
         this.headVelocity = BABYLON.Vector3.Zero();
@@ -5744,12 +5761,12 @@ class Dodo extends Creature {
             this.setStyle(style);
         }
         this.rotationQuaternion = BABYLON.Quaternion.Identity();
-        this.body = Dodo.OutlinedMesh("body");
-        this.head = Dodo.OutlinedMesh("head");
+        this.body = Dodo.OutlinedMesh("body", this);
+        this.head = Dodo.OutlinedMesh("head", this);
         this.head.rotationQuaternion = BABYLON.Quaternion.Identity();
-        this.hat = Dodo.OutlinedMesh("hat");
+        this.hat = Dodo.OutlinedMesh("hat", this);
         this.hat.parent = this.head;
-        this.jaw = Dodo.OutlinedMesh("jaw");
+        this.jaw = Dodo.OutlinedMesh("jaw", this);
         this.jaw.parent = this.head;
         this.jaw.position.copyFromFloats(0, -0.078575, 0.055646);
         this.eyes = [
@@ -5764,9 +5781,9 @@ class Dodo extends Creature {
         this.tail.position.copyFromFloats(0, -0.08, -0.33);
         this.tail.parent = this.body;
         this.tailFeathers = [
-            Dodo.OutlinedMesh("tailFeatherR"),
-            Dodo.OutlinedMesh("tailFeatherM"),
-            Dodo.OutlinedMesh("tailFeatherL")
+            Dodo.OutlinedMesh("tailFeatherR", this),
+            Dodo.OutlinedMesh("tailFeatherM", this),
+            Dodo.OutlinedMesh("tailFeatherL", this)
         ];
         this.tailFeathers[0].parent = this.tail;
         this.tailFeathers[0].position.copyFromFloats(0.020, -0.03, -0.02);
@@ -5786,6 +5803,11 @@ class Dodo extends Creature {
         this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight + 0.05, 0);
         BABYLON.CreateSphereVertexData({ diameter: 2 * BRICK_S }).applyToMesh(this.dodoCollider);
         this.dodoCollider.visibility = 0;
+        this.dodoInteractCollider = new DodoInteractCollider(this);
+        this.dodoInteractCollider.parent = this.body;
+        this.dodoInteractCollider.position.copyFromFloats(0, 0.2, 0.1);
+        BABYLON.CreateBoxVertexData({ width: 0.6, height: 1, depth: 1 }).applyToMesh(this.dodoInteractCollider);
+        this.dodoInteractCollider.visibility = 0;
         /*
         this.topEyelids = [
             Dodo.OutlinedMesh("topEyelidR"),
@@ -5819,14 +5841,14 @@ class Dodo extends Creature {
         }
         */
         this.upperLegs = [
-            Dodo.OutlinedMesh("upperLegR"),
-            Dodo.OutlinedMesh("upperLegL")
+            Dodo.OutlinedMesh("upperLegR", this),
+            Dodo.OutlinedMesh("upperLegL", this)
         ];
         this.upperLegs[0].rotationQuaternion = BABYLON.Quaternion.Identity();
         this.upperLegs[1].rotationQuaternion = BABYLON.Quaternion.Identity();
         this.lowerLegs = [
-            Dodo.OutlinedMesh("lowerLegR"),
-            Dodo.OutlinedMesh("lowerLegL")
+            Dodo.OutlinedMesh("lowerLegR", this),
+            Dodo.OutlinedMesh("lowerLegL", this)
         ];
         this.lowerLegs[0].rotationQuaternion = BABYLON.Quaternion.Identity();
         this.lowerLegs[1].rotationQuaternion = BABYLON.Quaternion.Identity();
@@ -5836,7 +5858,7 @@ class Dodo extends Creature {
         ];
         this.feet[0].rotationQuaternion = BABYLON.Quaternion.Identity();
         this.feet[1].rotationQuaternion = BABYLON.Quaternion.Identity();
-        this.neck = Dodo.OutlinedMesh("neck");
+        this.neck = Dodo.OutlinedMesh("neck", this);
         this.hitCollider = new BABYLON.Mesh("hit-collider");
         this.hitCollider.parent = this;
         this.hitCollider.isVisible = false;
@@ -5859,11 +5881,12 @@ class Dodo extends Creature {
     get isPlayerControlled() {
         return this === this.game.playerDodo;
     }
-    static OutlinedMesh(name) {
+    static OutlinedMesh(name, dodo) {
         let mesh = new BABYLON.Mesh(name);
         mesh.renderOutline = false;
-        mesh.outlineColor.copyFromFloats(0, 0, 0);
+        mesh.outlineColor.copyFromFloats(1, 1, 1);
         mesh.outlineWidth = 0.01;
+        dodo.meshes.push(mesh);
         return mesh;
     }
     get r() {
@@ -6005,6 +6028,9 @@ class Dodo extends Creature {
             }
             else if (this.hatType === 2) {
                 Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[9]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
+            }
+            else if (this.hatType === 3) {
+                Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[10]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
             }
         }
         //datas[1].applyToMesh(this.upperLegs[0]);
@@ -6278,9 +6304,9 @@ class Dodo extends Creature {
         else {
             this.bodyTargetPos.y += Math.min(0.5 * this.bodyHeight, maxBodyHeight);
         }
-        Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
-        let altitude = this.game.terrain.worldPosToTerrainAltitude(this.position);
-        Mummu.DrawDebugPoint(new BABYLON.Vector3(this.position.x, altitude, this.position.z), 2, BABYLON.Color3.Red());
+        //Mummu.DrawDebugPoint(this.position, 2, BABYLON.Color3.Blue());
+        //let altitude = this.game.terrain.worldPosToTerrainAltitude(this.position);
+        //Mummu.DrawDebugPoint(new BABYLON.Vector3(this.position.x, altitude, this.position.z), 2, BABYLON.Color3.Red());
         let pForce = this.bodyTargetPos.subtract(this.body.position);
         let pForceValue = 80;
         if (!this.isGrounded) {
@@ -6492,16 +6518,16 @@ class Dodo extends Creature {
     }
 }
 class DodoFoot extends BABYLON.Mesh {
-    constructor(name, joey) {
+    constructor(name, dodo) {
         super(name);
-        this.joey = joey;
+        this.dodo = dodo;
         this.groundPos = BABYLON.Vector3.Zero();
         this.groundUp = BABYLON.Vector3.Up();
         this.scaling.copyFromFloats(1.3, 1.3, 1.3);
         this.claws = [
-            Dodo.OutlinedMesh("clawR"),
-            Dodo.OutlinedMesh("clawL"),
-            Dodo.OutlinedMesh("clawB")
+            Dodo.OutlinedMesh("clawR", dodo),
+            Dodo.OutlinedMesh("clawL", dodo),
+            Dodo.OutlinedMesh("clawB", dodo)
         ];
         this.claws[0].position.copyFromFloats(-0.103, -0.025, 0.101);
         this.claws[0].rotation.y = -Math.PI / 8;
@@ -6514,18 +6540,18 @@ class DodoFoot extends BABYLON.Mesh {
         this.claws[2].parent = this;
     }
     async instantiate() {
-        let datas = await this.joey.game.vertexDataLoader.get("./datas/meshes/dodo.babylon");
+        let datas = await this.dodo.game.vertexDataLoader.get("./datas/meshes/dodo.babylon");
         datas = datas.map(vertexData => {
-            return Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(vertexData), this.joey.colors[2], new BABYLON.Color3(0, 1, 0));
+            return Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(vertexData), this.dodo.colors[2], new BABYLON.Color3(0, 1, 0));
         });
         //datas[8].applyToMesh(this);
-        this.material = this.joey.material;
+        this.material = this.dodo.material;
         //datas[9].applyToMesh(this.claws[0]);
         //datas[9].applyToMesh(this.claws[1]);
         //datas[9].applyToMesh(this.claws[2]);
-        this.claws[0].material = this.joey.material;
-        this.claws[1].material = this.joey.material;
-        this.claws[2].material = this.joey.material;
+        this.claws[0].material = this.dodo.material;
+        this.claws[1].material = this.dodo.material;
+        this.claws[2].material = this.dodo.material;
     }
     update(dt) {
         for (let i = 0; i < this.claws.length; i++) {
@@ -7035,6 +7061,14 @@ class BrainPlayer extends SubBrain {
             if (this.brain.inDialog) {
                 this._targetLook.copyFrom(this.brain.inDialog.dodo.head.absolutePosition);
                 f = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+                let dir = this.dodo.position.subtract(this.brain.inDialog.dodo.position);
+                let dist = dir.length();
+                if (dist - 2.5 < -0.1) {
+                    this.dodo.position.addInPlace(this.dodo.forward.scale(-1 * dt));
+                }
+                else if (dist - 2.5 > 0.1) {
+                    this.dodo.position.addInPlace(this.dodo.forward.scale(1 * dt));
+                }
             }
             else {
                 let aimRay = this.game.camera.getForwardRay(50);
@@ -7576,6 +7610,7 @@ class NPCDialogResponse {
 class NPCDialogLine {
     constructor(index) {
         this.index = index;
+        this.nextIndex = index + 1;
     }
 }
 class NPCDialogTextLine extends NPCDialogLine {
@@ -7584,6 +7619,13 @@ class NPCDialogTextLine extends NPCDialogLine {
         this.text = text;
         this.responses = [];
         this.responses.push(...responses);
+    }
+}
+class NPCDialogTextLineNextIndex extends NPCDialogTextLine {
+    constructor(index, text, nextIndex) {
+        super(index, text);
+        this.responses = [];
+        this.nextIndex = nextIndex;
     }
 }
 class NPCDialogCheckLine extends NPCDialogLine {
@@ -7649,7 +7691,7 @@ class NPCDialog {
                 }
                 else {
                     setTimeout(() => {
-                        this.writeLine(this.getLine(dialogLine.index + 1));
+                        this.writeLine(this.getLine(dialogLine.nextIndex));
                     }, 1000);
                 }
             }
@@ -7699,6 +7741,10 @@ class NPCManager {
         this.brickMerchant.brain = new Brain(this.brickMerchant, BrainMode.Idle);
         this.brickMerchant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(6.66, 0.53, 1.37);
         this.brickMerchant.brain.initialize();
+        this.welcomeDodo = new Dodo("welcome-dodo", "Sven", this.game, { style: "1511280e0309" });
+        this.welcomeDodo.brain = new Brain(this.welcomeDodo, BrainMode.Idle);
+        this.welcomeDodo.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(0, 1, 0);
+        this.welcomeDodo.brain.initialize();
     }
     async instantiate() {
         await this.landServant.instantiate();
@@ -7771,6 +7817,20 @@ class NPCManager {
                 return 1000;
             }),
             new NPCDialogTextLine(1000, "Here you go, have fun with your Blocks, see you soon !", new NPCDialogResponse("Thanks, bye !", -1))
+        ]);
+        await this.welcomeDodo.instantiate();
+        this.welcomeDodo.unfold();
+        this.welcomeDodo.setWorldPosition(this.welcomeDodo.brain.subBrains[BrainMode.Idle].positionZero);
+        this.game.npcDodos.push(this.welcomeDodo);
+        this.welcomeDodo.brain.npcDialog = new NPCDialog(this.welcomeDodo, [
+            new NPCDialogTextLine(0, "Salut !"),
+            new NPCDialogTextLine(1, "My name is " + this.welcomeDodo.name + ". Welcome to Dodopolis."),
+            new NPCDialogTextLine(2, "If you have question about this place, I can try to answer it !", new NPCDialogResponse("What is Dodopolis ?", 10), new NPCDialogResponse("What can I do here ?", 20), new NPCDialogResponse("How does Dodopolis run ?", 30), new NPCDialogResponse("Who made Dodopolis ?", 40), new NPCDialogResponse("No thanks.", 1000)),
+            new NPCDialogTextLineNextIndex(10, "Dodopolis is a multiplayer construction game. It was made during the Revival Jam 2025, hosted by the Society of Play.", 2),
+            new NPCDialogTextLineNextIndex(20, "You can enjoy other players construction, and borrow a piece of land to create your own things.", 2),
+            new NPCDialogTextLineNextIndex(30, "Dodopolis is writen in Typescript and runs in your browser. BabylonJS is used for 3D rendering. PeerJS connects the Dodos together. A server hosts your constructions.", 2),
+            new NPCDialogTextLineNextIndex(40, "Dodopolis is developped by me, Sven, from Tiaratum Games.", 2),
+            new NPCDialogTextLine(1000, "Thanks for hanging around, have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
         ]);
     }
 }
