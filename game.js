@@ -524,6 +524,7 @@ class HomeMenuPlate extends BABYLON.Mesh {
         skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
         skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
         skybox.material = skyboxMaterial;
+        this.nameInput = document.querySelector("#player-name");
         this.customizeHeadLine = new HomeMenuCustomizeColorLine(0, document.querySelector("#dodo-customize-head"), this);
         this.customizeHeadLine.maxValue = DodoColors.length;
         this.customizeHeadLine.toString = (v) => {
@@ -560,29 +561,41 @@ class HomeMenuPlate extends BABYLON.Mesh {
         return this.game.playerDodo;
     }
     initialize() {
+        this.nameInput.value = this.playerDodo.name;
         this.customizeHeadLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color1));
         this.customizeEyesLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.EyeColor));
         this.customizeBeakLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color2));
         this.customizeBodyLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color0));
         this.customizeHatLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.HatIndex));
         this.customizeHatColorLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.HatColor));
+        this.nameInput.oninput = (ev) => {
+            this.nameInput.value = this.nameInput.value.toLocaleUpperCase();
+            this.playerDodo.name = this.nameInput.value;
+            SavePlayerToLocalStorage(this.game);
+        };
         this.customizeHeadLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.Color1);
+            SavePlayerToLocalStorage(this.game);
         };
         this.customizeEyesLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.EyeColor);
+            SavePlayerToLocalStorage(this.game);
         };
         this.customizeBeakLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.Color2);
+            SavePlayerToLocalStorage(this.game);
         };
         this.customizeBodyLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.Color0);
+            SavePlayerToLocalStorage(this.game);
         };
         this.customizeHatLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.HatIndex);
+            SavePlayerToLocalStorage(this.game);
         };
         this.customizeHatColorLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.HatColor);
+            SavePlayerToLocalStorage(this.game);
         };
     }
 }
@@ -694,12 +707,6 @@ function firstPlayerInteraction() {
         document.body.classList.add("mobile");
     }
     PlayerHasInteracted = true;
-    if (IsMobile === 1) {
-        Game.Instance.playerDodo.name = "MobileBoy";
-    }
-    else {
-        Game.Instance.playerDodo.name = "PCBoy";
-    }
 }
 let onFirstPlayerInteractionTouch = (ev) => {
     if (!Game.Instance.gameLoaded) {
@@ -973,7 +980,7 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.npcManager = new NPCManager(this);
         this.npcManager.initialize();
-        this.playerDodo = new Dodo("", "Player", this, { speed: 3, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 3, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.playerBrain = this.playerDodo.brain;
@@ -5301,6 +5308,7 @@ class Construction extends BABYLON.Mesh {
             let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
             if (!this.mesh) {
                 this.mesh = new ConstructionMesh(this);
+                this.mesh.parent = this;
                 //this.mesh.layerMask |= 0x20000000;
                 //this.mesh.parent = this;
                 //let brickMaterial = new BABYLON.StandardMaterial("brick-material");
@@ -5327,6 +5335,12 @@ class Construction extends BABYLON.Mesh {
                 this.mesh.material = this.terrain.game.defaultToonMaterial;
             }
             data.applyToMesh(this.mesh);
+        }
+        else {
+            if (this.mesh) {
+                this.mesh.dispose();
+                this.mesh = undefined;
+            }
         }
     }
     static MergeVertexDatas(subMeshInfos, ...datas) {
@@ -5694,6 +5708,7 @@ class Dodo extends Creature {
         super(peerId, game);
         this.peerId = null;
         this.gameId = -1;
+        this.role = "";
         this.stepDuration = 0.2;
         this.colors = [];
         this.eyeColor = 0;
@@ -5750,6 +5765,9 @@ class Dodo extends Creature {
             }
             if (prop.style) {
                 this.setStyle(prop.style);
+            }
+            if (prop.role) {
+                this.role = prop.role;
             }
         }
         if (this.colors.length === 0) {
@@ -5808,6 +5826,11 @@ class Dodo extends Creature {
         this.dodoInteractCollider.position.copyFromFloats(0, 0.2, 0.1);
         BABYLON.CreateBoxVertexData({ width: 0.6, height: 1, depth: 1 }).applyToMesh(this.dodoInteractCollider);
         this.dodoInteractCollider.visibility = 0;
+        this.nameTag = Mummu.CreateQuad("name-tag", {
+            width: 1,
+            height: 0.25
+        });
+        this.setName(this.name);
         /*
         this.topEyelids = [
             Dodo.OutlinedMesh("topEyelidR"),
@@ -5934,11 +5957,42 @@ class Dodo extends Creature {
             this.instantiate();
         }
     }
+    setName(name) {
+        this.name = name;
+        if (this.nameTag) {
+            let material = new BABYLON.StandardMaterial("name-tag-material");
+            material.emissiveColor.copyFromFloats(1, 1, 1);
+            material.useAlphaFromDiffuseTexture = true;
+            let s = 512;
+            let texture = new BABYLON.DynamicTexture("name-tag-texture", { width: s, height: s / 4 }, this.game.scene);
+            texture.hasAlpha = true;
+            let context = texture.getContext();
+            context.fillStyle = "#00000000";
+            context.fillRect(0, 0, s, s / 4);
+            context.font = (s / 10).toFixed(0) + "px Roboto";
+            context.fillStyle = "#ffffffff";
+            context.strokeStyle = "#000000ff";
+            context.lineWidth = s / 128;
+            let l = context.measureText(this.name);
+            context.strokeText(this.name, s / 2 - l.width * 0.5, s / 8);
+            context.fillText(this.name, s / 2 - l.width * 0.5, s / 8);
+            context.font = (s / 12).toFixed(0) + "px Roboto";
+            let l2 = context.measureText(this.role);
+            context.strokeText(this.role, s / 2 - l2.width * 0.5, s / 4 - s / 32);
+            context.fillText(this.role, s / 2 - l2.width * 0.5, s / 4 - s / 32);
+            texture.update();
+            material.diffuseTexture = texture;
+            this.nameTag.material = material;
+        }
+    }
     async instantiate() {
         this.material = this.game.defaultToonMaterial;
         this.body.material = this.material;
         this.head.material = this.material;
         this.jaw.material = this.material;
+        if (this.eyeMaterial) {
+            this.eyeMaterial.dispose(true, true);
+        }
         this.eyeMaterial = new BABYLON.StandardMaterial("eye-material");
         this.eyeMaterial.specularColor.copyFromFloats(0, 0, 0);
         let eyeTexture = new BABYLON.DynamicTexture("eye-texture", 256);
@@ -6432,6 +6486,17 @@ class Dodo extends Creature {
         */
         this.feet[0].update(dt);
         this.feet[1].update(dt);
+        if (!this.isPlayerControlled) {
+            this.nameTag.position.copyFrom(this.position);
+            this.nameTag.position.y = Math.min(this.feet[0].position.y, this.feet[1].position.y);
+            this.nameTag.position.y += 1.8;
+            let cam = this.game.camera;
+            let dir = this.nameTag.position.subtract(cam.position);
+            let dist = dir.length();
+            this.nameTag.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
+            let size = Nabu.MinMax(dist / 20, 0, 1) * 2 + 1;
+            this.nameTag.scaling.copyFromFloats(size, size, size);
+        }
         if (this.needUpdateCurrentConstruction()) {
             this.updateCurrentConstruction();
         }
@@ -6568,6 +6633,35 @@ class DodoFoot extends BABYLON.Mesh {
             this.claws[i].rotation.x = Nabu.MinMax(this.claws[i].rotation.x, -Math.PI * 0.4, Math.PI * 0.5);
         }
     }
+}
+var DodoNameGeneratorConsons = [
+    "C",
+    "F",
+    "K",
+    "KL",
+    "L",
+    "P",
+    "R",
+    "S",
+    "T",
+    "X"
+];
+var DodoNameGeneratorVowels = [
+    "A",
+    "I",
+    "O",
+    "U",
+    "OU",
+    "IOU"
+];
+function GenerateRandomDodoName() {
+    let count = 2 + Math.round(2 * Math.random());
+    let name = "";
+    for (let n = 0; n < count; n++) {
+        name += DodoNameGeneratorConsons[Math.floor(Math.random() * DodoNameGeneratorConsons.length)];
+        name += DodoNameGeneratorVowels[Math.floor(Math.random() * DodoNameGeneratorVowels.length)];
+    }
+    return name;
 }
 var BrainMode;
 (function (BrainMode) {
@@ -7733,15 +7827,16 @@ class NPCManager {
         //232a0f200101
     }
     initialize() {
-        this.landServant = new Dodo("local-npc", "Boadicea Bipin", this.game, { style: "232a0f200101" });
+        this.landServant = new Dodo("local-npc", "BOADICEA BIPIN", this.game, { style: "232a0f200101", role: "Urbanist" });
         this.landServant.brain = new Brain(this.landServant, BrainMode.Idle);
         this.landServant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.25, 0, 25.56);
         this.landServant.brain.initialize();
-        this.brickMerchant = new Dodo("brick-merchant", "Agostinho Timon", this.game, { style: "232507230115" });
+        this.brickMerchant = new Dodo("brick-merchant", "AGOSTINHO TIMON", this.game, { style: "232507230115", role: "Brick Merchant" });
         this.brickMerchant.brain = new Brain(this.brickMerchant, BrainMode.Idle);
         this.brickMerchant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(6.66, 0.53, 1.37);
+        this.brickMerchant.brain.subBrains[BrainMode.Idle].positionRadius = 0.5;
         this.brickMerchant.brain.initialize();
-        this.welcomeDodo = new Dodo("welcome-dodo", "Sven", this.game, { style: "1511280e0309" });
+        this.welcomeDodo = new Dodo("welcome-dodo", "SVEN", this.game, { style: "1511280e0309", role: "New Player Orientation" });
         this.welcomeDodo.brain = new Brain(this.welcomeDodo, BrainMode.Idle);
         this.welcomeDodo.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(0, 1, 0);
         this.welcomeDodo.brain.initialize();
@@ -7753,7 +7848,7 @@ class NPCManager {
         this.game.npcDodos.push(this.landServant);
         this.landServant.brain.npcDialog = new NPCDialog(this.landServant, [
             new NPCDialogTextLine(0, "Good Morning Sir !"),
-            new NPCDialogTextLine(1, "I am Boadicea Bipin, Head of the Departement of Urbanism and Land Survey."),
+            new NPCDialogTextLine(1, "I am BOADICEA BIPIN, Head of the Departement of Urbanism and Land Survey."),
             new NPCDialogTextLine(2, "Do you wish to build on a terrain parcel ?", new NPCDialogResponse("Yes, I would like to build something.", 3), new NPCDialogResponse("No, thanks.", 100)),
             new NPCDialogTextLine(3, "Do you know the building rules in Dodopolis ?", new NPCDialogResponse("Yes, but I would love to hear it again.", 4), new NPCDialogResponse("No, what are the rules ?", 4)),
             new NPCDialogTextLine(4, "Don't let my top hat fool you, I will not sell you Land."),
@@ -7807,7 +7902,7 @@ class NPCManager {
         this.game.npcDodos.push(this.brickMerchant);
         this.brickMerchant.brain.npcDialog = new NPCDialog(this.brickMerchant, [
             new NPCDialogTextLine(0, "Good Morning Sir !"),
-            new NPCDialogTextLine(1, "My name is Agostinho Timon. I make sure every Dodo get a fair share of construction material."),
+            new NPCDialogTextLine(1, "My name is AGOSTINHO TIMON. I make sure every Dodo get a fair share of construction material."),
             new NPCDialogTextLine(2, "Do you want some construction blocks ?", new NPCDialogResponse("Yes, I would like to build something.", 10), new NPCDialogResponse("No, thanks.", 100)),
             new NPCDialogCheckLine(10, async () => {
                 for (let n = 0; n < 5; n++) {
@@ -7829,7 +7924,7 @@ class NPCManager {
             new NPCDialogTextLineNextIndex(10, "Dodopolis is a multiplayer construction game. It was made during the Revival Jam 2025, hosted by the Society of Play.", 2),
             new NPCDialogTextLineNextIndex(20, "You can enjoy other players construction, and borrow a piece of land to create your own things.", 2),
             new NPCDialogTextLineNextIndex(30, "Dodopolis is writen in Typescript and runs in your browser. BabylonJS is used for 3D rendering. PeerJS connects the Dodos together. A server hosts your constructions.", 2),
-            new NPCDialogTextLineNextIndex(40, "Dodopolis is developped by me, Sven, from Tiaratum Games.", 2),
+            new NPCDialogTextLineNextIndex(40, "Dodopolis is developped by me, SVEN, from Tiaratum Games.", 2),
             new NPCDialogTextLine(1000, "Thanks for hanging around, have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
         ]);
     }

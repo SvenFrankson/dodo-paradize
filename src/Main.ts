@@ -117,13 +117,6 @@ function firstPlayerInteraction(): void {
         document.body.classList.add("mobile");
     }
     PlayerHasInteracted = true;
-
-    if (IsMobile === 1) {
-        Game.Instance.playerDodo.name = "MobileBoy";
-    }
-    else {
-        Game.Instance.playerDodo.name = "PCBoy";
-    }
 }
 
 let onFirstPlayerInteractionTouch = (ev: Event) => {
@@ -468,7 +461,7 @@ class Game {
         this.npcManager = new NPCManager(this);
         this.npcManager.initialize();
 
-        this.playerDodo = new Dodo("", "Player", this, { speed: 3, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 3, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.playerBrain = this.playerDodo.brain;

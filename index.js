@@ -17,6 +17,66 @@ var real_progress = 0;
 var next_progress = 0;
 var observed_progress_speed = 0.2;
 
+let fonts = [
+    {
+        "font-family": "Roboto",
+        "src": "url(styles/fonts/Roboto-Thin.ttf)",
+        "font-weight": 100,
+        "font-style": "normal"
+    },
+    {
+        "font-family": "Roboto",
+        "src": "url(styles/fonts/Roboto-Light.ttf)",
+        "font-weight": 300,
+        "font-style": "normal"
+    },
+    {
+        "font-family": "Roboto",
+        "src": "url(styles/fonts/Roboto-Regular.ttf)",
+        "font-weight": 400,
+        "font-style": "normal"
+    },
+    {
+        "font-family": "Roboto",
+        "src": "url(styles/fonts/Roboto-Medium.ttf)",
+        "font-weight": 500,
+        "font-style": "normal"
+    }
+];
+
+async function loadFonts(fontsToLoad) {
+  if (fontsToLoad.length) {
+    for (let i = 0; i < fontsToLoad.length; i++) {
+      let fontProps = fontsToLoad[i];
+      let fontFamily = fontProps["font-family"];
+      let fontWeight = fontProps["font-weight"];
+      let fontStyle = fontProps["font-style"];
+      let fontUrl = Array.isArray(fontProps["src"])
+        ? fontProps["src"][0][0]
+        : fontProps["src"];
+      if (fontUrl.indexOf("url(") === -1) {
+        fontUrl = "url(" + fontUrl + ")";
+      }
+      let fontFormat = fontProps["src"][0][1] ? fontProps["src"][1] : "";
+      const font = new FontFace(fontFamily, fontUrl);
+      font.weight = fontWeight;
+      font.style = fontStyle;
+      await font.load();
+      document.fonts.add(font);
+      console.log(fontFamily, "loaded");
+
+      // apply font styles to body
+      let fontDOMEl = document.createElement("div");
+      fontDOMEl.textContent = "";
+      document.body.appendChild(fontDOMEl);
+      fontDOMEl.setAttribute(
+        "style",
+        `position:fixed; height:0; width:0; overflow:hidden; font-family:${fontFamily}; font-weight:${fontWeight}; font-style:${fontStyle}`
+      );
+    }
+  }
+}
+
 async function loadCSS(src) {
     let t0 = performance.now();
     return new Promise((resolve) => {
@@ -145,6 +205,8 @@ async function doLoad() {
     }
     setProgressIndex(0);
     loadStep();
+
+    await loadFonts(fonts);
     
     await loadCSS("./styles/fonts.css");
     setProgressIndex(GLOBAL_GAME_LOAD_CURRENT_STEP++);

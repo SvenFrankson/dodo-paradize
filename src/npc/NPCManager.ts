@@ -9,22 +9,21 @@ class NPCManager {
     }
 
     public initialize(): void {
-        this.landServant = new Dodo("local-npc", "Boadicea Bipin", this.game, { style: "232a0f200101" });
+        this.landServant = new Dodo("local-npc", "BOADICEA BIPIN", this.game, { style: "232a0f200101", role: "Urbanist" });
         this.landServant.brain = new Brain(this.landServant, BrainMode.Idle);
         (this.landServant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(1.25, 0, 25.56);
         this.landServant.brain.initialize();
         
-        this.brickMerchant = new Dodo("brick-merchant", "Agostinho Timon", this.game, { style: "232507230115" });
+        this.brickMerchant = new Dodo("brick-merchant", "AGOSTINHO TIMON", this.game, { style: "232507230115", role: "Brick Merchant" });
         this.brickMerchant.brain = new Brain(this.brickMerchant, BrainMode.Idle);
         (this.brickMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(6.66, 0.53, 1.37);
+        (this.brickMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionRadius = 0.5;
         this.brickMerchant.brain.initialize();
         
-        this.welcomeDodo = new Dodo("welcome-dodo", "Sven", this.game, { style: "1511280e0309" });
+        this.welcomeDodo = new Dodo("welcome-dodo", "SVEN", this.game, { style: "1511280e0309", role: "New Player Orientation" });
         this.welcomeDodo.brain = new Brain(this.welcomeDodo, BrainMode.Idle);
         (this.welcomeDodo.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(0, 1, 0);
         this.welcomeDodo.brain.initialize();
-
-        
     }
 
     public async instantiate(): Promise<void> {
@@ -35,7 +34,7 @@ class NPCManager {
 
         this.landServant.brain.npcDialog = new NPCDialog(this.landServant, [
             new NPCDialogTextLine(0, "Good Morning Sir !"),
-            new NPCDialogTextLine(1, "I am Boadicea Bipin, Head of the Departement of Urbanism and Land Survey."),
+            new NPCDialogTextLine(1, "I am BOADICEA BIPIN, Head of the Departement of Urbanism and Land Survey."),
             new NPCDialogTextLine(2, "Do you wish to build on a terrain parcel ?",
                 new NPCDialogResponse("Yes, I would like to build something.", 3),
                 new NPCDialogResponse("No, thanks.", 100),
@@ -103,7 +102,7 @@ class NPCManager {
         this.game.npcDodos.push(this.brickMerchant);
         this.brickMerchant.brain.npcDialog = new NPCDialog(this.brickMerchant, [
             new NPCDialogTextLine(0, "Good Morning Sir !"),
-            new NPCDialogTextLine(1, "My name is Agostinho Timon. I make sure every Dodo get a fair share of construction material."),
+            new NPCDialogTextLine(1, "My name is AGOSTINHO TIMON. I make sure every Dodo get a fair share of construction material."),
             new NPCDialogTextLine(2, "Do you want some construction blocks ?",
                 new NPCDialogResponse("Yes, I would like to build something.", 10),
                 new NPCDialogResponse("No, thanks.", 100),
@@ -137,7 +136,7 @@ class NPCManager {
             new NPCDialogTextLineNextIndex(10, "Dodopolis is a multiplayer construction game. It was made during the Revival Jam 2025, hosted by the Society of Play.", 2),
             new NPCDialogTextLineNextIndex(20, "You can enjoy other players construction, and borrow a piece of land to create your own things.", 2),
             new NPCDialogTextLineNextIndex(30, "Dodopolis is writen in Typescript and runs in your browser. BabylonJS is used for 3D rendering. PeerJS connects the Dodos together. A server hosts your constructions.", 2),
-            new NPCDialogTextLineNextIndex(40, "Dodopolis is developped by me, Sven, from Tiaratum Games.", 2),
+            new NPCDialogTextLineNextIndex(40, "Dodopolis is developped by me, SVEN, from Tiaratum Games.", 2),
             new NPCDialogTextLine(1000, "Thanks for hanging around, have a nice day !",
                 new NPCDialogResponse("Thanks, bye !", -1)
             )

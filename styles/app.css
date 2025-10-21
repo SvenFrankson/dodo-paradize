@@ -125,6 +125,28 @@ a:active {
     font-weight: 300;
 }
 
+#player-name-label {
+    position: fixed;
+    bottom: 180px;
+    left: calc(50vw - 100px);
+    font-size: 16px;
+    font-weight: 300;
+    font-family: Roboto;
+}
+
+#player-name {
+    position: fixed;
+    bottom: 140px;
+    left: calc(50vw - 110px);
+    width: 200px;
+    font-size: 20px;
+    font-weight: 900;
+    border-radius: 5px;
+    border: 2px solid black;
+    font-family: Roboto;
+    padding: 5px 10px 5px 10px;
+}
+
 #start {
     position: fixed;
     bottom: 50px;

@@ -60,6 +60,7 @@ class Construction extends BABYLON.Mesh {
             let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
             if (!this.mesh) {
                 this.mesh = new ConstructionMesh(this);
+                this.mesh.parent = this;
                 
                 //this.mesh.layerMask |= 0x20000000;
                 //this.mesh.parent = this;
@@ -91,6 +92,12 @@ class Construction extends BABYLON.Mesh {
             }
             
             data.applyToMesh(this.mesh);
+        }
+        else {
+            if (this.mesh) {
+                this.mesh.dispose();
+                this.mesh = undefined;
+            }
         }
     }    
 

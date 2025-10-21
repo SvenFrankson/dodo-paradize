@@ -109,6 +109,7 @@ class HomeMenuCustomizeColorLine {
 
 class HomeMenuPlate extends BABYLON.Mesh {
 
+    public nameInput: HTMLInputElement;
     public customizeHeadLine: HomeMenuCustomizeColorLine;
     public customizeEyesLine: HomeMenuCustomizeColorLine;
     public customizeBeakLine: HomeMenuCustomizeColorLine;
@@ -139,6 +140,8 @@ class HomeMenuPlate extends BABYLON.Mesh {
         skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
         skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
         skybox.material = skyboxMaterial;
+
+        this.nameInput = document.querySelector("#player-name");
 
         this.customizeHeadLine = new HomeMenuCustomizeColorLine(0, document.querySelector("#dodo-customize-head"), this);
         this.customizeHeadLine.maxValue = DodoColors.length;
@@ -179,6 +182,7 @@ class HomeMenuPlate extends BABYLON.Mesh {
     }
 
     public initialize(): void {
+        this.nameInput.value = this.playerDodo.name;
         this.customizeHeadLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color1));
         this.customizeEyesLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.EyeColor));
         this.customizeBeakLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color2));
@@ -186,28 +190,40 @@ class HomeMenuPlate extends BABYLON.Mesh {
         this.customizeHatLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.HatIndex));
         this.customizeHatColorLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.HatColor));
 
+        this.nameInput.oninput = (ev) => {
+            this.nameInput.value = this.nameInput.value.toLocaleUpperCase();
+            this.playerDodo.name = this.nameInput.value;
+            SavePlayerToLocalStorage(this.game);
+        }
+
         this.customizeHeadLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.Color1);
+            SavePlayerToLocalStorage(this.game);
         }
 
         this.customizeEyesLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.EyeColor);
+            SavePlayerToLocalStorage(this.game);
         }
 
         this.customizeBeakLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.Color2);
+            SavePlayerToLocalStorage(this.game);
         }
         
         this.customizeBodyLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.Color0);
+            SavePlayerToLocalStorage(this.game);
         }
         
         this.customizeHatLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.HatIndex);
+            SavePlayerToLocalStorage(this.game);
         }
         
         this.customizeHatColorLine.onValueChanged = (v) => {
             this.playerDodo.setStyleValue(v, StyleValueTypes.HatColor);
+            SavePlayerToLocalStorage(this.game);
         }
     }
 }

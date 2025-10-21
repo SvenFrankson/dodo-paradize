@@ -2,6 +2,7 @@
 
 interface IDodoProp {
     speed?: number;
+    role?: string;
     stepDuration?: number;
     bounty?: number;
     hasWings?: boolean;
@@ -166,6 +167,7 @@ class Dodo extends Creature {
     public get isPlayerControlled(): boolean {
         return this === this.game.playerDodo;
     }
+    public role: string = "";
     public stepDuration: number = 0.2;
     public colors: BABYLON.Color3[] = [];
     public eyeColor: number = 0;
@@ -223,6 +225,7 @@ class Dodo extends Creature {
         return mesh;
     }
     public eyeMaterial: BABYLON.StandardMaterial;
+    public nameTag: BABYLON.Mesh;
 
     private _tmpForwardAxis: BABYLON.Vector3 = BABYLON.Vector3.Forward();
     public get r(): number {
@@ -256,6 +259,9 @@ class Dodo extends Creature {
             }
             if (prop.style) {
                 this.setStyle(prop.style);
+            }
+            if (prop.role) {
+                this.role = prop.role;
             }
         }
 
@@ -326,6 +332,13 @@ class Dodo extends Creature {
         this.dodoInteractCollider.position.copyFromFloats(0, 0.2, 0.1);
         BABYLON.CreateBoxVertexData({ width: 0.6, height: 1, depth: 1 }).applyToMesh(this.dodoInteractCollider);
         this.dodoInteractCollider.visibility = 0;
+
+        this.nameTag = Mummu.CreateQuad("name-tag", {
+            width: 1,
+            height: 0.25
+        });
+
+        this.setName(this.name);
 
         /*
         this.topEyelids = [
@@ -443,6 +456,40 @@ class Dodo extends Creature {
         }
     }
 
+    public setName(name: string): void {
+        this.name = name;
+        if (this.nameTag) {
+            let material = new BABYLON.StandardMaterial("name-tag-material");
+            material.emissiveColor.copyFromFloats(1, 1, 1);
+            material.useAlphaFromDiffuseTexture = true;
+            
+            let s = 512;
+            let texture = new BABYLON.DynamicTexture("name-tag-texture", { width: s, height: s / 4 },this.game.scene);
+            texture.hasAlpha = true;
+
+            let context = texture.getContext();
+            context.fillStyle = "#00000000";
+            context.fillRect(0, 0, s, s / 4);
+            context.font = (s / 10).toFixed(0) + "px Roboto";
+            context.fillStyle = "#ffffffff";
+            context.strokeStyle = "#000000ff";
+            context.lineWidth = s / 128;
+            let l = context.measureText(this.name);
+            context.strokeText(this.name, s / 2 - l.width * 0.5, s / 8);
+            context.fillText(this.name, s / 2 - l.width * 0.5, s / 8);
+            
+            context.font = (s / 12).toFixed(0) + "px Roboto";
+            let l2 = context.measureText(this.role);
+            context.strokeText(this.role, s / 2 - l2.width * 0.5, s / 4 - s / 32);
+            context.fillText(this.role, s / 2 - l2.width * 0.5, s / 4 - s / 32);
+            
+            texture.update();
+            material.diffuseTexture = texture;
+
+            this.nameTag.material = material;
+        }
+    }
+
     private _instantiated: boolean = false;
     public async instantiate(): Promise<void> {
         this.material = this.game.defaultToonMaterial;
@@ -450,6 +497,10 @@ class Dodo extends Creature {
         this.body.material = this.material;
         this.head.material = this.material;
         this.jaw.material = this.material;
+
+        if (this.eyeMaterial) {
+            this.eyeMaterial.dispose(true, true);
+        }
 
         this.eyeMaterial = new BABYLON.StandardMaterial("eye-material");
         this.eyeMaterial.specularColor.copyFromFloats(0, 0, 0);
@@ -1043,6 +1094,18 @@ class Dodo extends Creature {
         */
         this.feet[0].update(dt);
         this.feet[1].update(dt);
+
+        if (!this.isPlayerControlled) {
+            this.nameTag.position.copyFrom(this.position);
+            this.nameTag.position.y = Math.min(this.feet[0].position.y, this.feet[1].position.y);
+            this.nameTag.position.y += 1.8;
+            let cam = this.game.camera;
+            let dir = this.nameTag.position.subtract(cam.position);
+            let dist = dir.length();
+            this.nameTag.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
+            let size = Nabu.MinMax(dist / 20, 0, 1) * 2 + 1;
+            this.nameTag.scaling.copyFromFloats(size, size, size);
+        }
 
         if (this.needUpdateCurrentConstruction()) {
             this.updateCurrentConstruction();
