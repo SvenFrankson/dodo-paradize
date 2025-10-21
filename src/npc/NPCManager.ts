@@ -16,13 +16,13 @@ class NPCManager {
         
         this.brickMerchant = new Dodo("brick-merchant", "AGOSTINHO TIMON", this.game, { style: "232507230115", role: "Brick Merchant" });
         this.brickMerchant.brain = new Brain(this.brickMerchant, BrainMode.Idle);
-        (this.brickMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(6.66, 0.53, 1.37);
+        (this.brickMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(7.21, 0.53, 3.78);
         (this.brickMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionRadius = 0.5;
         this.brickMerchant.brain.initialize();
         
         this.welcomeDodo = new Dodo("welcome-dodo", "SVEN", this.game, { style: "1511280e0309", role: "New Player Orientation" });
         this.welcomeDodo.brain = new Brain(this.welcomeDodo, BrainMode.Idle);
-        (this.welcomeDodo.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(0, 1, 0);
+        (this.welcomeDodo.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(1.85, 0, 14.31);
         this.welcomeDodo.brain.initialize();
     }
 

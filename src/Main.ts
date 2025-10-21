@@ -553,13 +553,13 @@ class Game {
 
             let playerBrain = (this.playerDodo.brain.subBrains[BrainMode.Player] as BrainPlayer);
 
-            let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1x1", 0);
+            let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
             playerBrain.playerActionManager.linkAction(action, 1);
 
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick-corner-curved_3x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("tile_4x4", InventoryCategory.Brick, this));
             

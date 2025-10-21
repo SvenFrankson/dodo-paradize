@@ -317,7 +317,7 @@ class DevMode {
     }
     initialize() {
         if (location.host.startsWith("127.0.0.1")) {
-            //this.activated = true;
+            this.activated = true;
         }
     }
 }
@@ -1055,12 +1055,12 @@ class Game {
             this.playerDodo.unfold();
             this.networkManager.initialize();
             let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
-            let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1x1", 0);
+            let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
             playerBrain.playerActionManager.linkAction(action, 1);
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));
+            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("brick-corner-curved_3x1", InventoryCategory.Brick, this));
             playerBrain.inventory.addItem(new PlayerInventoryItem("tile_4x4", InventoryCategory.Brick, this));
             this.npcManager.instantiate();
@@ -4697,79 +4697,39 @@ var BRICK_LIST = [
     { name: "tile_2x1", stackable: false },
     { name: "tile_3x1", stackable: false },
     { name: "tile_4x1", stackable: false },
-    { name: "tile_5x1", stackable: false },
     { name: "tile_6x1", stackable: false },
-    { name: "tile_7x1", stackable: false },
     { name: "tile_8x1", stackable: false },
-    { name: "tile_9x1", stackable: false },
     { name: "tile_10x1", stackable: false },
-    { name: "tile_11x1", stackable: false },
-    { name: "tile_12x1", stackable: false },
-    { name: "tile_13x1", stackable: false },
-    { name: "tile_14x1", stackable: false },
-    { name: "tile_15x1", stackable: false },
     { name: "tile_16x1", stackable: false },
     { name: "tile_2x2", stackable: false },
     { name: "tile_3x2", stackable: false },
     { name: "tile_4x2", stackable: false },
-    { name: "tile_5x2", stackable: false },
     { name: "tile_6x2", stackable: false },
-    { name: "tile_7x2", stackable: false },
     { name: "tile_8x2", stackable: false },
-    { name: "tile_9x2", stackable: false },
     { name: "tile_10x2", stackable: false },
-    { name: "tile_11x2", stackable: false },
-    { name: "tile_12x2", stackable: false },
-    { name: "tile_13x2", stackable: false },
-    { name: "tile_14x2", stackable: false },
-    { name: "tile_15x2", stackable: false },
     { name: "tile_16x2", stackable: false },
     { name: "tile_3x3", stackable: false },
     { name: "tile_4x4", stackable: false },
-    { name: "tile_5x5", stackable: false },
     { name: "tile_6x6", stackable: false },
-    { name: "tile_7x7", stackable: false },
     { name: "tile_8x8", stackable: false },
-    { name: "tile_9x9", stackable: false },
     { name: "tile_10x10", stackable: false },
-    { name: "tile_11x11", stackable: false },
-    { name: "tile_12x12", stackable: false },
-    { name: "tile_13x13", stackable: false },
-    { name: "tile_14x14", stackable: false },
-    { name: "tile_15x15", stackable: false },
     { name: "tile_16x16", stackable: false },
-    { name: "brick_1x1x1", stackable: true },
-    { name: "brick_2x1x1", stackable: true },
-    { name: "brick_3x1x1", stackable: true },
-    { name: "brick_4x1x1", stackable: true },
-    { name: "brick_5x1x1", stackable: true },
-    { name: "brick_6x1x1", stackable: true },
-    { name: "brick_7x1x1", stackable: true },
-    { name: "brick_8x1x1", stackable: true },
-    { name: "brick_9x1x1", stackable: true },
-    { name: "brick_10x1x1", stackable: true },
-    { name: "brick_11x1x1", stackable: true },
-    { name: "brick_12x1x1", stackable: true },
-    { name: "brick_13x1x1", stackable: true },
-    { name: "brick_14x1x1", stackable: true },
-    { name: "brick_15x1x1", stackable: true },
-    { name: "brick_16x1x1", stackable: true },
+    { name: "brick_1x1", stackable: true },
+    { name: "brick_2x1", stackable: true },
+    { name: "brick_3x1", stackable: true },
+    { name: "brick_4x1", stackable: true },
+    { name: "brick_6x1", stackable: true },
+    { name: "brick_8x1", stackable: true },
+    { name: "brick_10x1", stackable: true },
+    { name: "brick_16x1", stackable: true },
     { name: "brick-corner-round_1x1", stackable: false },
     { name: "brick-round_1x1", stackable: false },
     { name: "brick-round_2x1", stackable: false },
     { name: "brick-round_3x1", stackable: false },
     { name: "brick-round_4x1", stackable: false },
-    { name: "brick-round_5x1", stackable: false },
     { name: "brick-round_6x1", stackable: false },
-    { name: "brick-round_7x1", stackable: false },
     { name: "brick-round_8x1", stackable: false },
-    { name: "brick-round_9x1", stackable: false },
     { name: "brick-round_10x1", stackable: false },
-    { name: "brick-round_11x1", stackable: false },
-    { name: "brick-round_12x1", stackable: false },
-    { name: "brick-round_13x1", stackable: false },
-    { name: "brick-round_14x1", stackable: false },
-    { name: "brick-round_15x1", stackable: false },
     { name: "brick-round_16x1", stackable: false },
     { name: "tile-corner-curved_2x1", stackable: false },
     { name: "tile-corner-curved_3x1", stackable: false },
@@ -4822,7 +4782,15 @@ var BRICK_LIST = [
     { name: "brick-quarter_5x5", stackable: false },
     { name: "brick-quarter_6x6", stackable: false },
     { name: "brick-quarter_7x7", stackable: false },
-    { name: "brick-quarter_8x8", stackable: false }
+    { name: "brick-quarter_8x8", stackable: false },
+    { name: "wall_1x1", stackable: true },
+    { name: "wall_2x1", stackable: true },
+    { name: "wall_3x1", stackable: true },
+    { name: "wall_4x1", stackable: true },
+    { name: "wall_6x1", stackable: true },
+    { name: "wall_8x1", stackable: true },
+    { name: "wall_10x1", stackable: true },
+    { name: "wall_16x1", stackable: true }
 ];
 class BrickTemplateManager {
     constructor(vertexDataLoader) {
@@ -4860,8 +4828,7 @@ class BrickTemplate {
         if (this.name.startsWith("brick_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
             let w = parseInt(this.name.split("_")[1].split("x")[1]);
-            let h = parseInt(this.name.split("_")[1].split("x")[2]);
-            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 3 * h, w, lod);
+            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 3, w, lod);
         }
         else if (this.name.startsWith("plate-corner-cut_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
@@ -4875,7 +4842,7 @@ class BrickTemplate {
         else if (this.name.startsWith("wall_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
             let w = parseInt(this.name.split("_")[1].split("x")[1]);
-            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 12, w, lod);
+            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 15, w, lod);
         }
         else if (this.name.startsWith("plate_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
@@ -7903,12 +7870,12 @@ class NPCManager {
         this.landServant.brain.initialize();
         this.brickMerchant = new Dodo("brick-merchant", "AGOSTINHO TIMON", this.game, { style: "232507230115", role: "Brick Merchant" });
         this.brickMerchant.brain = new Brain(this.brickMerchant, BrainMode.Idle);
-        this.brickMerchant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(6.66, 0.53, 1.37);
+        this.brickMerchant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(7.21, 0.53, 3.78);
         this.brickMerchant.brain.subBrains[BrainMode.Idle].positionRadius = 0.5;
         this.brickMerchant.brain.initialize();
         this.welcomeDodo = new Dodo("welcome-dodo", "SVEN", this.game, { style: "1511280e0309", role: "New Player Orientation" });
         this.welcomeDodo.brain = new Brain(this.welcomeDodo, BrainMode.Idle);
-        this.welcomeDodo.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(0, 1, 0);
+        this.welcomeDodo.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.85, 0, 14.31);
         this.welcomeDodo.brain.initialize();
     }
     async instantiate() {

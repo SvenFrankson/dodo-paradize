@@ -12,7 +12,7 @@ class DevMode {
 
     public initialize(): void {
         if (location.host.startsWith("127.0.0.1")) {
-            //this.activated = true;
+            this.activated = true;
         }
     }
 }
