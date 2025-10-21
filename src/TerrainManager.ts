@@ -64,25 +64,25 @@ class TerrainManager {
     public refreshChunckTaskList(): void {
         let position = this.game.camera.globalPosition.clone();
         position.y = 0;
-        let iCenter = Math.floor(position.x / this.terrain.chunckSize_m);
-        let jCenter = Math.floor(position.z / this.terrain.chunckSize_m);
+        let iCenter = Math.floor(position.x / Chunck.SIZE_m);
+        let jCenter = Math.floor(position.z / Chunck.SIZE_m);
 
         for (let i = iCenter - 4; i <= iCenter + 4; i++) {
             for (let j = jCenter - 4; j <= jCenter + 4; j++) {
-                let cx = (i + 0.5) * this.terrain.chunckSize_m;
-                let cz = (j + 0.5) * this.terrain.chunckSize_m;
+                let cx = (i + 0.5) * Chunck.SIZE_m;
+                let cz = (j + 0.5) * Chunck.SIZE_m;
                 let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
-                if (d < this.range * this.terrain.chunckSize_m) {
+                if (d < this.range * Chunck.SIZE_m) {
                     this.addCreateChunckTask(i, j);
                 }
             }
         }
 
         this.terrain.chuncks.forEach(chunck => {
-            let cx = (chunck.i + 0.5) * this.terrain.chunckSize_m;
-            let cz = (chunck.j + 0.5) * this.terrain.chunckSize_m;
+            let cx = (chunck.i + 0.5) * Chunck.SIZE_m;
+            let cz = (chunck.j + 0.5) * Chunck.SIZE_m;
             let d = BABYLON.Vector3.Distance(new BABYLON.Vector3(cx, 0, cz), position);
-            if (d > (this.range + 1) * this.terrain.chunckSize_m) {
+            if (d > (this.range + 1) * Chunck.SIZE_m) {
                 this.addDisposeChunckTask(chunck.i, chunck.j);
             }
         })
@@ -163,10 +163,10 @@ class TerrainManager {
         this._lock = true;
 
         let position = this.game.camera.globalPosition;
-        if (Math.abs(position.x - this._lastRefreshChunckPosition.x) > this.terrain.chunckSize_m * 0.25 || Math.abs(position.z - this._lastRefreshChunckPosition.z) > this.terrain.chunckSize_m * 0.25) {
+        if (Math.abs(position.x - this._lastRefreshChunckPosition.x) > Chunck.SIZE_m * 0.25 || Math.abs(position.z - this._lastRefreshChunckPosition.z) > Chunck.SIZE_m * 0.25) {
             this.refreshChunckTaskList();
         }
-        if (Math.abs(position.x - this._lastRefreshConstructionPosition.x) > this.terrain.chunckSize_m * 0.25 || Math.abs(position.z - this._lastRefreshConstructionPosition.z) > this.terrain.chunckSize_m * 0.25) {
+        if (Math.abs(position.x - this._lastRefreshConstructionPosition.x) > Chunck.SIZE_m * 0.25 || Math.abs(position.z - this._lastRefreshConstructionPosition.z) > Chunck.SIZE_m * 0.25) {
             this.refreshConstructionTaskList();
         }
 

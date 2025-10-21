@@ -1,3 +1,4 @@
+var TILES_PER_CHUNCK: number = 64;
 var BRICKS_PER_CONSTRUCTION: number = 32;
 var MAX_STACK: number = 6;
 

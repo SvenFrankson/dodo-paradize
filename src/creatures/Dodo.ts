@@ -1125,6 +1125,10 @@ class Dodo extends Creature {
         if (this.needUpdateCurrentConstruction()) {
             this.updateCurrentConstruction();
         }
+
+        if (this.needUpdateCurrentChunck()) {
+            this.updateCurrentChunck();
+        }
     }
 
     private _constructionRange: { di0: number, di1: number, dj0: number, dj1: number } = { di0: 0, di1: 0, dj0: 0, dj1: 0 }
@@ -1194,6 +1198,75 @@ class Dodo extends Creature {
             }
         }
         this.currentConstructions[1][1] = this.game.terrainManager.getConstruction(iConstruction, jConstruction);
+    }
+
+    private _chunckRange: { di0: number, di1: number, dj0: number, dj1: number } = { di0: 0, di1: 0, dj0: 0, dj1: 0 }
+    public updateChunckDIDJRange(): void {
+        this._chunckRange.di0 = 0;
+        this._chunckRange.di1 = 0;
+        this._chunckRange.dj0 = 0;
+        this._chunckRange.dj1 = 0;
+
+        let center = this.currentChuncks[1][1];
+        if (center) {
+            let dx = Math.abs(this.position.x - center.position.x);
+            if (dx < Construction.SIZE_m * 0.1) {
+                this._chunckRange.di0--;
+            }
+            if (dx > Construction.SIZE_m * 0.9) {
+                this._chunckRange.di1++;
+            }
+
+            let dz = Math.abs(this.position.z - center.position.z);
+            if (dz < Construction.SIZE_m * 0.15) {
+                this._chunckRange.dj0--;
+            }
+            if (dz > Construction.SIZE_m * 0.85) {
+                this._chunckRange.dj1++;
+            }
+        }
+    }
+
+    public needUpdateCurrentChunck(): boolean {
+        let center = this.currentChuncks[1][1];
+        if (!center) {
+            return true;
+        }
+
+        let dx = Math.abs(this.position.x - center.barycenter.x);
+        let dz = Math.abs(this.position.z - center.barycenter.z);
+
+        if (dx > Chunck.SIZE_m * 0.5 * 1.1) {
+            return true;
+        }
+        if (dz > Chunck.SIZE_m * 0.5 * 1.1) {
+            return true;
+        }
+    }
+
+    public getCurrentChunck(di: number, dj: number): Chunck {
+        if (!this.currentChuncks[1 + di][1 + dj]) {
+            let center = this.currentChuncks[1][1];
+            if (!center) {
+                this.updateCurrentChunck();
+                center = this.currentChuncks[1][1];
+            }
+            if (center) {
+                this.currentChuncks[1 + di][1 + dj] = this.game.terrain.getChunck(center.i + di, center.j + dj);
+            }
+        }
+        return this.currentChuncks[1 + di][1 + dj];
+    }
+
+    public updateCurrentChunck(): void {
+        let iChunck = Math.floor(this.position.x / Chunck.SIZE_m);
+        let jChunck = Math.floor(this.position.z / Chunck.SIZE_m);
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                this.currentChuncks[i][j] = undefined;
+            }
+        }
+        this.currentChuncks[1][1] = this.game.terrain.getChunck(iChunck, jChunck);
     }
 
     public async eyeBlink(eyeIndex: number = -1): Promise<void> {

@@ -545,8 +545,8 @@ class Game {
 
             }
             else {
-                this.playerDodo.setWorldPosition(new BABYLON.Vector3(this.terrain.chunckSize_m * 0.5, 10, this.terrain.chunckSize_m * 0.5));
-                this.playerDodo.r = 0;
+                this.playerDodo.setWorldPosition(new BABYLON.Vector3(8.23, 0.937, 14.25));
+                this.playerDodo.r = - Math.PI * 0.5;
             }
             this.playerDodo.unfold();
             this.networkManager.initialize();
