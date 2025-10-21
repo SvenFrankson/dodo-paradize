@@ -164,6 +164,7 @@ class DodoInteractCollider extends BABYLON.Mesh {
 class Dodo extends Creature {
 
     public peerId: string = null;
+    public conn: Peer.DataConnection;
     public gameId: number = -1;
     public get isPlayerControlled(): boolean {
         return this === this.game.playerDodo;
@@ -660,6 +661,19 @@ class Dodo extends Creature {
         this.body.dispose();
         this.head.dispose();
         this.neck.dispose();
+
+        if (this.nameTag) {
+            this.nameTag.dispose();
+        }
+
+        let networkDodoIndex = this.game.networkDodos.indexOf(this);
+        if (networkDodoIndex != - 1) {
+            this.game.networkDodos.splice(networkDodoIndex, 1);
+        }
+        let npcDodoIndex = this.game.npcDodos.indexOf(this);
+        if (npcDodoIndex != - 1) {
+            this.game.npcDodos.splice(npcDodoIndex, 1);
+        }
         //this.tailEnd.dispose();
     }
 

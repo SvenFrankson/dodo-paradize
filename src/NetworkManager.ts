@@ -11,6 +11,9 @@ class NetworkManager {
     public claimedConstructionI: number;
     public claimedConstructionJ: number;
 
+    public connectedToTiaratumServer: boolean = false;
+    public connectedToPeerJSServer: boolean = false;
+
     constructor(public game: Game) {
         ScreenLoger.Log("Create NetworkManager");
         if (window.localStorage.getItem("token")) {
@@ -31,7 +34,7 @@ class NetworkManager {
         this.peer.on("open", this.onPeerOpen.bind(this));
         this.peer.on("error", this.onPeerError.bind(this));
         this.peer.on("connection", this.onPeerConnection.bind(this))
-        this.peer.on("disconnected", () => { console.log("disconnected"); });
+        this.peer.on("disconnected", this.onPeerDisconnection.bind(this));
         this.peer.on("call", () => { console.log("call"); });
     }
 
@@ -66,6 +69,7 @@ class NetworkManager {
             let responseJSON = JSON.parse(responseText);
             this.token = responseJSON.token;
             
+            this.connectedToTiaratumServer = true;
             window.localStorage.setItem("token", this.token);
             
             this.game.playerDodo.gameId = responseJSON.gameId;
@@ -84,6 +88,7 @@ class NetworkManager {
     public async onPeerOpen(id: string): Promise<void> {
         ScreenLoger.Log("Open peer connection, my ID is " + id);
         this.game.playerDodo.peerId = id;
+        this.connectedToPeerJSServer = true;
 
         await this.connectToTiaratumServer();
 
@@ -138,6 +143,7 @@ class NetworkManager {
             existingDodo = await this.createDodo(name, conn.peer, style);
             this.game.networkDodos.push(existingDodo);
         }
+        existingDodo.conn = conn;
 
         conn.on(
             'data',
@@ -147,19 +153,10 @@ class NetworkManager {
         );
 
         conn.send(JSON.stringify({ name: this.game.playerDodo.name, style: this.game.playerDodo.style }));
-        
-        setInterval(() => {
-            conn.send(JSON.stringify({
-                dodoId: this.game.playerDodo.peerId,
-                x: this.game.playerDodo.position.x,
-                y: this.game.playerDodo.position.y,
-                z: this.game.playerDodo.position.z,
-                tx: this.game.playerDodo.targetLook.x,
-                ty: this.game.playerDodo.targetLook.y,
-                tz: this.game.playerDodo.targetLook.z,
-                r: this.game.playerDodo.r
-            }));
-        }, 100);
+    }
+
+    public async onPeerDisconnection(data: any): Promise<void> {
+        console.log(data);
     }
 
     public onConnData(dataString: any, conn: Peer.DataConnection): void {
@@ -249,5 +246,64 @@ class NetworkManager {
         this.game.networkManager.claimedConstructionJ = null;
         SavePlayerToLocalStorage(this.game);
         return undefined;
+    }
+
+    private _updateServerPlayerListCD: number = 0;
+    private _updatePositionToPeersCD: number = 0;
+    private _checkDisconnectedCD: number = 0;
+    public update(dt: number): void {
+        if (this.connectedToTiaratumServer) {
+            this._updateServerPlayerListCD -= dt;
+            if (this._updateServerPlayerListCD < 0) {
+                this._updateServerPlayerListCD = 30;
+                this.updateServerPlayersList();
+            }
+        }
+
+        if (this.connectedToPeerJSServer) {
+            this._updatePositionToPeersCD -= dt;
+            if (this._updatePositionToPeersCD < 0) {
+                this._updateServerPlayerListCD = 0.2;
+                let brainNetworkData = JSON.stringify({
+                    dodoId: this.game.playerDodo.peerId,
+                    x: this.game.playerDodo.position.x,
+                    y: this.game.playerDodo.position.y,
+                    z: this.game.playerDodo.position.z,
+                    tx: this.game.playerDodo.targetLook.x,
+                    ty: this.game.playerDodo.targetLook.y,
+                    tz: this.game.playerDodo.targetLook.z,
+                    r: this.game.playerDodo.r
+                })
+                for (let i = 0; i < this.game.networkDodos.length; i++) {
+                    let networkDodo = this.game.networkDodos[i];
+                    if (networkDodo.conn) {
+                        networkDodo.conn.send(brainNetworkData);
+                    }
+                }
+            }
+            
+            this._checkDisconnectedCD -= dt;
+            if (this._checkDisconnectedCD < 0) {
+                this._checkDisconnectedCD = 10;
+                let t = performance.now();
+                this.receivedData.forEach((brainNetworkData, id) => {
+                    if (brainNetworkData) {
+                        let lastData = brainNetworkData[0];
+                        if (lastData) {
+                            let dt = t - lastData.timestamp;
+                            if (dt > 10000) {
+                                let dodo = this.game.networkDodos.find(dodo => {
+                                    return dodo.peerId === lastData.dodoId;
+                                })
+                                if (dodo) {
+                                    dodo.dispose();
+                                }
+                                this.receivedData.delete(id);
+                            }
+                        }
+                    }
+                })
+            }
+        }
     }
 }

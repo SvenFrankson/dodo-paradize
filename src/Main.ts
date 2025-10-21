@@ -626,6 +626,8 @@ class Game {
             })
             this.camera.onUpdate(rawDT);
 
+            this.networkManager.update(rawDT);
+
             let camPos = this.camera.position.clone();
             let camRotation = this.camera.rotation.clone();
             if (HasLocalStorage) {
