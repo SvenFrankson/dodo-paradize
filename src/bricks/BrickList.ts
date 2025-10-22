@@ -112,5 +112,6 @@ var BRICK_LIST = [
 
     { name: "text_8_DODOPOLIS", stackable: true },
     { name: "text_10_BRICKS & BLOCKS", stackable: true },
-    { name: "text_10_PAINT & PIGMENTS", stackable: true }
+    { name: "text_10_PAINT & PIGMENTS", stackable: true },
+    { name: "text_8_PLAYGROUND", stackable: true },
 ]

@@ -3,7 +3,8 @@ interface IConstructionData {
     i: number,
     j: number,
     content: string,
-    token?: string
+    token?: string,
+    reserved?: number
 }
 
 class ConstructionMesh extends BABYLON.Mesh {
@@ -59,6 +60,8 @@ class Construction extends BABYLON.Mesh {
 
     public isMeshUpdated: boolean = false;
 
+    public reserved: number = -1;
+
     public get game(): Game {
         return this.terrain.game;
     }
@@ -72,7 +75,7 @@ class Construction extends BABYLON.Mesh {
     }
 
     public isPlayerAllowedToEdit(): boolean {
-        return this.terrain.game.devMode.activated || (this.i === this.terrain.game.networkManager.claimedConstructionI && this.j === this.terrain.game.networkManager.claimedConstructionJ);
+        return this.terrain.game.devMode.activated || this.reserved === 2 || (this.i === this.terrain.game.networkManager.claimedConstructionI && this.j === this.terrain.game.networkManager.claimedConstructionJ);
     }
 
     public static worldPosToIJ(pos: BABYLON.Vector3): { i: number, j: number} {
@@ -188,6 +191,9 @@ class Construction extends BABYLON.Mesh {
         if (this.limits) {
             this.limits.dispose();
         }
+        if (!this.game.devMode.activated && !this.isPlayerAllowedToEdit()) {
+            return;
+        }
 
         let min = new BABYLON.Vector3(- BRICK_S * 0.5, 0, - BRICK_S * 0.5);
         let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
@@ -246,6 +252,14 @@ class Construction extends BABYLON.Mesh {
             //points.map(pt => { return pt.clone().addInPlaceFromFloats(0, + 2 * BRICK_H, 0); }),
             points.map(pt => { return pt.clone().addInPlaceFromFloats(0, + 3 * BRICK_H, 0); }),
         ]
+        let color = new BABYLON.Color4(1, 1, 1, 1);
+        if (this.reserved === 1) {
+            color.copyFromFloats(1, 0, 0, 1);
+        }
+        else if (this.reserved === 2) {
+            color.copyFromFloats(1, 1, 0, 1);
+        }
+        let colors = lines.map(line => { return line.map(v => { return color; }); });
 
         //for (let i = 0; i < points.length; i++) {
         //    let pt = points[i];
@@ -255,7 +269,7 @@ class Construction extends BABYLON.Mesh {
         //    ])
         //}
 
-        let border2 = BABYLON.MeshBuilder.CreateLineSystem("border2", { lines: lines });
+        let border2 = BABYLON.MeshBuilder.CreateLineSystem("border2", { lines: lines, colors: colors });
         border2.parent = this.limits;
     }
 
@@ -266,6 +280,10 @@ class Construction extends BABYLON.Mesh {
     }
 
     public async saveToServer(): Promise<void> {
+        if (!this.game.devMode.activated && this.reserved === 2) {
+            return;
+        }
+
         let constructionData = {
             i: this.i,
             j: this.j,
@@ -306,7 +324,10 @@ class Construction extends BABYLON.Mesh {
             let responseText = await response.text();
             if (responseText) {
                 let response = JSON.parse(responseText);
+                console.log(response);
+                this.reserved = response.reserved;
                 this.deserialize(response.content);
+                this.showLimits();
             }
         }
         catch(e) {

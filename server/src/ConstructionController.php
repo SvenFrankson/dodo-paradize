@@ -7,6 +7,7 @@ class ConstructionData {
     public $j;
     public $content;
     public $token;
+    public $reserved;
 
     public function toJSON() {
         return json_encode(get_object_vars($this));
@@ -104,6 +105,7 @@ class ConstructionController {
                 $constructionData->i = intval($row["i"]);
                 $constructionData->j = intval($row["j"]);
                 $constructionData->content = $row["content"];
+                $constructionData->reserved = intval($row["reserved"]);
                 $response['body'] = $constructionData->toJSON();
             }
             else {

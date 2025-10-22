@@ -5,6 +5,7 @@ class NPCManager {
     public paintMerchant: Dodo;
     public welcomeDodo: Dodo;
     public notKingDodo: Dodo;
+    public playgroundHost: Dodo;
 
     constructor(public game: Game) {
         //232a0f200101
@@ -38,6 +39,12 @@ class NPCManager {
         (this.notKingDodo.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(-6.88, 2.14, 14.50);
         (this.notKingDodo.brain.subBrains[BrainMode.Idle] as BrainIdle).positionRadius = 0.3;
         this.notKingDodo.brain.initialize();
+
+        this.playgroundHost = new Dodo("playground-dodo", "FLIP", this.game, { style: "2104231c020b", role: "Playground Host" });
+        this.playgroundHost.brain = new Brain(this.playgroundHost, BrainMode.Idle);
+        (this.playgroundHost.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(1.62, 0.80, -4.80);
+        (this.playgroundHost.brain.subBrains[BrainMode.Idle] as BrainIdle).positionRadius = 0.3;
+        this.playgroundHost.brain.initialize();
     }
 
     public async instantiate(): Promise<void> {
@@ -228,6 +235,22 @@ class NPCManager {
             }),
             new NPCDialogTextLineNextIndex(90, "Ta-dam ! You look fantastic !", 1000),
             new NPCDialogTextLine(1000, "Have a nice day !",
+                new NPCDialogResponse("Thanks, bye !", -1)
+            )
+        ]);
+        
+        await this.playgroundHost.instantiate();
+        this.playgroundHost.unfold();
+        this.playgroundHost.setWorldPosition((this.playgroundHost.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero);
+        this.game.npcDodos.push(this.playgroundHost);
+        this.playgroundHost.brain.npcDialog = new NPCDialog(this.playgroundHost, [
+            new NPCDialogTextLine(0, "Hoy !"),
+            new NPCDialogTextLine(1, "I bet you're wondering what this place is ?"),
+            new NPCDialogTextLine(2, "I'll give you a hint... It's the Playground !"),
+            new NPCDialogTextLine(3, "If you have Bricks and Paint, you can build things in this area."),
+            new NPCDialogTextLine(4, "Please know that this area is offline. None of what you do here can be seen by other Dodos."),
+            new NPCDialogTextLine(5, "And it will not be saved anywhere."),
+            new NPCDialogTextLine(6, "Have a nice day !",
                 new NPCDialogResponse("Thanks, bye !", -1)
             )
         ]);

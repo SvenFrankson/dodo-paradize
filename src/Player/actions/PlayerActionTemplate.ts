@@ -177,23 +177,27 @@ class PlayerActionTemplate {
                 if (hit && hit.pickedPoint) {
                     if (hit.pickedMesh instanceof ConstructionMesh) {
                         let construction = hit.pickedMesh.construction;
-                        let aimedBrick = construction.getBrickForFaceId(hit.faceId);
-                        aimedBrick.colorIndex = paintIndex;
-                        //player.lastUsedPaintIndex = paintIndex;
-                        construction.updateMesh();
-                        
-                        construction.saveToLocalStorage();
-                        construction.saveToServer();
+                        if (construction.isPlayerAllowedToEdit()) {
+                            let aimedBrick = construction.getBrickForFaceId(hit.faceId);
+                            aimedBrick.colorIndex = paintIndex;
+                            //player.lastUsedPaintIndex = paintIndex;
+                            construction.updateMesh();
+                            
+                            construction.saveToLocalStorage();
+                            construction.saveToServer();
+                        }
                     }
                     if (hit.pickedMesh instanceof TextBrickMesh) {
                         let aimedBrick = hit.pickedMesh.brick;
-                        aimedBrick.colorIndex = paintIndex;
                         let construction = aimedBrick.construction;
-                        //player.lastUsedPaintIndex = paintIndex;
-                        construction.updateMesh();
-                        
-                        construction.saveToLocalStorage();
-                        construction.saveToServer();
+                        if (construction.isPlayerAllowedToEdit()) {
+                            aimedBrick.colorIndex = paintIndex;
+                            //player.lastUsedPaintIndex = paintIndex;
+                            construction.updateMesh();
+                            
+                            construction.saveToLocalStorage();
+                            construction.saveToServer();
+                        }
                     }
                 }
             }

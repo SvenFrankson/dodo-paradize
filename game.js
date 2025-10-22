@@ -318,7 +318,7 @@ class DevMode {
     }
     initialize() {
         if (location.host.startsWith("127.0.0.1")) {
-            this.activated = true;
+            //this.activated = true;
         }
     }
 }
@@ -4093,21 +4093,25 @@ class PlayerActionTemplate {
                 if (hit && hit.pickedPoint) {
                     if (hit.pickedMesh instanceof ConstructionMesh) {
                         let construction = hit.pickedMesh.construction;
-                        let aimedBrick = construction.getBrickForFaceId(hit.faceId);
-                        aimedBrick.colorIndex = paintIndex;
-                        //player.lastUsedPaintIndex = paintIndex;
-                        construction.updateMesh();
-                        construction.saveToLocalStorage();
-                        construction.saveToServer();
+                        if (construction.isPlayerAllowedToEdit()) {
+                            let aimedBrick = construction.getBrickForFaceId(hit.faceId);
+                            aimedBrick.colorIndex = paintIndex;
+                            //player.lastUsedPaintIndex = paintIndex;
+                            construction.updateMesh();
+                            construction.saveToLocalStorage();
+                            construction.saveToServer();
+                        }
                     }
                     if (hit.pickedMesh instanceof TextBrickMesh) {
                         let aimedBrick = hit.pickedMesh.brick;
-                        aimedBrick.colorIndex = paintIndex;
                         let construction = aimedBrick.construction;
-                        //player.lastUsedPaintIndex = paintIndex;
-                        construction.updateMesh();
-                        construction.saveToLocalStorage();
-                        construction.saveToServer();
+                        if (construction.isPlayerAllowedToEdit()) {
+                            aimedBrick.colorIndex = paintIndex;
+                            //player.lastUsedPaintIndex = paintIndex;
+                            construction.updateMesh();
+                            construction.saveToLocalStorage();
+                            construction.saveToServer();
+                        }
                     }
                 }
             }
@@ -4500,7 +4504,8 @@ var BRICK_LIST = [
     { name: "wall_16x1", stackable: true },
     { name: "text_8_DODOPOLIS", stackable: true },
     { name: "text_10_BRICKS & BLOCKS", stackable: true },
-    { name: "text_10_PAINT & PIGMENTS", stackable: true }
+    { name: "text_10_PAINT & PIGMENTS", stackable: true },
+    { name: "text_8_PLAYGROUND", stackable: true },
 ];
 class BrickTemplateManager {
     constructor(vertexDataLoader) {
@@ -5099,6 +5104,7 @@ class Construction extends BABYLON.Mesh {
         this.textBrickMeshes = [];
         this.barycenter = BABYLON.Vector3.Zero();
         this.isMeshUpdated = false;
+        this.reserved = -1;
         this.position.copyFromFloats(this.i * Construction.SIZE_m, 0, this.j * Construction.SIZE_m);
         this.barycenter.copyFrom(this.position);
         this.barycenter.x += Construction.SIZE_m * 0.5;
@@ -5108,7 +5114,7 @@ class Construction extends BABYLON.Mesh {
         return this.terrain.game;
     }
     isPlayerAllowedToEdit() {
-        return this.terrain.game.devMode.activated || (this.i === this.terrain.game.networkManager.claimedConstructionI && this.j === this.terrain.game.networkManager.claimedConstructionJ);
+        return this.terrain.game.devMode.activated || this.reserved === 2 || (this.i === this.terrain.game.networkManager.claimedConstructionI && this.j === this.terrain.game.networkManager.claimedConstructionJ);
     }
     static worldPosToIJ(pos) {
         let i = Math.floor((pos.x + BRICK_S * 0.5) / Construction.SIZE_m);
@@ -5208,6 +5214,9 @@ class Construction extends BABYLON.Mesh {
         if (this.limits) {
             this.limits.dispose();
         }
+        if (!this.game.devMode.activated && !this.isPlayerAllowedToEdit()) {
+            return;
+        }
         let min = new BABYLON.Vector3(-BRICK_S * 0.5, 0, -BRICK_S * 0.5);
         let max = min.add(new BABYLON.Vector3(Construction.SIZE_m, 0, Construction.SIZE_m));
         this.limits = BABYLON.MeshBuilder.CreateBox("limits", { width: Construction.SIZE_m, height: 256, depth: Construction.SIZE_m, sideOrientation: BABYLON.Mesh.BACKSIDE });
@@ -5258,6 +5267,14 @@ class Construction extends BABYLON.Mesh {
             //points.map(pt => { return pt.clone().addInPlaceFromFloats(0, + 2 * BRICK_H, 0); }),
             points.map(pt => { return pt.clone().addInPlaceFromFloats(0, +3 * BRICK_H, 0); }),
         ];
+        let color = new BABYLON.Color4(1, 1, 1, 1);
+        if (this.reserved === 1) {
+            color.copyFromFloats(1, 0, 0, 1);
+        }
+        else if (this.reserved === 2) {
+            color.copyFromFloats(1, 1, 0, 1);
+        }
+        let colors = lines.map(line => { return line.map(v => { return color; }); });
         //for (let i = 0; i < points.length; i++) {
         //    let pt = points[i];
         //    lines.push([
@@ -5265,7 +5282,7 @@ class Construction extends BABYLON.Mesh {
         //        pt.clone().addInPlaceFromFloats(0, + 3 * BRICK_H, 0)
         //    ])
         //}
-        let border2 = BABYLON.MeshBuilder.CreateLineSystem("border2", { lines: lines });
+        let border2 = BABYLON.MeshBuilder.CreateLineSystem("border2", { lines: lines, colors: colors });
         border2.parent = this.limits;
     }
     hideLimits() {
@@ -5274,6 +5291,9 @@ class Construction extends BABYLON.Mesh {
         }
     }
     async saveToServer() {
+        if (!this.game.devMode.activated && this.reserved === 2) {
+            return;
+        }
         let constructionData = {
             i: this.i,
             j: this.j,
@@ -5312,7 +5332,10 @@ class Construction extends BABYLON.Mesh {
             let responseText = await response.text();
             if (responseText) {
                 let response = JSON.parse(responseText);
+                console.log(response);
+                this.reserved = response.reserved;
                 this.deserialize(response.content);
+                this.showLimits();
             }
         }
         catch (e) {
@@ -7832,6 +7855,11 @@ class NPCManager {
         this.notKingDodo.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(-6.88, 2.14, 14.50);
         this.notKingDodo.brain.subBrains[BrainMode.Idle].positionRadius = 0.3;
         this.notKingDodo.brain.initialize();
+        this.playgroundHost = new Dodo("playground-dodo", "FLIP", this.game, { style: "2104231c020b", role: "Playground Host" });
+        this.playgroundHost.brain = new Brain(this.playgroundHost, BrainMode.Idle);
+        this.playgroundHost.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.62, 0.80, -4.80);
+        this.playgroundHost.brain.subBrains[BrainMode.Idle].positionRadius = 0.3;
+        this.playgroundHost.brain.initialize();
     }
     async instantiate() {
         await this.landServant.instantiate();
@@ -7979,6 +8007,19 @@ class NPCManager {
             }),
             new NPCDialogTextLineNextIndex(90, "Ta-dam ! You look fantastic !", 1000),
             new NPCDialogTextLine(1000, "Have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
+        ]);
+        await this.playgroundHost.instantiate();
+        this.playgroundHost.unfold();
+        this.playgroundHost.setWorldPosition(this.playgroundHost.brain.subBrains[BrainMode.Idle].positionZero);
+        this.game.npcDodos.push(this.playgroundHost);
+        this.playgroundHost.brain.npcDialog = new NPCDialog(this.playgroundHost, [
+            new NPCDialogTextLine(0, "Hoy !"),
+            new NPCDialogTextLine(1, "I bet you're wondering what this place is ?"),
+            new NPCDialogTextLine(2, "I'll give you a hint... It's the Playground !"),
+            new NPCDialogTextLine(3, "If you have Bricks and Paint, you can build things in this area."),
+            new NPCDialogTextLine(4, "Please know that this area is offline. None of what you do here can be seen by other Dodos."),
+            new NPCDialogTextLine(5, "And it will not be saved anywhere."),
+            new NPCDialogTextLine(6, "Have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
         ]);
     }
 }
