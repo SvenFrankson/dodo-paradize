@@ -236,7 +236,7 @@ class ConstructionController {
         $conn = mysqli_connect($servername, $username, $nopassword, $database);
         $constructionData->token = $conn->real_escape_string($constructionData->token);
 
-        $sql = "SELECT * FROM dodo_constructions WHERE (last_edit > DATE_SUB(NOW(), INTERVAL 60 MINUTE)) AND token='$constructionData->token'";
+        $sql = "SELECT * FROM dodo_constructions WHERE (last_edit > DATE_SUB(NOW(), INTERVAL 180 MINUTE)) AND token='$constructionData->token'";
 
         $response['status_code_header'] = 'HTTP/1.1 200 OK';
         if (!$conn) {
@@ -257,7 +257,7 @@ class ConstructionController {
                 $response['body'] = $existingConstructionData->toJSON();
             }
             else {
-                $sql = "UPDATE dodo_constructions SET token='$constructionData->token', last_edit=NOW() WHERE i=$constructionData->i AND j=$constructionData->j AND (last_edit < DATE_SUB(NOW(), INTERVAL 60 MINUTE)) AND reserved=0";
+                $sql = "UPDATE dodo_constructions SET token='$constructionData->token', last_edit=NOW() WHERE i=$constructionData->i AND j=$constructionData->j AND (last_edit < DATE_SUB(NOW(), INTERVAL 180 MINUTE)) AND reserved=0";
 
                 if ($conn->query($sql) === TRUE && mysqli_affected_rows($conn) > 0 ) {
                     $response['status_code_header'] = 'HTTP/1.1 200 OK';
