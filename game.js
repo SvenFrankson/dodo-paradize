@@ -1057,6 +1057,9 @@ class Game {
             let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
             let action = PlayerActionEditBrick.Create(playerBrain);
             playerBrain.playerActionManager.linkAction(action, 1, true);
+            for (let brickIndex = 0; brickIndex < BRICK_LIST.length; brickIndex++) {
+                this.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this));
+            }
             this.npcManager.instantiate();
         }
     }
@@ -3335,6 +3338,9 @@ class PlayerAction {
         if (mesh instanceof ConstructionMesh) {
             return true;
         }
+        if (mesh instanceof TextBrickMesh) {
+            return true;
+        }
         if (mesh instanceof DodoInteractCollider) {
             return true;
         }
@@ -3801,7 +3807,7 @@ class PlayerActionEditBrick {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof ConstructionMesh;
+                    return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
                 });
                 if (hit.hit && hit.pickedPoint) {
                     if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
@@ -3814,6 +3820,13 @@ class PlayerActionEditBrick {
                                 }
                                 return;
                             }
+                        }
+                        else if (hit.pickedMesh instanceof TextBrickMesh) {
+                            let brick = hit.pickedMesh.brick;
+                            if (brick) {
+                                setAimedObject(brick);
+                            }
+                            return;
                         }
                     }
                 }
@@ -3956,7 +3969,7 @@ class PlayerActionTemplate {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof Chunck || mesh instanceof ConstructionMesh;
+                    return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
                 });
                 if (hit && hit.pickedPoint) {
                     let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
@@ -3987,7 +4000,7 @@ class PlayerActionTemplate {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof Chunck || mesh instanceof ConstructionMesh;
+                    return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
                 });
                 if (hit && hit.pickedPoint) {
                     let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
@@ -4075,13 +4088,22 @@ class PlayerActionTemplate {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof ConstructionMesh;
+                    return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
                 });
                 if (hit && hit.pickedPoint) {
                     if (hit.pickedMesh instanceof ConstructionMesh) {
                         let construction = hit.pickedMesh.construction;
                         let aimedBrick = construction.getBrickForFaceId(hit.faceId);
                         aimedBrick.colorIndex = paintIndex;
+                        //player.lastUsedPaintIndex = paintIndex;
+                        construction.updateMesh();
+                        construction.saveToLocalStorage();
+                        construction.saveToServer();
+                    }
+                    if (hit.pickedMesh instanceof TextBrickMesh) {
+                        let aimedBrick = hit.pickedMesh.brick;
+                        aimedBrick.colorIndex = paintIndex;
+                        let construction = aimedBrick.construction;
                         //player.lastUsedPaintIndex = paintIndex;
                         construction.updateMesh();
                         construction.saveToLocalStorage();
@@ -4129,12 +4151,6 @@ class PlayerActionTemplate {
         return paintAction;
     }
 }
-class ConstructionMesh extends BABYLON.Mesh {
-    constructor(construction) {
-        super("construction-mesh", construction.terrain.game.scene);
-        this.construction = construction;
-    }
-}
 class Brick extends BABYLON.TransformNode {
     constructor(arg1, colorIndex, construction) {
         super("brick");
@@ -4145,6 +4161,9 @@ class Brick extends BABYLON.TransformNode {
             this.construction.bricks.push(this);
             this.parent = this.construction;
         }
+    }
+    get game() {
+        return this.construction.game;
     }
     get brickName() {
         return BRICK_LIST[this.index].name;
@@ -4344,7 +4363,13 @@ class Brick extends BABYLON.TransformNode {
         let posJ = parseInt(data.substring(7, 9), 16) - 64;
         let posK = parseInt(data.substring(9, 11), 16) - 64;
         let r = parseInt(data.substring(11, 12), 16);
-        brick = new Brick(id, colorIndex, construction);
+        let name = Brick.BrickIdToName(id);
+        if (name.startsWith("text_")) {
+            brick = new TextBrick(id, colorIndex, construction);
+        }
+        else {
+            brick = new Brick(id, colorIndex, construction);
+        }
         brick.posI = posI;
         brick.posJ = posJ;
         brick.posK = posK;
@@ -4467,7 +4492,8 @@ var BRICK_LIST = [
     { name: "wall_6x1", stackable: true },
     { name: "wall_8x1", stackable: true },
     { name: "wall_10x1", stackable: true },
-    { name: "wall_16x1", stackable: true }
+    { name: "wall_16x1", stackable: true },
+    { name: "text_9_HELLO WORLD", stackable: true }
 ];
 class BrickTemplateManager {
     constructor(vertexDataLoader) {
@@ -4575,6 +4601,10 @@ class BrickTemplate {
             this.vertexData = (await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/tile-triangle_2x2.babylon"))[0];
             BrickVertexDataGenerator.AddMarginInPlace(this.vertexData);
         }
+        else if (this.name.startsWith("text_")) {
+            let w = parseInt(this.name.split("_")[1]);
+            this.vertexData = BrickVertexDataGenerator.GetTextBrickVertexData(w, 3);
+        }
         else {
             this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(1, 1, 1);
         }
@@ -4637,6 +4667,57 @@ class BrickVertexDataGenerator {
             uvInWorldSpace: true,
             uvSize: UV_S
         });
+        let data = Mummu.MergeVertexDatas(back, right, front, left, top, bottom);
+        BrickVertexDataGenerator.AddMarginInPlace(data);
+        return data;
+    }
+    static GetTextBrickVertexData(width, height) {
+        let xMin = -BRICK_S * 0.5;
+        let yMin = 0;
+        let zMin = BRICK_S * 0.5 - BRICK_H;
+        let xMax = xMin + width * BRICK_S;
+        let yMax = yMin + height * BRICK_H;
+        let zMax = BRICK_S * 0.5;
+        let back = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMin, yMin, zMin),
+            p2: new BABYLON.Vector3(xMax, yMin, zMin),
+            p3: new BABYLON.Vector3(xMax, yMax, zMin),
+            p4: new BABYLON.Vector3(xMin, yMax, zMin)
+        });
+        let right = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMin, zMin),
+            p2: new BABYLON.Vector3(xMax, yMin, zMax),
+            p3: new BABYLON.Vector3(xMax, yMax, zMax),
+            p4: new BABYLON.Vector3(xMax, yMax, zMin)
+        });
+        right.uvs = [0, 0, 0, 0, 0, 0, 0, 0];
+        let front = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMin, zMax),
+            p2: new BABYLON.Vector3(xMin, yMin, zMax),
+            p3: new BABYLON.Vector3(xMin, yMax, zMax),
+            p4: new BABYLON.Vector3(xMax, yMax, zMax)
+        });
+        let left = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMin, yMin, zMax),
+            p2: new BABYLON.Vector3(xMin, yMin, zMin),
+            p3: new BABYLON.Vector3(xMin, yMax, zMin),
+            p4: new BABYLON.Vector3(xMin, yMax, zMax)
+        });
+        left.uvs = [0, 0, 0, 0, 0, 0, 0, 0];
+        let top = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMax, zMin),
+            p2: new BABYLON.Vector3(xMax, yMax, zMax),
+            p3: new BABYLON.Vector3(xMin, yMax, zMax),
+            p4: new BABYLON.Vector3(xMin, yMax, zMin)
+        });
+        top.uvs = [0, 0, 0, 0, 0, 0, 0, 0];
+        let bottom = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMin, zMin),
+            p2: new BABYLON.Vector3(xMin, yMin, zMin),
+            p3: new BABYLON.Vector3(xMin, yMin, zMax),
+            p4: new BABYLON.Vector3(xMax, yMin, zMax)
+        });
+        bottom.uvs = [0, 0, 0, 0, 0, 0, 0, 0];
         let data = Mummu.MergeVertexDatas(back, right, front, left, top, bottom);
         BrickVertexDataGenerator.AddMarginInPlace(data);
         return data;
@@ -4968,6 +5049,37 @@ class BrickVertexDataGenerator {
         }
     }
 }
+class ConstructionMesh extends BABYLON.Mesh {
+    constructor(construction) {
+        super("construction-mesh", construction.terrain.game.scene);
+        this.construction = construction;
+    }
+}
+class TextBrickMesh extends BABYLON.Mesh {
+    constructor(brick) {
+        super("text-brick-mesh");
+        this.brick = brick;
+    }
+    updateMaterial() {
+        let material = new BABYLON.StandardMaterial("name-tag-material");
+        let h = 64;
+        let w = this.brick.w * h / (3 * BRICK_H) * BRICK_S;
+        let texture = new BABYLON.DynamicTexture("name-tag-texture", { width: w, height: h }, this.brick.construction.game.scene);
+        let context = texture.getContext();
+        context.fillStyle = DodoColors[this.brick.colorIndex].hex;
+        context.fillRect(0, 0, w, h);
+        context.font = (h).toFixed(0) + "px Roboto";
+        context.fillStyle = DodoColors[this.brick.colorIndex].textColor;
+        context.strokeStyle = DodoColors[this.brick.colorIndex].textColor;
+        context.lineWidth = h / 32;
+        let l = context.measureText(this.brick.text);
+        context.strokeText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
+        context.fillText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
+        texture.update();
+        material.diffuseTexture = texture;
+        this.material = material;
+    }
+}
 class Construction extends BABYLON.Mesh {
     constructor(i, j, terrain) {
         super("construction_" + i.toFixed(0) + "_" + j.toFixed(0));
@@ -4981,6 +5093,9 @@ class Construction extends BABYLON.Mesh {
         this.barycenter.copyFrom(this.position);
         this.barycenter.x += Construction.SIZE_m * 0.5;
         this.barycenter.z += Construction.SIZE_m * 0.5;
+    }
+    get game() {
+        return this.terrain.game;
     }
     isPlayerAllowedToEdit() {
         return this.terrain.game.devMode.activated || (this.i === this.terrain.game.networkManager.claimedConstructionI && this.j === this.terrain.game.networkManager.claimedConstructionJ);
@@ -5005,18 +5120,36 @@ class Construction extends BABYLON.Mesh {
     async updateMesh() {
         this.isMeshUpdated = false;
         let vDatas = [];
+        let textBrickMeshes = [];
         this.subMeshInfos = [];
         for (let i = 0; i < this.bricks.length; i++) {
-            await this.bricks.get(i).generateMeshVertexData(vDatas, this.subMeshInfos);
+            let brick = this.bricks.get(i);
+            if (brick instanceof TextBrick) {
+                let vData = await brick.generateTextBrickVertexData();
+                let textBrickMesh = new TextBrickMesh(brick);
+                textBrickMesh.updateMaterial();
+                vData.applyToMesh(textBrickMesh);
+                textBrickMeshes.push(textBrickMesh);
+            }
+            else if (brick instanceof Brick) {
+                await brick.generateMeshVertexData(vDatas, this.subMeshInfos);
+            }
         }
-        if (vDatas.length > 0) {
-            let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
+        if (vDatas.length > 0 || textBrickMeshes.length > 0) {
             if (!this.mesh) {
                 this.mesh = new ConstructionMesh(this);
                 this.mesh.parent = this;
                 this.mesh.material = this.terrain.game.defaultToonMaterial;
             }
-            data.applyToMesh(this.mesh);
+            if (vDatas.length > 0) {
+                let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
+                data.applyToMesh(this.mesh);
+            }
+            if (textBrickMeshes.length > 0) {
+                textBrickMeshes.forEach(textBrickMesh => {
+                    textBrickMesh.parent = this.mesh;
+                });
+            }
         }
         else {
             if (this.mesh) {
@@ -5199,6 +5332,45 @@ class Construction extends BABYLON.Mesh {
     }
 }
 Construction.SIZE_m = BRICKS_PER_CONSTRUCTION * BRICK_S;
+class TextBrick extends Brick {
+    constructor(arg1, colorIndex, construction) {
+        super(arg1, colorIndex, construction);
+        this.w = 1;
+        let split = this.brickName.split("_");
+        this.text = split.pop();
+        this.w = parseInt(split.pop());
+    }
+    async generateMeshVertexData(vDatas, subMeshInfos) {
+    }
+    async generateTextBrickVertexData() {
+        let template = await BrickTemplateManager.Instance.getTemplate(this.index);
+        let vData = Mummu.CloneVertexData(template.vertexData);
+        let colors = [];
+        for (let i = 0; i < vData.positions.length / 3; i++) {
+            colors.push(1, 1, 1, 1);
+        }
+        vData.colors = colors;
+        let a = 2 * Math.PI * Math.random();
+        a = 0;
+        let cosa = Math.cos(a);
+        let sina = Math.sin(a);
+        let dU = Math.random();
+        dU = 0;
+        let dV = Math.random();
+        dV = 0;
+        let uvs = vData.uvs;
+        for (let i = 0; i < uvs.length / 2; i++) {
+            let u = uvs[2 * i];
+            let v = uvs[2 * i + 1];
+            uvs[2 * i] = cosa * u - sina * v + dU;
+            uvs[2 * i + 1] = sina * u + cosa * v + dV;
+        }
+        vData.uvs = uvs;
+        Mummu.RotateAngleAxisVertexDataInPlace(vData, this.r * Math.PI * 0.5, BABYLON.Axis.Y);
+        Mummu.TranslateVertexDataInPlace(vData, this.position);
+        return vData;
+    }
+}
 var LifeState;
 (function (LifeState) {
     LifeState[LifeState["Folded"] = 0] = "Folded";

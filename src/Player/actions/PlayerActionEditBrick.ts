@@ -36,7 +36,7 @@ class PlayerActionEditBrick {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof ConstructionMesh;
+                        return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
                     }
                 )
 
@@ -51,6 +51,13 @@ class PlayerActionEditBrick {
                                 }
                                 return;
                             }
+                        }
+                        else if (hit.pickedMesh instanceof TextBrickMesh) {
+                            let brick = hit.pickedMesh.brick;
+                            if (brick) {
+                                setAimedObject(brick);
+                            }
+                            return;
                         }
                     }
                 }

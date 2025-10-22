@@ -29,7 +29,7 @@ class PlayerActionTemplate {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof Chunck || mesh instanceof ConstructionMesh;
+                        return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
                     }
                 )
                 if (hit && hit.pickedPoint) {
@@ -66,7 +66,7 @@ class PlayerActionTemplate {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof Chunck || mesh instanceof ConstructionMesh;
+                        return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
                     }
                 )
                 if (hit && hit.pickedPoint) {
@@ -171,7 +171,7 @@ class PlayerActionTemplate {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof ConstructionMesh;
+                        return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
                     }
                 )
                 if (hit && hit.pickedPoint) {
@@ -179,6 +179,16 @@ class PlayerActionTemplate {
                         let construction = hit.pickedMesh.construction;
                         let aimedBrick = construction.getBrickForFaceId(hit.faceId);
                         aimedBrick.colorIndex = paintIndex;
+                        //player.lastUsedPaintIndex = paintIndex;
+                        construction.updateMesh();
+                        
+                        construction.saveToLocalStorage();
+                        construction.saveToServer();
+                    }
+                    if (hit.pickedMesh instanceof TextBrickMesh) {
+                        let aimedBrick = hit.pickedMesh.brick;
+                        aimedBrick.colorIndex = paintIndex;
+                        let construction = aimedBrick.construction;
                         //player.lastUsedPaintIndex = paintIndex;
                         construction.updateMesh();
                         

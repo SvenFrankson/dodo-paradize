@@ -552,6 +552,10 @@ class Game {
 
             let action = PlayerActionEditBrick.Create(playerBrain);
             playerBrain.playerActionManager.linkAction(action, 1, true);
+
+            for (let brickIndex = 0; brickIndex < BRICK_LIST.length; brickIndex++) {
+                this.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this));
+            }
             
             this.npcManager.instantiate();
         }

@@ -64,6 +64,60 @@ class BrickVertexDataGenerator {
         return data;
     }
 
+    public static GetTextBrickVertexData(width: number, height: number): BABYLON.VertexData {
+        let xMin = -BRICK_S * 0.5;
+        let yMin = 0;
+        let zMin = BRICK_S * 0.5 - BRICK_H;
+        let xMax = xMin + width * BRICK_S;
+        let yMax = yMin + height * BRICK_H;
+        let zMax = BRICK_S * 0.5;
+
+        let back = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMin, yMin, zMin),
+            p2: new BABYLON.Vector3(xMax, yMin, zMin),
+            p3: new BABYLON.Vector3(xMax, yMax, zMin),
+            p4: new BABYLON.Vector3(xMin, yMax, zMin)
+        });
+        let right = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMin, zMin),
+            p2: new BABYLON.Vector3(xMax, yMin, zMax),
+            p3: new BABYLON.Vector3(xMax, yMax, zMax),
+            p4: new BABYLON.Vector3(xMax, yMax, zMin)
+        });
+        right.uvs = [0, 0, 0, 0, 0, 0, 0, 0];
+        let front = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMin, zMax),
+            p2: new BABYLON.Vector3(xMin, yMin, zMax),
+            p3: new BABYLON.Vector3(xMin, yMax, zMax),
+            p4: new BABYLON.Vector3(xMax, yMax, zMax)
+        });
+        let left = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMin, yMin, zMax),
+            p2: new BABYLON.Vector3(xMin, yMin, zMin),
+            p3: new BABYLON.Vector3(xMin, yMax, zMin),
+            p4: new BABYLON.Vector3(xMin, yMax, zMax)
+        });
+        left.uvs = [0, 0, 0, 0, 0, 0, 0, 0];
+        let top = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMax, zMin),
+            p2: new BABYLON.Vector3(xMax, yMax, zMax),
+            p3: new BABYLON.Vector3(xMin, yMax, zMax),
+            p4: new BABYLON.Vector3(xMin, yMax, zMin)
+        });
+        top.uvs = [0, 0, 0, 0, 0, 0, 0, 0];
+        let bottom = Mummu.CreateQuadVertexData({
+            p1: new BABYLON.Vector3(xMax, yMin, zMin),
+            p2: new BABYLON.Vector3(xMin, yMin, zMin),
+            p3: new BABYLON.Vector3(xMin, yMin, zMax),
+            p4: new BABYLON.Vector3(xMax, yMin, zMax)
+        });
+        bottom.uvs = [0, 0, 0, 0, 0, 0, 0, 0];
+
+        let data = Mummu.MergeVertexDatas(back, right, front, left, top, bottom);
+        BrickVertexDataGenerator.AddMarginInPlace(data);
+        return data;
+    }
+
     public static async GetBoxCornerCurvedVertexData(length: number, height: number, width: number, lod: number = 1): Promise<BABYLON.VertexData> {
         let innerR: number = (length - width) * BRICK_S;
         let outterR: number = length * BRICK_S;

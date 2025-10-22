@@ -4,13 +4,6 @@ interface BrickProp {
 
 }
 
-class ConstructionMesh extends BABYLON.Mesh {
-
-    constructor(public construction: Construction) {
-        super("construction-mesh", construction.terrain.game.scene);
-    }
-}
-
 class Brick extends BABYLON.TransformNode {
 
     public static depthColors = [
@@ -31,6 +24,9 @@ class Brick extends BABYLON.TransformNode {
     ]
 
     public construction: Construction;
+    public get game(): Game {
+        return this.construction.game;
+    }
     public index: number;
     public get brickName(): string {
         return BRICK_LIST[this.index].name;
@@ -271,7 +267,13 @@ class Brick extends BABYLON.TransformNode {
         let posK = parseInt(data.substring(9, 11), 16) - 64;
         let r = parseInt(data.substring(11, 12), 16);
 
-        brick = new Brick(id, colorIndex, construction);
+        let name = Brick.BrickIdToName(id);
+        if (name.startsWith("text_")) {
+            brick = new TextBrick(id, colorIndex, construction);
+        }
+        else {
+            brick = new Brick(id, colorIndex, construction);
+        }
         brick.posI = posI;
         brick.posJ = posJ;
         brick.posK = posK;

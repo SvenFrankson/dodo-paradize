@@ -11,6 +11,9 @@ class PlayerAction {
         if (mesh instanceof ConstructionMesh) {
             return true;
         }
+        if (mesh instanceof TextBrickMesh) {
+            return true;
+        }
         if (mesh instanceof DodoInteractCollider) {
             return true;
         }

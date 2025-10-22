@@ -113,6 +113,10 @@ class BrickTemplate {
             this.vertexData = (await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/tile-triangle_2x2.babylon"))[0];
             BrickVertexDataGenerator.AddMarginInPlace(this.vertexData);
         }
+        else if (this.name.startsWith("text_")) {
+            let w = parseInt(this.name.split("_")[1]);
+            this.vertexData = BrickVertexDataGenerator.GetTextBrickVertexData(w, 3);
+        }
         else {
             this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(1, 1, 1);
         }

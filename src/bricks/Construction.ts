@@ -6,6 +6,44 @@ interface IConstructionData {
     token?: string
 }
 
+class ConstructionMesh extends BABYLON.Mesh {
+
+    constructor(public construction: Construction) {
+        super("construction-mesh", construction.terrain.game.scene);
+    }
+}
+
+class TextBrickMesh extends BABYLON.Mesh {
+
+    constructor(public brick: TextBrick) {
+        super("text-brick-mesh");
+    }
+
+    public updateMaterial(): void {
+        let material = new BABYLON.StandardMaterial("name-tag-material");
+        
+        let h = 64;
+        let w = this.brick.w * h / (3 * BRICK_H) * BRICK_S;
+        let texture = new BABYLON.DynamicTexture("name-tag-texture", { width: w, height: h }, this.brick.construction.game.scene);
+
+        let context = texture.getContext();
+        context.fillStyle = DodoColors[this.brick.colorIndex].hex;
+        context.fillRect(0, 0, w, h);
+        context.font = (h).toFixed(0) + "px Roboto";
+        context.fillStyle = DodoColors[this.brick.colorIndex].textColor;
+        context.strokeStyle = DodoColors[this.brick.colorIndex].textColor;
+        context.lineWidth = h / 32;
+        let l = context.measureText(this.brick.text);
+        context.strokeText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
+        context.fillText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
+        
+        texture.update();
+        material.diffuseTexture = texture;
+
+        this.material = material;
+    }
+}
+
 class Construction extends BABYLON.Mesh {
 
     public static SIZE_m: number = BRICKS_PER_CONSTRUCTION * BRICK_S;
@@ -17,6 +55,10 @@ class Construction extends BABYLON.Mesh {
     public barycenter: BABYLON.Vector3 = BABYLON.Vector3.Zero();
 
     public isMeshUpdated: boolean = false;
+
+    public get game(): Game {
+        return this.terrain.game;
+    }
 
     constructor(public i: number, public j: number, public terrain: Terrain) {
         super("construction_" + i.toFixed(0) + "_" + j.toFixed(0));
@@ -54,13 +96,24 @@ class Construction extends BABYLON.Mesh {
 
     public async updateMesh(): Promise<void> {
         this.isMeshUpdated = false;
-        let vDatas: BABYLON.VertexData[] = []
+        let vDatas: BABYLON.VertexData[] = [];
+        let textBrickMeshes: BABYLON.Mesh[] = [];
         this.subMeshInfos = [];
         for (let i = 0; i < this.bricks.length; i++) {
-            await this.bricks.get(i).generateMeshVertexData(vDatas, this.subMeshInfos);
+            let brick = this.bricks.get(i);
+            if (brick instanceof TextBrick) {
+                let vData = await brick.generateTextBrickVertexData();
+                let textBrickMesh = new TextBrickMesh(brick);
+                textBrickMesh.updateMaterial();
+                vData.applyToMesh(textBrickMesh);
+                textBrickMeshes.push(textBrickMesh);
+            }
+            else if (brick instanceof Brick) {
+                await brick.generateMeshVertexData(vDatas, this.subMeshInfos);
+            }
         }
-        if (vDatas.length > 0) {
-            let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
+
+        if (vDatas.length > 0 || textBrickMeshes.length > 0) {
             if (!this.mesh) {
                 this.mesh = new ConstructionMesh(this);
                 this.mesh.parent = this;
@@ -68,7 +121,15 @@ class Construction extends BABYLON.Mesh {
                 this.mesh.material = this.terrain.game.defaultToonMaterial;
             }
             
-            data.applyToMesh(this.mesh);
+            if (vDatas.length > 0) {
+                let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
+                data.applyToMesh(this.mesh);
+            }
+            if (textBrickMeshes.length > 0) {
+                textBrickMeshes.forEach(textBrickMesh => {
+                    textBrickMesh.parent = this.mesh;
+                })
+            }
         }
         else {
             if (this.mesh) {
