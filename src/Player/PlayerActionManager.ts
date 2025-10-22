@@ -154,6 +154,9 @@ class PlayerActionManager {
                         let paintIndex = DodoColors.findIndex(c => { return c.name === paintName; });
                         this.linkAction(PlayerActionTemplate.CreatePaintAction(this.player, paintIndex), i);
                     }
+                    else if (linkedItemName === "edit-brick-action") {
+                        
+                    }
                     else if (linkedItemName) {
                         this.linkAction(await PlayerActionTemplate.CreateBrickAction(this.player, linkedItemName), i);
                     }
