@@ -4,7 +4,7 @@ var ADD_BRICK_ANIMATION_DURATION = 1000;
 
 class PlayerActionTemplate {
 
-    public static async CreateBrickAction(player: BrainPlayer, brickId: number | string, colorIndex?: number, r: number = 0, onlyOnce?: boolean): Promise<PlayerAction> {
+    public static async CreateBrickAction(player: BrainPlayer, brickId: number | string, colorIndex?: number, r: number = 0, thenEditBrick?: boolean): Promise<PlayerAction> {
         let brickIndex = Brick.BrickIdToIndex(brickId);
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
         brickAction.backgroundColor = "#000000";
@@ -87,8 +87,8 @@ class PlayerActionTemplate {
                     }
                 }
             }
-            if (onlyOnce) {                
-                player.currentAction = undefined;
+            if (thenEditBrick) {                
+                player.currentAction = player.playerActionManager.linkedActions[1];
             }
         }
 

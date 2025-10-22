@@ -327,7 +327,7 @@ class Dodo extends Creature {
         this.dodoCollider.parent = this;
         this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight + 0.05, 0);
         BABYLON.CreateSphereVertexData({ diameter: 2 * BRICK_S }).applyToMesh(this.dodoCollider);
-        this.dodoCollider.visibility = 0.5;
+        this.dodoCollider.visibility = 0;
 
         this.dodoInteractCollider = new DodoInteractCollider(this);
         this.dodoInteractCollider.parent = this.body;

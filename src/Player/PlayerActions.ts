@@ -1,4 +1,22 @@
+interface IAimable {
+
+    name: string;
+    highlight: () => void;
+    unlit: () => void;
+}
+
 class PlayerAction {
+
+    public static IsAimable(mesh: BABYLON.AbstractMesh): boolean {
+        if (mesh instanceof ConstructionMesh) {
+            return true;
+        }
+        if (mesh instanceof DodoInteractCollider) {
+            return true;
+        }
+        return false;
+    }
+
     private _iconUrl: string;
     public get iconUrl(): string {
         return this._iconUrl;

@@ -150,7 +150,7 @@ class NPCManager {
             }),
             new NPCDialogTextLine(20, "Do you want to try some of my paint ?",
                 new NPCDialogResponse("Yes, can I have some paint please ?", 50),
-                new NPCDialogResponse("No, I already have what I need.", 100),
+                new NPCDialogResponse("No, I already have what I need.", 1000),
             ),
             new NPCDialogCheckLine(50, async () => {
                 if (paintMerchantCount < 2) {

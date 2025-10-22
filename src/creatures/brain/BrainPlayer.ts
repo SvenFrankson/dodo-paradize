@@ -33,9 +33,6 @@ class BrainPlayer extends SubBrain {
         if (this.game.playerInventoryView.shown) {
             return PlayMode.Inventory;
         }
-        if (this.game.brickMenuView.shown) {
-            return PlayMode.Menu;
-        }
         if (this.game.gameMode === GameMode.Playing) {
             return PlayMode.Playing;
         }
@@ -67,7 +64,7 @@ class BrainPlayer extends SubBrain {
         super(brain);
         
         this.inventory = new PlayerInventory(this);
-        this.defaultAction = PlayerActionDefault.Create(this);
+        this.defaultAction = PlayerActionEmptyHand.Create(this);
         this.playerActionManager = new PlayerActionManager(this, this.game);
     }
 

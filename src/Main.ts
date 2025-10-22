@@ -240,7 +240,6 @@ class Game {
     public networkManager: NetworkManager;
     public homeMenuPlate: HomeMenuPlate;
     public colorPicker: ColorPicker;
-    public brickMenuView: BrickMenuView;
     public playerActionView: PlayerActionView;
     public playerInventoryView: PlayerInventoryView;
     public terrain: Terrain;
@@ -448,8 +447,6 @@ class Game {
         this.colorPicker = document.querySelector("color-picker");
         this.colorPicker.initColorButtons(this);
 
-        this.brickMenuView = document.querySelector("brick-menu") as BrickMenuView;
-
         this.playerInventoryView = document.querySelector("inventory-page") as PlayerInventoryView;
         
         this.playerActionView = new PlayerActionView();
@@ -553,7 +550,7 @@ class Game {
 
             let playerBrain = (this.playerDodo.brain.subBrains[BrainMode.Player] as BrainPlayer);
 
-            let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
+            let action = PlayerActionEditBrick.Create(playerBrain);
             playerBrain.playerActionManager.linkAction(action, 1);
             
             this.npcManager.instantiate();

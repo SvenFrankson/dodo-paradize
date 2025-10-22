@@ -973,7 +973,6 @@ class Game {
         this.networkManager = new NetworkManager(this);
         this.colorPicker = document.querySelector("color-picker");
         this.colorPicker.initColorButtons(this);
-        this.brickMenuView = document.querySelector("brick-menu");
         this.playerInventoryView = document.querySelector("inventory-page");
         this.playerActionView = new PlayerActionView();
         this.homeMenuPlate = new HomeMenuPlate(this);
@@ -1056,7 +1055,7 @@ class Game {
             this.playerDodo.unfold();
             this.networkManager.initialize();
             let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
-            let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
+            let action = PlayerActionEditBrick.Create(playerBrain);
             playerBrain.playerActionManager.linkAction(action, 1);
             this.npcManager.instantiate();
         }
@@ -3073,246 +3072,6 @@ class UserInterfaceInputManager {
         });
     }
 }
-class BrickMenuView extends HTMLElement {
-    constructor() {
-        super(...arguments);
-        this._loaded = false;
-        this._shown = false;
-        this.currentPointers = 0;
-        this._timer = 0;
-    }
-    static get observedAttributes() {
-        return [];
-    }
-    get loaded() {
-        return this._loaded;
-    }
-    waitLoaded() {
-        return new Promise(resolve => {
-            let step = () => {
-                if (this.loaded) {
-                    resolve();
-                }
-                else {
-                    requestAnimationFrame(step);
-                }
-            };
-            step();
-        });
-    }
-    get shown() {
-        return this._shown;
-    }
-    get onLoad() {
-        return this._onLoad;
-    }
-    set onLoad(callback) {
-        this._onLoad = callback;
-        if (this._loaded) {
-            this._onLoad();
-        }
-    }
-    currentPointerUp() {
-        if (this._options.length > 0) {
-            this.setPointer((this.currentPointers - 1 + this._options.length) % this._options.length);
-        }
-    }
-    currentPointerDown() {
-        if (this._options.length > 0) {
-            this.setPointer((this.currentPointers + 1) % this._options.length);
-        }
-    }
-    setPointer(n) {
-        if (this._options[this.currentPointers]) {
-            this._options[this.currentPointers].classList.remove("highlit");
-        }
-        this.currentPointers = n;
-        if (this._options[this.currentPointers]) {
-            this._options[this.currentPointers].classList.add("highlit");
-        }
-    }
-    _makeCategoryBtnStyle(btn) {
-        btn.style.fontSize = "min(2svh, 2vw)";
-        btn.style.display = "block";
-        btn.style.marginRight = "1%";
-        btn.style.paddingTop = "0.5%";
-        btn.style.paddingBottom = "0.5%";
-        btn.style.width = "20%";
-        btn.style.textAlign = "center";
-        btn.style.borderLeft = "2px solid white";
-        btn.style.borderTop = "2px solid white";
-        btn.style.borderRight = "2px solid white";
-        btn.style.borderTopLeftRadius = "10px";
-        btn.style.borderTopRightRadius = "10px";
-    }
-    _makeCategoryBtnActive(btn) {
-        btn.style.borderLeft = "2px solid white";
-        btn.style.borderTop = "2px solid white";
-        btn.style.borderRight = "2px solid white";
-        btn.style.color = "#272b2e";
-        btn.style.backgroundColor = "white";
-        btn.style.fontWeight = "bold";
-    }
-    _makeCategoryBtnInactive(btn) {
-        btn.style.borderLeft = "2px solid #7F7F7F";
-        btn.style.borderTop = "2px solid #7F7F7F";
-        btn.style.borderRight = "2px solid #7F7F7F";
-        btn.style.borderBottom = "";
-        btn.style.color = "#7F7F7F";
-        btn.style.backgroundColor = "";
-        btn.style.fontWeight = "";
-    }
-    connectedCallback() {
-        this.style.display = "none";
-        this.style.opacity = "0";
-        this._title = document.createElement("h1");
-        this._title.classList.add("brick-menu-title");
-        this._title.innerHTML = "BRICK";
-        this.appendChild(this._title);
-        let categoriesContainer;
-        categoriesContainer = document.createElement("div");
-        this.appendChild(categoriesContainer);
-        this._anchorBtn = document.createElement("button");
-        this._anchorBtn.innerHTML = "ANCHOR";
-        categoriesContainer.appendChild(this._anchorBtn);
-        this._anchorBtn.onclick = () => {
-            if (this._brick) {
-                //this._brick.root.anchored = !this._brick.root.anchored;
-            }
-            this.hide(0.1);
-        };
-        this._copyBrickBtn = document.createElement("button");
-        this._copyBrickBtn.innerHTML = "COPY BRICK";
-        categoriesContainer.appendChild(this._copyBrickBtn);
-        this._copyBrickBtn.onclick = async () => {
-            this._player.currentAction = await PlayerActionTemplate.CreateBrickAction(this._player, this._brick.index, this._brick.colorIndex);
-            this.hide(0.1);
-        };
-        this._copyWithChildrenBtn = document.createElement("button");
-        this._copyWithChildrenBtn.innerHTML = "COPY FULL";
-        categoriesContainer.appendChild(this._copyWithChildrenBtn);
-        this._copyWithChildrenBtn.onclick = () => {
-            let clone = this._brick.cloneWithChildren();
-            //clone.updateMesh();
-            this._player.currentAction = PlayerActionMoveBrick.Create(this._player, clone);
-            this.hide(0.1);
-        };
-        this._copyColorBtn = document.createElement("button");
-        this._copyColorBtn.innerHTML = "COPY COLOR";
-        categoriesContainer.appendChild(this._copyColorBtn);
-        this._copyColorBtn.onclick = () => {
-            this._player.currentAction = PlayerActionTemplate.CreatePaintAction(this._player, this._brick.colorIndex);
-            this.hide(0.1);
-        };
-        this._cancelBtn = document.createElement("button");
-        this._cancelBtn.innerHTML = "CANCEL";
-        categoriesContainer.appendChild(this._cancelBtn);
-        this._cancelBtn.onclick = () => {
-            this.hide(0.1);
-        };
-        this._options = [
-            this._anchorBtn,
-            this._copyBrickBtn,
-            this._copyColorBtn,
-            this._cancelBtn,
-        ];
-    }
-    attributeChangedCallback(name, oldValue, newValue) { }
-    async show(duration = 1) {
-        return new Promise((resolve) => {
-            if (!this._shown) {
-                this._shown = true;
-                this.style.display = "block";
-                let opacity0 = parseFloat(this.style.opacity);
-                let opacity1 = 1;
-                let t0 = performance.now();
-                let step = () => {
-                    let t = performance.now();
-                    let dt = (t - t0) / 1000;
-                    if (dt >= duration) {
-                        this.style.opacity = "1";
-                        resolve();
-                    }
-                    else {
-                        let f = dt / duration;
-                        this.style.opacity = ((1 - f) * opacity0 + f * opacity1).toFixed(2);
-                        requestAnimationFrame(step);
-                    }
-                };
-                step();
-            }
-        });
-    }
-    async hide(duration = 1) {
-        if (duration === 0) {
-            this._shown = false;
-            this.style.display = "none";
-            this.style.opacity = "0";
-        }
-        else {
-            return new Promise((resolve) => {
-                if (this._shown) {
-                    this._shown = false;
-                    this.style.display = "block";
-                    let opacity0 = parseFloat(this.style.opacity);
-                    let opacity1 = 0;
-                    let t0 = performance.now();
-                    let step = () => {
-                        let t = performance.now();
-                        let dt = (t - t0) / 1000;
-                        if (dt >= duration) {
-                            this.style.display = "none";
-                            this.style.opacity = "0";
-                            if (this.onNextHide) {
-                                this.onNextHide();
-                                this.onNextHide = undefined;
-                            }
-                            resolve();
-                        }
-                        else {
-                            let f = dt / duration;
-                            this.style.opacity = ((1 - f) * opacity0 + f * opacity1).toFixed(2);
-                            requestAnimationFrame(step);
-                        }
-                    };
-                    step();
-                }
-            });
-        }
-    }
-    setPlayer(player) {
-        this._player = player;
-    }
-    setBrick(brick) {
-        this._brick = brick;
-    }
-    update(dt) {
-        if (this._timer > 0) {
-            this._timer -= dt;
-        }
-        let gamepads = navigator.getGamepads();
-        let gamepad = gamepads[0];
-        if (gamepad) {
-            let axis1 = -Nabu.InputManager.DeadZoneAxis(gamepad.axes[1]);
-            if (axis1 > 0.5) {
-                if (this._timer <= 0) {
-                    this.currentPointerUp();
-                    this._timer = 0.5;
-                }
-            }
-            else if (axis1 < -0.5) {
-                if (this._timer <= 0) {
-                    this.currentPointerDown();
-                    this._timer = 0.5;
-                }
-            }
-            else {
-                this._timer = 0;
-            }
-        }
-    }
-}
-customElements.define("brick-menu", BrickMenuView);
 class PlayerActionManager {
     constructor(player, game) {
         this.player = player;
@@ -3566,6 +3325,15 @@ class PlayerAction {
         this.player = player;
         this.backgroundColor = "#ffffff";
         this.r = 0;
+    }
+    static IsAimable(mesh) {
+        if (mesh instanceof ConstructionMesh) {
+            return true;
+        }
+        if (mesh instanceof DodoInteractCollider) {
+            return true;
+        }
+        return false;
     }
     get iconUrl() {
         return this._iconUrl;
@@ -3996,16 +3764,98 @@ function LoadPlayerPositionFromLocalStorage(game) {
     }
     return false;
 }
-class PlayerActionDefault {
-    static IsAimable(mesh) {
-        if (mesh instanceof ConstructionMesh) {
-            return true;
-        }
-        if (mesh instanceof DodoInteractCollider) {
-            return true;
-        }
-        return false;
+class PlayerActionEditBrick {
+    static Create(player) {
+        let actionRange = 6;
+        let actionRangeSquared = actionRange * actionRange;
+        let editBrickAction = new PlayerAction("edit-brick-action", player);
+        editBrickAction.backgroundColor = "#00000080";
+        editBrickAction.iconUrl = "datas/icons/move_icon.png";
+        let aimedObject;
+        let setAimedObject = (b) => {
+            if (b != aimedObject) {
+                if (aimedObject) {
+                    aimedObject.unlit();
+                }
+                aimedObject = b;
+                if (aimedObject) {
+                    aimedObject.highlight();
+                }
+            }
+        };
+        editBrickAction.onUpdate = () => {
+            if (player.playMode === PlayMode.Playing) {
+                let x;
+                let y;
+                if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
+                    x = player.game.canvas.clientWidth * 0.5;
+                    y = player.game.canvas.clientHeight * 0.5;
+                }
+                else {
+                    x = player.scene.pointerX;
+                    y = player.scene.pointerY;
+                }
+                let hit = player.game.scene.pick(x, y, (mesh) => {
+                    return mesh instanceof ConstructionMesh;
+                });
+                if (hit.hit && hit.pickedPoint) {
+                    if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
+                        if (hit.pickedMesh instanceof ConstructionMesh) {
+                            let construction = hit.pickedMesh.construction;
+                            if (construction) {
+                                let brick = construction.getBrickForFaceId(hit.faceId);
+                                if (brick) {
+                                    setAimedObject(brick);
+                                }
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            setAimedObject(undefined);
+        };
+        editBrickAction.onPointerUp = async (duration, onScreenDistance) => {
+            if (onScreenDistance > 4) {
+                return;
+            }
+            if (player.playMode === PlayMode.Playing) {
+                if (aimedObject instanceof Brick) {
+                    let construction = aimedObject.construction;
+                    if (construction && construction.isPlayerAllowedToEdit()) {
+                        let brickId = aimedObject.index;
+                        let brickColorIndex = aimedObject.colorIndex;
+                        let r = aimedObject.r;
+                        aimedObject.dispose();
+                        construction.updateMesh();
+                        player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
+                    }
+                }
+            }
+        };
+        editBrickAction.onRightPointerUp = (duration, onScreenDistance) => {
+            if (onScreenDistance > 4) {
+                return;
+            }
+            if (player.playMode === PlayMode.Playing) {
+                if (aimedObject instanceof Brick) {
+                    let construction = aimedObject.construction;
+                    if (construction && construction.isPlayerAllowedToEdit()) {
+                        aimedObject.dispose();
+                        construction.updateMesh();
+                        construction.saveToLocalStorage();
+                        construction.saveToServer();
+                    }
+                }
+            }
+        };
+        editBrickAction.onUnequip = () => {
+            setAimedObject(undefined);
+        };
+        return editBrickAction;
     }
+}
+class PlayerActionEmptyHand {
     static Create(player) {
         let actionRange = 6;
         let actionRangeSquared = actionRange * actionRange;
@@ -4037,21 +3887,11 @@ class PlayerActionDefault {
                     y = player.scene.pointerY;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return PlayerActionDefault.IsAimable(mesh) && mesh != player.dodo.dodoInteractCollider;
+                    return mesh instanceof DodoInteractCollider && mesh != player.dodo.dodoInteractCollider;
                 });
                 if (hit.hit && hit.pickedPoint) {
                     if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
-                        if (hit.pickedMesh instanceof ConstructionMesh) {
-                            let construction = hit.pickedMesh.construction;
-                            if (construction) {
-                                let brick = construction.getBrickForFaceId(hit.faceId);
-                                if (brick) {
-                                    setAimedObject(brick);
-                                }
-                                return;
-                            }
-                        }
-                        else if (hit.pickedMesh instanceof DodoInteractCollider) {
+                        if (hit.pickedMesh instanceof DodoInteractCollider) {
                             setAimedObject(hit.pickedMesh);
                             return;
                         }
@@ -4064,61 +3904,22 @@ class PlayerActionDefault {
             if (onScreenDistance > 4) {
                 return;
             }
-            if (duration > 0.3) {
-                if (aimedObject instanceof Brick) {
-                    player.game.brickMenuView.setBrick(aimedObject);
-                    if (player.game.inputManager.isPointerLocked) {
+            if (player.playMode === PlayMode.Playing) {
+                if (aimedObject instanceof DodoInteractCollider) {
+                    if (aimedObject.dodo.brain.npcDialog) {
+                        let canvas = aimedObject.dodo.game.canvas;
                         document.exitPointerLock();
-                        player.game.brickMenuView.onNextHide = () => {
-                            player.game.canvas.requestPointerLock();
+                        player.game.inputManager.temporaryNoPointerLock = true;
+                        aimedObject.dodo.brain.npcDialog.onNextStop = () => {
+                            player.game.inputManager.temporaryNoPointerLock = false;
+                            canvas.requestPointerLock();
                         };
-                    }
-                    player.game.brickMenuView.show(0.1);
-                }
-            }
-            else {
-                if (player.playMode === PlayMode.Playing) {
-                    if (aimedObject instanceof Brick) {
-                        let construction = aimedObject.construction;
-                        if (construction && construction.isPlayerAllowedToEdit()) {
-                            let brickId = aimedObject.index;
-                            let brickColorIndex = aimedObject.colorIndex;
-                            let r = aimedObject.r;
-                            aimedObject.dispose();
-                            construction.updateMesh();
-                            player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
-                        }
-                    }
-                    else if (aimedObject instanceof DodoInteractCollider) {
-                        if (aimedObject.dodo.brain.npcDialog) {
-                            let canvas = aimedObject.dodo.game.canvas;
-                            document.exitPointerLock();
-                            player.game.inputManager.temporaryNoPointerLock = true;
-                            aimedObject.dodo.brain.npcDialog.onNextStop = () => {
-                                player.game.inputManager.temporaryNoPointerLock = false;
-                                canvas.requestPointerLock();
-                            };
-                            aimedObject.dodo.brain.npcDialog.start();
-                        }
+                        aimedObject.dodo.brain.npcDialog.start();
                     }
                 }
             }
         };
         defaultAction.onRightPointerUp = (duration, onScreenDistance) => {
-            if (onScreenDistance > 4) {
-                return;
-            }
-            if (player.playMode === PlayMode.Playing) {
-                if (aimedObject instanceof Brick) {
-                    let construction = aimedObject.construction;
-                    if (construction && construction.isPlayerAllowedToEdit()) {
-                        aimedObject.dispose();
-                        construction.updateMesh();
-                        construction.saveToLocalStorage();
-                        construction.saveToServer();
-                    }
-                }
-            }
         };
         defaultAction.onUnequip = () => {
             setAimedObject(undefined);
@@ -4126,140 +3927,10 @@ class PlayerActionDefault {
         return defaultAction;
     }
 }
-class PlayerActionMoveBrick {
-    static Create(player, brick) {
-        ScreenLoger.Log("PlayerActionMoveBrick.Create");
-        let brickAction = new PlayerAction("move-brick-action", player);
-        brickAction.backgroundColor = "#FF00FF";
-        brickAction.iconUrl = "";
-        let initPos = brick.position.clone();
-        brickAction.onUpdate = () => {
-            let terrain = player.game.terrain;
-            if (player.playMode === PlayMode.Playing) {
-                let x;
-                let y;
-                if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
-                    x = player.game.canvas.clientWidth * 0.5;
-                    y = player.game.canvas.clientHeight * 0.5;
-                }
-                else {
-                    x = player.scene.pointerX;
-                    y = player.scene.pointerY;
-                }
-                let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return (mesh instanceof ConstructionMesh) || mesh instanceof Chunck;
-                });
-                if (hit && hit.pickedPoint) {
-                    let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
-                    let pos = hit.pickedPoint.add(n).subtract(brick.construction.position);
-                    brick.posI = Math.round(pos.x / BRICK_S);
-                    brick.posK = Math.floor(pos.y / BRICK_H);
-                    brick.posJ = Math.round(pos.z / BRICK_S);
-                    brick.clampToConstruction();
-                    brick.construction.updateMesh();
-                }
-            }
-        };
-        brickAction.onPointerUp = (duration) => {
-            console.log("onPointerUp");
-            let terrain = player.game.terrain;
-            if (player.playMode === PlayMode.Playing) {
-                let x;
-                let y;
-                if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
-                    x = player.game.canvas.clientWidth * 0.5;
-                    y = player.game.canvas.clientHeight * 0.5;
-                }
-                else {
-                    x = player.scene.pointerX;
-                    y = player.scene.pointerY;
-                }
-                let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return (mesh instanceof ConstructionMesh) || mesh instanceof Chunck;
-                });
-                if (hit && hit.pickedPoint) {
-                    /*
-                    let n =  hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
-                    if (hit.pickedMesh instanceof ConstructionMesh) {
-                        if (duration > 0.3) {
-                            let root = hit.pickedMesh.brick.root;
-                            let aimedBrick = root.getBrickForFaceId(hit.faceId);
-                            brick.setParent(aimedBrick);
-                            brick.clampToConstruction();
-                            brick.updateMesh();
-                        }
-                        else {
-                            let pos = hit.pickedPoint.add(n).subtractInPlace(brick.construction.position);
-                            brick.posI = Math.round(pos.x / BRICK_S);
-                            brick.posJ = Math.round(pos.z / BRICK_S);
-                            brick.posK = Math.floor(pos.y / BRICK_H);
-                            brick.setParent(undefined);
-                            brick.clampToConstruction();
-                            brick.updateMesh();
-                            brick.updateRootPosition();
-
-                            brick.construction.saveToLocalStorage();
-                            brick.construction.saveToServer();
-                        }
-                    }
-                    else {
-                        let pos = hit.pickedPoint.add(n).subtractInPlace(brick.construction.position);
-                        brick.posI = Math.round(pos.x / BRICK_S);
-                        brick.posJ = Math.round(pos.z / BRICK_S);
-                        brick.posK = Math.floor(pos.y / BRICK_H);
-                        brick.setParent(undefined);
-                        brick.clampToConstruction();
-                        brick.updateMesh();
-                        brick.updateRootPosition();
-
-                        brick.construction.saveToLocalStorage();
-                        brick.construction.saveToServer();
-                    }
-                    */
-                }
-            }
-            player.currentAction = undefined;
-        };
-        let rotateBrick = () => {
-            if (brick) {
-                brick.r = (brick.r + 1) % 4;
-            }
-        };
-        let deleteBrick = () => {
-            if (brick) {
-                brick.dispose();
-                player.currentAction = undefined;
-            }
-        };
-        brickAction.onEquip = () => {
-            player.game.inputManager.addMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
-            player.game.inputManager.addMappedKeyDownListener(KeyInput.DELETE_SELECTED, deleteBrick);
-        };
-        brickAction.onUnequip = () => {
-            player.game.inputManager.removeMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
-            player.game.inputManager.removeMappedKeyDownListener(KeyInput.DELETE_SELECTED, deleteBrick);
-        };
-        brickAction.onWheel = (e) => {
-            /*
-            if (brick.isRoot && brick.getChildTransformNodes().length === 0) {
-                if (e.deltaY > 0) {
-                    brick.index = (brick.index + BRICK_LIST.length - 1) % BRICK_LIST.length;
-                    brick.updateMesh();
-                }
-                else if (e.deltaY < 0) {
-                    brick.index = (brick.index + 1) % BRICK_LIST.length;
-                    brick.updateMesh();
-                }
-            }
-            */
-        };
-        return brickAction;
-    }
-}
 var ACTIVE_DEBUG_PLAYER_ACTION = true;
 var ADD_BRICK_ANIMATION_DURATION = 1000;
 class PlayerActionTemplate {
-    static async CreateBrickAction(player, brickId, colorIndex, r = 0, onlyOnce) {
+    static async CreateBrickAction(player, brickId, colorIndex, r = 0, thenEditBrick) {
         let brickIndex = Brick.BrickIdToIndex(brickId);
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
         brickAction.backgroundColor = "#000000";
@@ -4330,8 +4001,8 @@ class PlayerActionTemplate {
                     }
                 }
             }
-            if (onlyOnce) {
-                player.currentAction = undefined;
+            if (thenEditBrick) {
+                player.currentAction = player.playerActionManager.linkedActions[1];
             }
         };
         let rotateBrick = () => {
@@ -5828,7 +5499,7 @@ class Dodo extends Creature {
         this.dodoCollider.parent = this;
         this.dodoCollider.position.copyFromFloats(0, this.unfoldedBodyHeight + 0.05, 0);
         BABYLON.CreateSphereVertexData({ diameter: 2 * BRICK_S }).applyToMesh(this.dodoCollider);
-        this.dodoCollider.visibility = 0.5;
+        this.dodoCollider.visibility = 0;
         this.dodoInteractCollider = new DodoInteractCollider(this);
         this.dodoInteractCollider.parent = this.body;
         this.dodoInteractCollider.position.copyFromFloats(0, 0.2, 0.1);
@@ -7082,7 +6753,7 @@ class BrainPlayer extends SubBrain {
             }
         };
         this.inventory = new PlayerInventory(this);
-        this.defaultAction = PlayerActionDefault.Create(this);
+        this.defaultAction = PlayerActionEmptyHand.Create(this);
         this.playerActionManager = new PlayerActionManager(this, this.game);
     }
     get currentAction() {
@@ -7103,9 +6774,6 @@ class BrainPlayer extends SubBrain {
     get playMode() {
         if (this.game.playerInventoryView.shown) {
             return PlayMode.Inventory;
-        }
-        if (this.game.brickMenuView.shown) {
-            return PlayMode.Menu;
         }
         if (this.game.gameMode === GameMode.Playing) {
             return PlayMode.Playing;
@@ -8048,7 +7716,7 @@ class NPCManager {
                 }
                 return 20;
             }),
-            new NPCDialogTextLine(20, "Do you want to try some of my paint ?", new NPCDialogResponse("Yes, can I have some paint please ?", 50), new NPCDialogResponse("No, I already have what I need.", 100)),
+            new NPCDialogTextLine(20, "Do you want to try some of my paint ?", new NPCDialogResponse("Yes, can I have some paint please ?", 50), new NPCDialogResponse("No, I already have what I need.", 1000)),
             new NPCDialogCheckLine(50, async () => {
                 if (paintMerchantCount < 2) {
                     paintMerchantCount++;
