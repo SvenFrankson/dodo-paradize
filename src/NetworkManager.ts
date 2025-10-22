@@ -248,9 +248,12 @@ class NetworkManager {
         return undefined;
     }
 
+    private _networkDodosIterator: number = 0;
     private _updateServerPlayerPositionCD: number = 0;
     private _updateServerPlayerListCD: number = 0;
-    private _updatePositionToPeersCD: number = 0;
+    private _updatePositionToPeersR0CD: number = 0;
+    private _updatePositionToPeersR1CD: number = 0;
+    private _updatePositionToPeersR2CD: number = 0;
     private _checkDisconnectedCD: number = 0;
     public update(dt: number): void {
         
@@ -269,8 +272,19 @@ class NetworkManager {
         }
 
         if (this.connectedToPeerJSServer) {
-            this._updatePositionToPeersCD -= dt;
-            if (this._updatePositionToPeersCD < 0) {
+            if (this.game.networkDodos.length >= 2) {
+                this._networkDodosIterator = Math.min(this._networkDodosIterator, this.game.networkDodos.length - 2);
+                let d1 = this.game.networkDodos[this._networkDodosIterator];
+                let d2 = this.game.networkDodos[this._networkDodosIterator + 1];
+                if (d2.closenessRank < d1.closenessRank) {
+                    this.game.networkDodos[this._networkDodosIterator] = d2;
+                    this.game.networkDodos[this._networkDodosIterator + 1] = d1;
+                }
+                this._networkDodosIterator = (this._networkDodosIterator + 1) % this.game.networkDodos.length;
+            }
+
+            this._updatePositionToPeersR0CD -= dt;
+            if (this._updatePositionToPeersR0CD < 0) {
                 this._updateServerPlayerListCD = 0.2;
                 let brainNetworkData = JSON.stringify({
                     dodoId: this.game.playerDodo.peerId,
@@ -282,7 +296,49 @@ class NetworkManager {
                     tz: this.game.playerDodo.targetLook.z,
                     r: this.game.playerDodo.r
                 })
-                for (let i = 0; i < this.game.networkDodos.length; i++) {
+                for (let i = 0; i < this.game.networkDodos.length && i < 5; i++) {
+                    let networkDodo = this.game.networkDodos[i];
+                    if (networkDodo.conn) {
+                        networkDodo.conn.send(brainNetworkData);
+                    }
+                }
+            }
+
+            this._updatePositionToPeersR1CD -= dt;
+            if (this._updatePositionToPeersR1CD < 0) {
+                this._updateServerPlayerListCD = 1;
+                let brainNetworkData = JSON.stringify({
+                    dodoId: this.game.playerDodo.peerId,
+                    x: this.game.playerDodo.position.x,
+                    y: this.game.playerDodo.position.y,
+                    z: this.game.playerDodo.position.z,
+                    tx: this.game.playerDodo.targetLook.x,
+                    ty: this.game.playerDodo.targetLook.y,
+                    tz: this.game.playerDodo.targetLook.z,
+                    r: this.game.playerDodo.r
+                })
+                for (let i = 5; i < this.game.networkDodos.length && i < 15; i++) {
+                    let networkDodo = this.game.networkDodos[i];
+                    if (networkDodo.conn) {
+                        networkDodo.conn.send(brainNetworkData);
+                    }
+                }
+            }
+
+            this._updatePositionToPeersR2CD -= dt;
+            if (this._updatePositionToPeersR2CD < 0) {
+                this._updateServerPlayerListCD = 3;
+                let brainNetworkData = JSON.stringify({
+                    dodoId: this.game.playerDodo.peerId,
+                    x: this.game.playerDodo.position.x,
+                    y: this.game.playerDodo.position.y,
+                    z: this.game.playerDodo.position.z,
+                    tx: this.game.playerDodo.targetLook.x,
+                    ty: this.game.playerDodo.targetLook.y,
+                    tz: this.game.playerDodo.targetLook.z,
+                    r: this.game.playerDodo.r
+                })
+                for (let i = 15; i < this.game.networkDodos.length; i++) {
                     let networkDodo = this.game.networkDodos[i];
                     if (networkDodo.conn) {
                         networkDodo.conn.send(brainNetworkData);

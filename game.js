@@ -782,6 +782,9 @@ class Game {
         this.animLightIntensity = Mummu.AnimationFactory.EmptyNumberCallback;
         this.animSpotlightIntensity = Mummu.AnimationFactory.EmptyNumberCallback;
         this.gameLoaded = false;
+        this.allDodos = [];
+        this.networkDodos = [];
+        this.npcDodos = [];
         this.onResize = () => {
             let rect = this.canvas.getBoundingClientRect();
             this.screenRatio = rect.width / rect.height;
@@ -989,8 +992,6 @@ class Game {
         this.playerInventoryView.setInventory(playerBrain.inventory);
         this.playerActionView.initialize(playerBrain);
         this.inputManager.initialize();
-        this.networkDodos = [];
-        this.npcDodos = [];
         for (let n = 0; n < 0; n++) {
             let npcDodo = new Dodo("", "Test", this, {
                 speed: 1 + Math.random(),
@@ -1082,11 +1083,7 @@ class Game {
         if (isFinite(rawDT)) {
             this.globalTimer += rawDT;
             this.terrainManager.update();
-            this.playerDodo.update(rawDT);
-            this.networkDodos.forEach(dodo => {
-                dodo.update(rawDT);
-            });
-            this.npcDodos.forEach(dodo => {
+            this.allDodos.forEach(dodo => {
                 dodo.update(rawDT);
             });
             this.camera.onUpdate(rawDT);
@@ -1101,6 +1098,32 @@ class Game {
             if (this.savePlayerCooldown < 0) {
                 SavePlayerPositionToLocalStorage(this);
                 this.savePlayerCooldown = 3;
+            }
+            let hasChanged = false;
+            for (let n = 0; n < this.allDodos.length - 1; n++) {
+                let dodo1 = this.allDodos[n];
+                let dodo2 = this.allDodos[n + 1];
+                let sqrDist1 = BABYLON.Vector3.DistanceSquared(this.playerDodo.position, dodo1.position);
+                let sqrDist2 = BABYLON.Vector3.DistanceSquared(this.playerDodo.position, dodo2.position);
+                if (sqrDist1 > sqrDist2) {
+                    this.allDodos[n + 1] = dodo1;
+                    this.allDodos[n] = dodo2;
+                }
+            }
+            if (hasChanged) {
+                for (let n = 0; n < this.allDodos.length - 1; n++) {
+                    let dodo = this.allDodos[n];
+                    dodo.closenessRank = n;
+                    if (n <= 2) {
+                        dodo.updateLoopQuality = DodoUpdateLoopQuality.Max;
+                    }
+                    else if (n <= 20) {
+                        dodo.updateLoopQuality = DodoUpdateLoopQuality.Low;
+                    }
+                    else {
+                        dodo.updateLoopQuality = DodoUpdateLoopQuality.Zero;
+                    }
+                }
             }
         }
     }
@@ -1370,9 +1393,12 @@ class NetworkManager {
         this.receivedData = new Map();
         this.connectedToTiaratumServer = false;
         this.connectedToPeerJSServer = false;
+        this._networkDodosIterator = 0;
         this._updateServerPlayerPositionCD = 0;
         this._updateServerPlayerListCD = 0;
-        this._updatePositionToPeersCD = 0;
+        this._updatePositionToPeersR0CD = 0;
+        this._updatePositionToPeersR1CD = 0;
+        this._updatePositionToPeersR2CD = 0;
         this._checkDisconnectedCD = 0;
         ScreenLoger.Log("Create NetworkManager");
         if (window.localStorage.getItem("token")) {
@@ -1591,8 +1617,18 @@ class NetworkManager {
             }
         }
         if (this.connectedToPeerJSServer) {
-            this._updatePositionToPeersCD -= dt;
-            if (this._updatePositionToPeersCD < 0) {
+            if (this.game.networkDodos.length >= 2) {
+                this._networkDodosIterator = Math.min(this._networkDodosIterator, this.game.networkDodos.length - 2);
+                let d1 = this.game.networkDodos[this._networkDodosIterator];
+                let d2 = this.game.networkDodos[this._networkDodosIterator + 1];
+                if (d2.closenessRank < d1.closenessRank) {
+                    this.game.networkDodos[this._networkDodosIterator] = d2;
+                    this.game.networkDodos[this._networkDodosIterator + 1] = d1;
+                }
+                this._networkDodosIterator = (this._networkDodosIterator + 1) % this.game.networkDodos.length;
+            }
+            this._updatePositionToPeersR0CD -= dt;
+            if (this._updatePositionToPeersR0CD < 0) {
                 this._updateServerPlayerListCD = 0.2;
                 let brainNetworkData = JSON.stringify({
                     dodoId: this.game.playerDodo.peerId,
@@ -1604,7 +1640,47 @@ class NetworkManager {
                     tz: this.game.playerDodo.targetLook.z,
                     r: this.game.playerDodo.r
                 });
-                for (let i = 0; i < this.game.networkDodos.length; i++) {
+                for (let i = 0; i < this.game.networkDodos.length && i < 5; i++) {
+                    let networkDodo = this.game.networkDodos[i];
+                    if (networkDodo.conn) {
+                        networkDodo.conn.send(brainNetworkData);
+                    }
+                }
+            }
+            this._updatePositionToPeersR1CD -= dt;
+            if (this._updatePositionToPeersR1CD < 0) {
+                this._updateServerPlayerListCD = 1;
+                let brainNetworkData = JSON.stringify({
+                    dodoId: this.game.playerDodo.peerId,
+                    x: this.game.playerDodo.position.x,
+                    y: this.game.playerDodo.position.y,
+                    z: this.game.playerDodo.position.z,
+                    tx: this.game.playerDodo.targetLook.x,
+                    ty: this.game.playerDodo.targetLook.y,
+                    tz: this.game.playerDodo.targetLook.z,
+                    r: this.game.playerDodo.r
+                });
+                for (let i = 5; i < this.game.networkDodos.length && i < 15; i++) {
+                    let networkDodo = this.game.networkDodos[i];
+                    if (networkDodo.conn) {
+                        networkDodo.conn.send(brainNetworkData);
+                    }
+                }
+            }
+            this._updatePositionToPeersR2CD -= dt;
+            if (this._updatePositionToPeersR2CD < 0) {
+                this._updateServerPlayerListCD = 3;
+                let brainNetworkData = JSON.stringify({
+                    dodoId: this.game.playerDodo.peerId,
+                    x: this.game.playerDodo.position.x,
+                    y: this.game.playerDodo.position.y,
+                    z: this.game.playerDodo.position.z,
+                    tx: this.game.playerDodo.targetLook.x,
+                    ty: this.game.playerDodo.targetLook.y,
+                    tz: this.game.playerDodo.targetLook.z,
+                    r: this.game.playerDodo.r
+                });
+                for (let i = 15; i < this.game.networkDodos.length; i++) {
                     let networkDodo = this.game.networkDodos[i];
                     if (networkDodo.conn) {
                         networkDodo.conn.send(brainNetworkData);
@@ -5688,6 +5764,7 @@ class Dodo extends Creature {
         this.hipPos = new BABYLON.Vector3(.20792, -0.13091, 0);
         this.upperLegLength = 0.217;
         this.lowerLegLength = 0.224;
+        this.closenessRank = 0;
         this._tmpForwardAxis = BABYLON.Vector3.Forward();
         this._instantiated = false;
         this.isGrounded = false;
@@ -5850,6 +5927,7 @@ class Dodo extends Creature {
             Mummu.AnimationFactory.CreateNumber(this.bottomEyelids[1], this.bottomEyelids[1].rotation, "x")
         ];
         */
+        this.game.allDodos.push(this);
     }
     get isPlayerControlled() {
         return this === this.game.playerDodo;
@@ -6043,27 +6121,7 @@ class Dodo extends Creature {
                 Mummu.ColorizeVertexDataInPlace(Mummu.CloneVertexData(datas[11]), DodoColors[this.hatColor].color).applyToMesh(this.hat);
             }
         }
-        //datas[1].applyToMesh(this.upperLegs[0]);
-        //datas[1].applyToMesh(this.upperLegs[1]);
-        //this.upperLegs[1].scaling.copyFromFloats(-1, 1, 1);
-        //datas[2].applyToMesh(this.lowerLegs[0]);
-        //datas[2].applyToMesh(this.lowerLegs[1]);
-        //this.lowerLegs[1].scaling.copyFromFloats(-1, 1, 1);
-        //datas[3].applyToMesh(this.feet[0]);
-        //datas[3].applyToMesh(this.feet[1]);
-        //this.feet[1].scaling.copyFromFloats(-1, 1, 1);
         datas[0].applyToMesh(this.hitCollider);
-        //datas[10].applyToMesh(this);
-        /*
-        let base = BABYLON.MeshBuilder.CreateSphere("base", { diameter: 0.3 });
-        base.parent = this;
-        base.material = material;
-        
-        let dir = BABYLON.MeshBuilder.CreateBox("dir", { width: 0.1, height: 0.3, depth: 1 });
-        dir.position.z = 0.5;
-        dir.parent = this;
-        dir.material = material;
-        */
         this._instantiated = true;
     }
     dispose() {
@@ -6080,6 +6138,10 @@ class Dodo extends Creature {
         if (this.nameTag) {
             this.nameTag.dispose();
         }
+        let allDodoIndex = this.game.allDodos.indexOf(this);
+        if (allDodoIndex != -1) {
+            this.game.allDodos.splice(allDodoIndex, 1);
+        }
         let networkDodoIndex = this.game.networkDodos.indexOf(this);
         if (networkDodoIndex != -1) {
             this.game.networkDodos.splice(networkDodoIndex, 1);
@@ -6088,7 +6150,6 @@ class Dodo extends Creature {
         if (npcDodoIndex != -1) {
             this.game.npcDodos.splice(npcDodoIndex, 1);
         }
-        //this.tailEnd.dispose();
     }
     setWorldPosition(p) {
         ScreenLoger.Log("setWorldPosition " + p);
@@ -6112,46 +6173,6 @@ class Dodo extends Creature {
     async unfold() {
         await this.animateBodyHeight(this.unfoldedBodyHeight, 1.5);
         this.lifeState = LifeState.Ok;
-    }
-    async kill() {
-        if (this.lifeState >= LifeState.Dying) {
-            return;
-        }
-        this.lifeState = LifeState.Dying;
-        await this.animateWait(0.3);
-        this.blink(1);
-        await this.animateBodyHeight(1.02, 1, Nabu.Easing.easeOutElastic);
-        let explosionCloud = new Explosion(this.game);
-        explosionCloud.origin.copyFrom(this.body.absolutePosition);
-        explosionCloud.setRadius(0.6);
-        explosionCloud.color = new BABYLON.Color3(0.2, 0.2, 0.2);
-        explosionCloud.lifespan = 3;
-        explosionCloud.maxOffset = new BABYLON.Vector3(0, 0.4, 0);
-        explosionCloud.tZero = 0.8;
-        explosionCloud.boom();
-        await this.animateWait(0.1);
-        let explosionFire = new Explosion(this.game);
-        explosionFire.origin.copyFrom(this.body.absolutePosition);
-        explosionFire.setRadius(0.45);
-        explosionFire.color = BABYLON.Color3.FromHexString("#ff7b00");
-        explosionFire.lifespan = 1;
-        explosionFire.tZero = 1;
-        explosionFire.boom();
-        let explosionFireYellow = new Explosion(this.game);
-        explosionFireYellow.origin.copyFrom(this.body.absolutePosition);
-        explosionFireYellow.setRadius(0.45);
-        explosionFireYellow.color = BABYLON.Color3.FromHexString("#ffdd00");
-        explosionFireYellow.lifespan = 1;
-        explosionFireYellow.tZero = 1;
-        explosionFireYellow.boom();
-        this.body.visibility = 0;
-        this.body.getChildMeshes().forEach(child => {
-            child.visibility = 0;
-        });
-        await this.animateWait(2);
-        await this.animateBodyHeight(this.foldedBodyHeight, 0.5, Nabu.Easing.easeInCubic);
-        await this.animateWait(0.3);
-        this.dispose();
     }
     async blink(duration) {
         let t0 = performance.now() / 1000;
@@ -6200,8 +6221,8 @@ class Dodo extends Creature {
         });
     }
     walk() {
-        if (this.updateLoopQuality <= DodoUpdateLoopQuality.Zero) {
-            return;
+        if (this.jumping) {
+            this.isGrounded = false;
         }
         if (this.walking === 0 && this.isAlive && !this.jumping) {
             let deltaPos = this.position.subtract(this.body.position);
@@ -6222,35 +6243,25 @@ class Dodo extends Creature {
                 let origin = new BABYLON.Vector3(xFactor * spread, 0, 0);
                 let up = BABYLON.Vector3.Up();
                 BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
-                if (!this.jumping) {
+                if (this.updateLoopQuality === DodoUpdateLoopQuality.Max) {
                     origin.y += this.bodyHeight;
-                    if (this.isPlayerControlled) {
-                        let groundedOrigin = origin.clone();
-                        groundedOrigin.y = 0;
-                        let groundedBody = this.body.absolutePosition.clone();
-                        groundedBody.y = 0;
-                        let groundedDist = BABYLON.Vector3.Distance(groundedOrigin, groundedBody);
-                        if (groundedDist > 0.35) {
-                            let dir = groundedOrigin.subtract(groundedBody).normalize();
-                            //origin.subtractInPlace(dir.scale(groundedDist - 0.35));
-                        }
-                    }
                     origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.4)).addInPlace(this.right.scale(animatedSpeedRight * 0.4));
-                    //Mummu.DrawDebugPoint(origin, 5, BABYLON.Color3.Red());
                     let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1);
                     let bestIntersection;
                     if (this.isPlayerControlled && this.game.gameMode === GameMode.Home) {
                         bestIntersection = ray.intersectsMesh(this.game.homeMenuPlate);
                     }
-                    for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
-                        for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
-                            let construction = this.getCurrentConstruction(di, dj);
-                            if (construction) {
-                                if (construction.mesh) {
-                                    let intersection = ray.intersectsMesh(construction.mesh);
-                                    if (intersection.hit) {
-                                        if (!bestIntersection || bestIntersection.distance > intersection.distance) {
-                                            bestIntersection = intersection;
+                    if (!bestIntersection) {
+                        for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
+                            for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
+                                let construction = this.getCurrentConstruction(di, dj);
+                                if (construction) {
+                                    if (construction.mesh) {
+                                        let intersection = ray.intersectsMesh(construction.mesh);
+                                        if (intersection.hit) {
+                                            if (!bestIntersection || bestIntersection.distance > intersection.distance) {
+                                                bestIntersection = intersection;
+                                            }
                                         }
                                     }
                                 }
@@ -6276,27 +6287,29 @@ class Dodo extends Creature {
                         origin = bestIntersection.pickedPoint;
                         up = bestIntersection.getNormal(true, false);
                         this.isGrounded = true;
-                        let foot = this.feet[this.footIndex];
-                        if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
-                            this.walking = 1;
-                            let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
-                            foot.groundPos = origin;
-                            foot.groundUp = up;
-                            this.animateFoot(foot, origin.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
-                                this.walking = 0;
-                                this.footIndex = (this.footIndex + 1) % 2;
-                            });
-                        }
-                        else {
-                            this.footIndex = (this.footIndex + 1) % 2;
-                        }
                     }
                     else {
                         this.isGrounded = false;
                     }
                 }
                 else {
-                    this.isGrounded = false;
+                    this.isGrounded = true;
+                }
+                if (this.isGrounded) {
+                    let foot = this.feet[this.footIndex];
+                    if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
+                        this.walking = 1;
+                        let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
+                        foot.groundPos = origin;
+                        foot.groundUp = up;
+                        this.animateFoot(foot, origin.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
+                            this.walking = 0;
+                            this.footIndex = (this.footIndex + 1) % 2;
+                        });
+                    }
+                    else {
+                        this.footIndex = (this.footIndex + 1) % 2;
+                    }
                 }
             }
         }
@@ -6323,6 +6336,9 @@ class Dodo extends Creature {
             this.kwak();
         }
         if (this.game.gameMode === GameMode.Home) {
+            this.walk();
+        }
+        else if (!this.isPlayerControlled) {
             this.walk();
         }
         else {
@@ -6388,8 +6404,8 @@ class Dodo extends Creature {
         //} 
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
-        this.updateConstructionDIDJRange();
-        if (!this.brain.inDialog) {
+        if (this.updateLoopQuality === DodoUpdateLoopQuality.Max && !this.brain.inDialog) {
+            this.updateConstructionDIDJRange();
             for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
                 for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
                     let construction = this.getCurrentConstruction(di, dj);
@@ -6476,7 +6492,9 @@ class Dodo extends Creature {
         let tailPoints = [new BABYLON.Vector3(0, 0.050484, 0.165269), this.head.absolutePosition];
         BABYLON.Vector3.TransformCoordinatesToRef(tailPoints[0], this.body.getWorldMatrix(), tailPoints[0]);
         Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(3), BABYLON.Vector3.Up().scale(2));
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(3), BABYLON.Vector3.Up().scale(2));
+        if (this.updateLoopQuality >= DodoUpdateLoopQuality.Low) {
+            Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(3), BABYLON.Vector3.Up().scale(2));
+        }
         let data = Mummu.CreateWireVertexData({
             path: tailPoints,
             radiusFunc: (f) => {
@@ -6515,12 +6533,14 @@ class Dodo extends Creature {
             let size = Nabu.MinMax(dist / 20, 0, 1) * 2 + 1;
             this.nameTag.scaling.copyFromFloats(size, size, size);
         }
-        if (this.needUpdateCurrentConstruction()) {
-            this.updateCurrentConstruction();
-        }
-        this.updateChunckDIDJRange();
-        if (this.needUpdateCurrentChunck()) {
-            this.updateCurrentChunck();
+        if (this.updateLoopQuality === DodoUpdateLoopQuality.Max) {
+            if (this.needUpdateCurrentConstruction()) {
+                this.updateCurrentConstruction();
+            }
+            this.updateChunckDIDJRange();
+            if (this.needUpdateCurrentChunck()) {
+                this.updateCurrentChunck();
+            }
         }
     }
     updateConstructionDIDJRange() {

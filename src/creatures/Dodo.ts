@@ -237,6 +237,7 @@ class Dodo extends Creature {
     }
     public eyeMaterial: BABYLON.StandardMaterial;
     public nameTag: BABYLON.Mesh;
+    public closenessRank: number = 0;
 
     private _tmpForwardAxis: BABYLON.Vector3 = BABYLON.Vector3.Forward();
     public get r(): number {
@@ -424,6 +425,8 @@ class Dodo extends Creature {
             Mummu.AnimationFactory.CreateNumber(this.bottomEyelids[1], this.bottomEyelids[1].rotation, "x")
         ];
         */
+
+        this.game.allDodos.push(this);
     }
 
     public getStyleValue(type: StyleValueTypes): number {
@@ -640,29 +643,9 @@ class Dodo extends Creature {
             }
         }
 
-        //datas[1].applyToMesh(this.upperLegs[0]);
-        //datas[1].applyToMesh(this.upperLegs[1]);
-        //this.upperLegs[1].scaling.copyFromFloats(-1, 1, 1);
-        //datas[2].applyToMesh(this.lowerLegs[0]);
-        //datas[2].applyToMesh(this.lowerLegs[1]);
-        //this.lowerLegs[1].scaling.copyFromFloats(-1, 1, 1);
-        //datas[3].applyToMesh(this.feet[0]);
-        //datas[3].applyToMesh(this.feet[1]);
-        //this.feet[1].scaling.copyFromFloats(-1, 1, 1);
         datas[0].applyToMesh(this.hitCollider);
-        //datas[10].applyToMesh(this);
 
-        /*
-        let base = BABYLON.MeshBuilder.CreateSphere("base", { diameter: 0.3 });
-        base.parent = this;
-        base.material = material;
-        
-        let dir = BABYLON.MeshBuilder.CreateBox("dir", { width: 0.1, height: 0.3, depth: 1 });
-        dir.position.z = 0.5;
-        dir.parent = this;
-        dir.material = material;
-        */
-       this._instantiated = true;
+        this._instantiated = true;
     }
 
     public dispose(): void {
@@ -681,6 +664,10 @@ class Dodo extends Creature {
             this.nameTag.dispose();
         }
 
+        let allDodoIndex = this.game.allDodos.indexOf(this);
+        if (allDodoIndex != - 1) {
+            this.game.allDodos.splice(allDodoIndex, 1);
+        }
         let networkDodoIndex = this.game.networkDodos.indexOf(this);
         if (networkDodoIndex != - 1) {
             this.game.networkDodos.splice(networkDodoIndex, 1);
@@ -689,7 +676,6 @@ class Dodo extends Creature {
         if (npcDodoIndex != - 1) {
             this.game.npcDodos.splice(npcDodoIndex, 1);
         }
-        //this.tailEnd.dispose();
     }
 
     public setWorldPosition(p: BABYLON.Vector3): void {
@@ -720,53 +706,6 @@ class Dodo extends Creature {
     public async unfold(): Promise<void> {
         await this.animateBodyHeight(this.unfoldedBodyHeight, 1.5);
         this.lifeState = LifeState.Ok;
-    }
-    public async kill(): Promise<void> {
-        if (this.lifeState >= LifeState.Dying) {
-            return;
-        }
-        this.lifeState = LifeState.Dying;
-        await this.animateWait(0.3);
-        this.blink(1);
-        await this.animateBodyHeight(1.02, 1, Nabu.Easing.easeOutElastic);
-
-        let explosionCloud = new Explosion(this.game);
-        explosionCloud.origin.copyFrom(this.body.absolutePosition);
-        explosionCloud.setRadius(0.6);
-        explosionCloud.color = new BABYLON.Color3(0.2, 0.2, 0.2);
-        explosionCloud.lifespan = 3;
-        explosionCloud.maxOffset = new BABYLON.Vector3(0, 0.4, 0);
-        explosionCloud.tZero = 0.8;
-        explosionCloud.boom();
-
-        await this.animateWait(0.1);
-
-        let explosionFire = new Explosion(this.game);
-        explosionFire.origin.copyFrom(this.body.absolutePosition);
-        explosionFire.setRadius(0.45);
-        explosionFire.color = BABYLON.Color3.FromHexString("#ff7b00");
-        explosionFire.lifespan = 1;
-        explosionFire.tZero = 1;
-        explosionFire.boom();
-
-        let explosionFireYellow = new Explosion(this.game);
-        explosionFireYellow.origin.copyFrom(this.body.absolutePosition);
-        explosionFireYellow.setRadius(0.45);
-        explosionFireYellow.color = BABYLON.Color3.FromHexString("#ffdd00");
-        explosionFireYellow.lifespan = 1;
-        explosionFireYellow.tZero = 1;
-        explosionFireYellow.boom();
-
-        this.body.visibility = 0;
-        this.body.getChildMeshes().forEach(child => {
-            child.visibility = 0;
-        })
-
-        await this.animateWait(2);
-        await this.animateBodyHeight(this.foldedBodyHeight, 0.5, Nabu.Easing.easeInCubic);
-        await this.animateWait(0.3);
-        
-        this.dispose();
     }
 
     public async blink(duration: number): Promise<void> {
@@ -823,9 +762,10 @@ class Dodo extends Creature {
     public walking: number = 0;
     public footIndex: number = 0;
     public walk(): void {
-        if (this.updateLoopQuality <= DodoUpdateLoopQuality.Zero) {
-            return;
+        if (this.jumping) {
+            this.isGrounded = false;
         }
+
         if (this.walking === 0 && this.isAlive && !this.jumping) {
             let deltaPos = this.position.subtract(this.body.position);
             let doWalk = false;
@@ -846,44 +786,35 @@ class Dodo extends Creature {
                 let up = BABYLON.Vector3.Up();
                 BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
 
-                if (!this.jumping) {
+                if (this.updateLoopQuality === DodoUpdateLoopQuality.Max) {
                     origin.y += this.bodyHeight;
-                    if (this.isPlayerControlled) {
-                        let groundedOrigin = origin.clone();
-                        groundedOrigin.y = 0;
-                        let groundedBody = this.body.absolutePosition.clone();
-                        groundedBody.y = 0;
-                        let groundedDist = BABYLON.Vector3.Distance(groundedOrigin, groundedBody);
-                        if (groundedDist > 0.35) {
-                            let dir = groundedOrigin.subtract(groundedBody).normalize();
-                            //origin.subtractInPlace(dir.scale(groundedDist - 0.35));
-                        }
-                    }
-                    
                     origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.4)).addInPlace(this.right.scale(animatedSpeedRight * 0.4));
-
-                    //Mummu.DrawDebugPoint(origin, 5, BABYLON.Color3.Red());
 
                     let ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1);
                     let bestIntersection: BABYLON.PickingInfo;
+
                     if (this.isPlayerControlled && this.game.gameMode === GameMode.Home) {
                         bestIntersection = ray.intersectsMesh(this.game.homeMenuPlate);
                     }
-                    for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
-                        for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
-                            let construction = this.getCurrentConstruction(di, dj);
-                            if (construction) {
-                                if (construction.mesh) {
-                                    let intersection = ray.intersectsMesh(construction.mesh);
-                                    if (intersection.hit) {
-                                        if (!bestIntersection || bestIntersection.distance > intersection.distance) {
-                                            bestIntersection = intersection;
+
+                    if (!bestIntersection) {
+                        for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
+                            for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
+                                let construction = this.getCurrentConstruction(di, dj);
+                                if (construction) {
+                                    if (construction.mesh) {
+                                        let intersection = ray.intersectsMesh(construction.mesh);
+                                        if (intersection.hit) {
+                                            if (!bestIntersection || bestIntersection.distance > intersection.distance) {
+                                                bestIntersection = intersection;
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
+
                     if (!bestIntersection) {
                         for (let di = this._chunckRange.di0; di <= this._chunckRange.di1; di++) {
                             for (let dj = this._chunckRange.dj0; dj <= this._chunckRange.dj1; dj++) {
@@ -904,28 +835,30 @@ class Dodo extends Creature {
                         origin = bestIntersection.pickedPoint;
                         up = bestIntersection.getNormal(true, false);
                         this.isGrounded = true;
-                        
-                        let foot = this.feet[this.footIndex];
-                        if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
-                            this.walking = 1;
-                            let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
-                            foot.groundPos = origin;
-                            foot.groundUp = up;
-                            this.animateFoot(foot, origin.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
-                                this.walking = 0;
-                                this.footIndex = (this.footIndex + 1) % 2;
-                            });
-                        }
-                        else {
-                            this.footIndex = (this.footIndex + 1) % 2;
-                        }
                     }
                     else {
                         this.isGrounded = false;
                     }
                 }
                 else {
-                    this.isGrounded = false;
+                    this.isGrounded = true;
+                }
+
+                if (this.isGrounded) {
+                    let foot = this.feet[this.footIndex];
+                    if (BABYLON.Vector3.DistanceSquared(foot.position, origin.add(up.scale(0.0))) > 0.01) {
+                        this.walking = 1;
+                        let footDir = this.forward.add(this.right.scale(0.5 * xFactor)).normalize();
+                        foot.groundPos = origin;
+                        foot.groundUp = up;
+                        this.animateFoot(foot, origin.add(up.scale(0.0)), Mummu.QuaternionFromYZAxis(up, footDir)).then(() => {
+                            this.walking = 0;
+                            this.footIndex = (this.footIndex + 1) % 2;
+                        });
+                    }
+                    else {
+                        this.footIndex = (this.footIndex + 1) % 2;
+                    }
                 }
             }
         }
@@ -961,6 +894,9 @@ class Dodo extends Creature {
         }
 
         if (this.game.gameMode === GameMode.Home) {
+            this.walk();
+        }
+        else if (!this.isPlayerControlled) {
             this.walk();
         }
         else {
@@ -1036,8 +972,8 @@ class Dodo extends Creature {
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
 
-        this.updateConstructionDIDJRange();
-        if (!this.brain.inDialog) {
+        if (this.updateLoopQuality === DodoUpdateLoopQuality.Max && !this.brain.inDialog) {
+            this.updateConstructionDIDJRange();
             for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
                 for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
                     let construction = this.getCurrentConstruction(di, dj);
@@ -1146,7 +1082,9 @@ class Dodo extends Creature {
         BABYLON.Vector3.TransformCoordinatesToRef(tailPoints[0], this.body.getWorldMatrix(), tailPoints[0]);
 
         Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(3), BABYLON.Vector3.Up().scale(2));
-        Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(3), BABYLON.Vector3.Up().scale(2));
+        if (this.updateLoopQuality >= DodoUpdateLoopQuality.Low) {
+            Mummu.CatmullRomPathInPlace(tailPoints, this.body.forward.scale(3), BABYLON.Vector3.Up().scale(2));
+        }
 
         let data = Mummu.CreateWireVertexData({
             path: tailPoints,
@@ -1189,13 +1127,15 @@ class Dodo extends Creature {
             this.nameTag.scaling.copyFromFloats(size, size, size);
         }
 
-        if (this.needUpdateCurrentConstruction()) {
-            this.updateCurrentConstruction();
-        }
+        if (this.updateLoopQuality === DodoUpdateLoopQuality.Max) {
+            if (this.needUpdateCurrentConstruction()) {
+                this.updateCurrentConstruction();
+            }
 
-        this.updateChunckDIDJRange();
-        if (this.needUpdateCurrentChunck()) {
-            this.updateCurrentChunck();
+            this.updateChunckDIDJRange();
+            if (this.needUpdateCurrentChunck()) {
+                this.updateCurrentChunck();
+            }
         }
     }
 

@@ -248,8 +248,10 @@ class Game {
     public playerDodo: Dodo;
     public playerBrain: Brain;
     public playerBrainPlayer: BrainPlayer;
-    public networkDodos: Dodo[];
-    public npcDodos: Dodo[];
+    
+    public allDodos: Dodo[] = [];
+    public networkDodos: Dodo[] = [];
+    public npcDodos: Dodo[] = [];
 
     constructor(canvasElement: string) {
         Game.Instance = this;
@@ -470,9 +472,6 @@ class Game {
 
         this.inputManager.initialize();
 
-        this.networkDodos = [];
-        this.npcDodos = [];
-
         for (let n = 0; n < 0; n++) {
             let npcDodo = new Dodo("", "Test", this, {
                 speed: 1 + Math.random(),
@@ -604,11 +603,7 @@ class Game {
         if (isFinite(rawDT)) {
             this.globalTimer += rawDT;
             this.terrainManager.update();
-            this.playerDodo.update(rawDT);
-            this.networkDodos.forEach(dodo => {
-                dodo.update(rawDT);
-            })
-            this.npcDodos.forEach(dodo => {
+            this.allDodos.forEach(dodo => {
                 dodo.update(rawDT);
             })
             this.camera.onUpdate(rawDT);
@@ -625,6 +620,33 @@ class Game {
             if (this.savePlayerCooldown < 0) {
                 SavePlayerPositionToLocalStorage(this);
                 this.savePlayerCooldown = 3;
+            }
+
+            let hasChanged: boolean = false;
+            for (let n = 0; n < this.allDodos.length - 1; n++) {
+                let dodo1 = this.allDodos[n];
+                let dodo2 = this.allDodos[n + 1];
+                let sqrDist1 = BABYLON.Vector3.DistanceSquared(this.playerDodo.position, dodo1.position);
+                let sqrDist2 = BABYLON.Vector3.DistanceSquared(this.playerDodo.position, dodo2.position);
+                if (sqrDist1 > sqrDist2) {
+                    this.allDodos[n + 1] = dodo1;
+                    this.allDodos[n] = dodo2;
+                }
+            }
+            if (hasChanged) {
+                for (let n = 0; n < this.allDodos.length - 1; n++) {
+                    let dodo = this.allDodos[n];
+                    dodo.closenessRank = n;
+                    if (n <= 2) {
+                        dodo.updateLoopQuality = DodoUpdateLoopQuality.Max;
+                    }
+                    else if (n <= 20) {
+                        dodo.updateLoopQuality = DodoUpdateLoopQuality.Low;
+                    }
+                    else {
+                        dodo.updateLoopQuality = DodoUpdateLoopQuality.Zero;
+                    }
+                }
             }
         }
     }
