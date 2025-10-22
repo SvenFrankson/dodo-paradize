@@ -139,15 +139,21 @@ class NPCManager {
             new NPCDialogCheckLine(50, async () => {
                 if (brickMerchantCount < 2) {
                     brickMerchantCount++;
-                    for (let n = 0; n < 5; n++) {
+                    for (let n = 0; n < 6; n++) {
                         let brickIndex = Math.floor(BRICK_LIST.length * Math.random());
-                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
+                        let brickTemplate = BRICK_LIST[brickIndex];
+                        if (brickTemplate.isPublic) {
+                            this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
+                        }
                     }
                 }
                 else {
                     brickMerchantCount++;
                     for (let brickIndex = 0; brickIndex < BRICK_LIST.length; brickIndex++) {
-                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
+                        let brickTemplate = BRICK_LIST[brickIndex];
+                        if (brickTemplate.isPublic) {
+                            this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
+                        }
                     }
                 }
                 return 90;

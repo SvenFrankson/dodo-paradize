@@ -114,6 +114,7 @@ inventory-page .line {
     height: 28px;
     padding-top: 2px;
     background-color: rgba(0, 0, 0, 10%);
+    border-bottom: 1px solid #ffffff20;
 }
 
 inventory-page .line.highlit {
