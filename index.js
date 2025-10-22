@@ -19,6 +19,12 @@ var observed_progress_speed = 0.2;
 
 let fonts = [
     {
+        "font-family": "Cartoon",
+        "src": "url(styles/fonts/BigBottomCartoon.ttf)",
+        "font-weight": 500,
+        "font-style": "normal"
+    },
+    {
         "font-family": "Roboto",
         "src": "url(styles/fonts/Roboto-Thin.ttf)",
         "font-weight": 100,

@@ -4,6 +4,22 @@ interface BrickProp {
 
 }
 
+class BrickFactory {
+
+    public static NewBrick(index: number, colorIndex: number, construction: Construction): Brick;
+    public static NewBrick(brickName: string, colorIndex: number, construction: Construction): Brick;
+    public static NewBrick(brickId: number | string, colorIndex: number, construction: Construction): Brick;
+    public static NewBrick(arg1: any, colorIndex: number, construction: Construction): Brick {
+        let name = Brick.BrickIdToName(arg1);
+        if (name.startsWith("text_")) {
+            return new TextBrick(arg1, colorIndex, construction);
+        }
+        else {
+            return new Brick(arg1, colorIndex, construction);
+        }
+    }
+}
+
 class Brick extends BABYLON.TransformNode {
 
     public static depthColors = [
@@ -267,13 +283,7 @@ class Brick extends BABYLON.TransformNode {
         let posK = parseInt(data.substring(9, 11), 16) - 64;
         let r = parseInt(data.substring(11, 12), 16);
 
-        let name = Brick.BrickIdToName(id);
-        if (name.startsWith("text_")) {
-            brick = new TextBrick(id, colorIndex, construction);
-        }
-        else {
-            brick = new Brick(id, colorIndex, construction);
-        }
+        brick = BrickFactory.NewBrick(id, colorIndex, construction);
         brick.posI = posI;
         brick.posJ = posJ;
         brick.posK = posK;

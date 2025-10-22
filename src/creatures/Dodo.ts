@@ -100,7 +100,7 @@ var DodoColors = [
 
 DodoColors.forEach(c => {
     let sum = c.color.r + c.color.g + c.color.b;
-    if (sum < 1.5) {
+    if (sum < 2) {
         c.textColor = "white";
     }
     else {

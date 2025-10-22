@@ -74,7 +74,7 @@ class PlayerActionTemplate {
                     let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
                     let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
                     if (construction && construction.isPlayerAllowedToEdit()) {
-                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
+                        let brick = BrickFactory.NewBrick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
                         let pos = hit.pickedPoint.add(n).subtractInPlace(construction.position);
                         brick.posI = Math.round(pos.x / BRICK_S);
                         brick.posJ = Math.round(pos.z / BRICK_S);

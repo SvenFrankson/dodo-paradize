@@ -110,5 +110,7 @@ var BRICK_LIST = [
     { name: "wall_10x1", stackable: true },
     { name: "wall_16x1", stackable: true },
 
-    { name: "text_9_HELLO WORLD", stackable: true }
+    { name: "text_8_DODOPOLIS", stackable: true },
+    { name: "text_10_BRICKS & BLOCKS", stackable: true },
+    { name: "text_10_PAINT & PIGMENTS", stackable: true }
 ]

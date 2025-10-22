@@ -21,6 +21,8 @@ class TextBrickMesh extends BABYLON.Mesh {
 
     public updateMaterial(): void {
         let material = new BABYLON.StandardMaterial("name-tag-material");
+        material.emissiveColor.copyFromFloats(0.2, 0.2, 0.2);
+        material.specularColor.copyFromFloats(0, 0, 0);
         
         let h = 64;
         let w = this.brick.w * h / (3 * BRICK_H) * BRICK_S;
@@ -29,12 +31,12 @@ class TextBrickMesh extends BABYLON.Mesh {
         let context = texture.getContext();
         context.fillStyle = DodoColors[this.brick.colorIndex].hex;
         context.fillRect(0, 0, w, h);
-        context.font = (h).toFixed(0) + "px Roboto";
+        context.font = (h * 0.6).toFixed(0) + "px Cartoon";
         context.fillStyle = DodoColors[this.brick.colorIndex].textColor;
         context.strokeStyle = DodoColors[this.brick.colorIndex].textColor;
         context.lineWidth = h / 32;
         let l = context.measureText(this.brick.text);
-        context.strokeText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
+        //context.strokeText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
         context.fillText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
         
         texture.update();
@@ -50,6 +52,7 @@ class Construction extends BABYLON.Mesh {
 
     public bricks: Nabu.UniqueList<Brick> = new Nabu.UniqueList<Brick>();
     public mesh: ConstructionMesh;
+    public textBrickMeshes: TextBrickMesh[] = [];
 
     public limits: BABYLON.Mesh;
     public barycenter: BABYLON.Vector3 = BABYLON.Vector3.Zero();
@@ -95,6 +98,10 @@ class Construction extends BABYLON.Mesh {
     }
 
     public async updateMesh(): Promise<void> {
+        while (this.textBrickMeshes.length > 0) {
+            this.textBrickMeshes.pop().dispose(false, true);
+        }
+
         this.isMeshUpdated = false;
         let vDatas: BABYLON.VertexData[] = [];
         let textBrickMeshes: BABYLON.Mesh[] = [];
@@ -104,6 +111,7 @@ class Construction extends BABYLON.Mesh {
             if (brick instanceof TextBrick) {
                 let vData = await brick.generateTextBrickVertexData();
                 let textBrickMesh = new TextBrickMesh(brick);
+                this.textBrickMeshes.push(textBrickMesh);
                 textBrickMesh.updateMaterial();
                 vData.applyToMesh(textBrickMesh);
                 textBrickMeshes.push(textBrickMesh);

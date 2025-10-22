@@ -4007,7 +4007,7 @@ class PlayerActionTemplate {
                     let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
                     let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
                     if (construction && construction.isPlayerAllowedToEdit()) {
-                        let brick = new Brick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
+                        let brick = BrickFactory.NewBrick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
                         let pos = hit.pickedPoint.add(n).subtractInPlace(construction.position);
                         brick.posI = Math.round(pos.x / BRICK_S);
                         brick.posJ = Math.round(pos.z / BRICK_S);
@@ -4149,6 +4149,17 @@ class PlayerActionTemplate {
             }
         };
         return paintAction;
+    }
+}
+class BrickFactory {
+    static NewBrick(arg1, colorIndex, construction) {
+        let name = Brick.BrickIdToName(arg1);
+        if (name.startsWith("text_")) {
+            return new TextBrick(arg1, colorIndex, construction);
+        }
+        else {
+            return new Brick(arg1, colorIndex, construction);
+        }
     }
 }
 class Brick extends BABYLON.TransformNode {
@@ -4363,13 +4374,7 @@ class Brick extends BABYLON.TransformNode {
         let posJ = parseInt(data.substring(7, 9), 16) - 64;
         let posK = parseInt(data.substring(9, 11), 16) - 64;
         let r = parseInt(data.substring(11, 12), 16);
-        let name = Brick.BrickIdToName(id);
-        if (name.startsWith("text_")) {
-            brick = new TextBrick(id, colorIndex, construction);
-        }
-        else {
-            brick = new Brick(id, colorIndex, construction);
-        }
+        brick = BrickFactory.NewBrick(id, colorIndex, construction);
         brick.posI = posI;
         brick.posJ = posJ;
         brick.posK = posK;
@@ -4493,7 +4498,9 @@ var BRICK_LIST = [
     { name: "wall_8x1", stackable: true },
     { name: "wall_10x1", stackable: true },
     { name: "wall_16x1", stackable: true },
-    { name: "text_9_HELLO WORLD", stackable: true }
+    { name: "text_8_DODOPOLIS", stackable: true },
+    { name: "text_10_BRICKS & BLOCKS", stackable: true },
+    { name: "text_10_PAINT & PIGMENTS", stackable: true }
 ];
 class BrickTemplateManager {
     constructor(vertexDataLoader) {
@@ -5062,18 +5069,20 @@ class TextBrickMesh extends BABYLON.Mesh {
     }
     updateMaterial() {
         let material = new BABYLON.StandardMaterial("name-tag-material");
+        material.emissiveColor.copyFromFloats(0.2, 0.2, 0.2);
+        material.specularColor.copyFromFloats(0, 0, 0);
         let h = 64;
         let w = this.brick.w * h / (3 * BRICK_H) * BRICK_S;
         let texture = new BABYLON.DynamicTexture("name-tag-texture", { width: w, height: h }, this.brick.construction.game.scene);
         let context = texture.getContext();
         context.fillStyle = DodoColors[this.brick.colorIndex].hex;
         context.fillRect(0, 0, w, h);
-        context.font = (h).toFixed(0) + "px Roboto";
+        context.font = (h * 0.6).toFixed(0) + "px Cartoon";
         context.fillStyle = DodoColors[this.brick.colorIndex].textColor;
         context.strokeStyle = DodoColors[this.brick.colorIndex].textColor;
         context.lineWidth = h / 32;
         let l = context.measureText(this.brick.text);
-        context.strokeText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
+        //context.strokeText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
         context.fillText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
         texture.update();
         material.diffuseTexture = texture;
@@ -5087,6 +5096,7 @@ class Construction extends BABYLON.Mesh {
         this.j = j;
         this.terrain = terrain;
         this.bricks = new Nabu.UniqueList();
+        this.textBrickMeshes = [];
         this.barycenter = BABYLON.Vector3.Zero();
         this.isMeshUpdated = false;
         this.position.copyFromFloats(this.i * Construction.SIZE_m, 0, this.j * Construction.SIZE_m);
@@ -5118,6 +5128,9 @@ class Construction extends BABYLON.Mesh {
         }
     }
     async updateMesh() {
+        while (this.textBrickMeshes.length > 0) {
+            this.textBrickMeshes.pop().dispose(false, true);
+        }
         this.isMeshUpdated = false;
         let vDatas = [];
         let textBrickMeshes = [];
@@ -5127,6 +5140,7 @@ class Construction extends BABYLON.Mesh {
             if (brick instanceof TextBrick) {
                 let vData = await brick.generateTextBrickVertexData();
                 let textBrickMesh = new TextBrickMesh(brick);
+                this.textBrickMeshes.push(textBrickMesh);
                 textBrickMesh.updateMaterial();
                 vData.applyToMesh(textBrickMesh);
                 textBrickMeshes.push(textBrickMesh);
@@ -5340,6 +5354,19 @@ class TextBrick extends Brick {
         this.text = split.pop();
         this.w = parseInt(split.pop());
     }
+    dispose() {
+        this.construction.bricks.remove(this);
+        if (this.construction) {
+            let index = this.construction.textBrickMeshes.findIndex(tbm => {
+                return tbm.brick === this;
+            });
+            if (index != -1) {
+                let textBrickMesh = this.construction.textBrickMeshes[index];
+                this.construction.textBrickMeshes.splice(index, 1);
+                textBrickMesh.dispose(false, true);
+            }
+        }
+    }
     async generateMeshVertexData(vDatas, subMeshInfos) {
     }
     async generateTextBrickVertexData() {
@@ -5508,7 +5535,7 @@ var DodoColors = [
 ];
 DodoColors.forEach(c => {
     let sum = c.color.r + c.color.g + c.color.b;
-    if (sum < 1.5) {
+    if (sum < 2) {
         c.textColor = "white";
     }
     else {

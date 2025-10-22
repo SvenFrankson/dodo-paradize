@@ -12,6 +12,20 @@ class TextBrick extends Brick {
         this.text = split.pop();
         this.w = parseInt(split.pop());
     }
+    
+    public dispose(): void {
+        this.construction.bricks.remove(this);
+        if (this.construction) {
+            let index = this.construction.textBrickMeshes.findIndex(tbm => {
+                return tbm.brick === this;
+            })
+            if (index != -1) {
+                let textBrickMesh = this.construction.textBrickMeshes[index];
+                this.construction.textBrickMeshes.splice(index, 1);
+                textBrickMesh.dispose(false, true);
+            }
+        }
+    }
 
     public async generateMeshVertexData(vDatas: BABYLON.VertexData[], subMeshInfos: { faceId: number, brick: Brick }[]): Promise<void> {
 
