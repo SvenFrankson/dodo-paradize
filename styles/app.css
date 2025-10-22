@@ -223,24 +223,52 @@ body.vertical #dodo-color-picker {
 
 #action-bar {
     position: fixed;
-    top: 10;
-    left: 10;
+    top: 0;
+    left: 0;
     z-index: 4;
 }
 
-#action-bar .action-tile {
+#menu-bar {
+    position: fixed;
+    top: 0px;
+    right: 0px;
+    z-index: 4;
+}
+
+.bar-tile {
+    position: relative;
     width: 40px;
     height: 40px;
     margin: 10px;
-    outline: 2px solid rgb(127, 127, 127);
+    border: 2px solid black;
+    border-radius: 5px;
 }
 
-#action-bar .action-tile.highlit {
+.bar-tile .label {
+    position: absolute;
+    font-family: Roboto;
+    color: black;
+    width: 16px;
+    text-align: center;
+    top: 0px;
+    left: -20px;
+    border-radius: 4px;
+    background-color: #ffffff40;
+    font-size: 14px;
+}
+
+.bar-tile .label.right {
+    left: auto;
+    right: -20px;
+}
+
+.bar-tile.highlit {
+    border: 2px solid rgb(255, 255, 255);
+}
+
+.bar-tile.equiped {
+    border: 2px solid rgb(255, 255, 255);
     outline: 2px solid rgb(255, 255, 255);
-}
-
-#action-bar .action-tile.equiped {
-    outline: 4px solid rgb(255, 255, 255);
 }
 
 #screen-loger-container {
