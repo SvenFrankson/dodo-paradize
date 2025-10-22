@@ -980,7 +980,7 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.npcManager = new NPCManager(this);
         this.npcManager.initialize();
-        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 2, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 2.5, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.playerBrain = this.playerDodo.brain;
@@ -1056,7 +1056,7 @@ class Game {
             this.networkManager.initialize();
             let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
             let action = PlayerActionEditBrick.Create(playerBrain);
-            playerBrain.playerActionManager.linkAction(action, 1);
+            playerBrain.playerActionManager.linkAction(action, 1, true);
             this.npcManager.instantiate();
         }
     }
@@ -3118,7 +3118,10 @@ class PlayerActionManager {
         }
         this.game.scene.onBeforeRenderObservable.add(this.update);
     }
-    linkAction(action, slotIndex) {
+    linkAction(action, slotIndex, force = false) {
+        if (!force && slotIndex === 1) {
+            return;
+        }
         this.unlinkAction(slotIndex);
         if (slotIndex >= 0 && slotIndex <= 9) {
             this.linkedActions[slotIndex] = action;

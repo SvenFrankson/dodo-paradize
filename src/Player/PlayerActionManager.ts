@@ -58,7 +58,10 @@ class PlayerActionManager {
         
     }
 
-    public linkAction(action: PlayerAction, slotIndex: number): void {
+    public linkAction(action: PlayerAction, slotIndex: number, force: boolean = false): void {
+        if (!force && slotIndex === 1) {
+            return;
+        }
         this.unlinkAction(slotIndex);
         if (slotIndex >= 0 && slotIndex <= 9) {
             this.linkedActions[slotIndex] = action;

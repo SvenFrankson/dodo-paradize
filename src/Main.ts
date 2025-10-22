@@ -458,7 +458,7 @@ class Game {
         this.npcManager = new NPCManager(this);
         this.npcManager.initialize();
 
-        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 2, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 2.5, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.playerBrain = this.playerDodo.brain;
@@ -551,7 +551,7 @@ class Game {
             let playerBrain = (this.playerDodo.brain.subBrains[BrainMode.Player] as BrainPlayer);
 
             let action = PlayerActionEditBrick.Create(playerBrain);
-            playerBrain.playerActionManager.linkAction(action, 1);
+            playerBrain.playerActionManager.linkAction(action, 1, true);
             
             this.npcManager.instantiate();
         }
