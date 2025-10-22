@@ -1,6 +1,10 @@
 
 class PerformanceWatcher {
 
+    public static get DEVICE_PIXEL_RATIO(): number {
+        return Game.Instance.performanceWatcher.devicePixelRatio;
+    }
+
     public supportTexture3D: boolean = false;
     public average: number = 24;
     public worst: number = 24;

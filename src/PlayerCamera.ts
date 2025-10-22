@@ -29,7 +29,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 Mummu.RotateInPlace(target, BABYLON.Axis.X, this.verticalAngle);
                 let targetLook = target.clone().scaleInPlace(-5);
 
-                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 1);
+                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.1);
                 this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
                 target.y += this.pivotHeightHome;
                 target.x += this.player.position.x;
@@ -79,7 +79,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.3);
                 let pick = this.game.scene.pickWithRay(ray, (mesh => { return mesh instanceof ConstructionMesh; }));
                 if (pick && pick.hit) {
-                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + pick.distance * (1 - fRecoilSmooth);
+                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + Math.max(2, pick.distance) * (1 - fRecoilSmooth);
                 }
                 else {
                     this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + this.pivotRecoil * (1 - fRecoilSmooth);

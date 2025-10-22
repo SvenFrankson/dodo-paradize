@@ -1821,6 +1821,9 @@ class PerformanceWatcher {
         this.devicePixelRatioSteps = 10;
         this.resizeCD = 0;
     }
+    static get DEVICE_PIXEL_RATIO() {
+        return Game.Instance.performanceWatcher.devicePixelRatio;
+    }
     get devicePixelRatio() {
         let f = this.devicePixelRationess / this.devicePixelRatioSteps;
         return window.devicePixelRatio * f + 0.5 * (1 - f);
@@ -1941,7 +1944,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 let target = new BABYLON.Vector3(0, 0, -this.pivotRecoil);
                 Mummu.RotateInPlace(target, BABYLON.Axis.X, this.verticalAngle);
                 let targetLook = target.clone().scaleInPlace(-5);
-                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 1);
+                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.1);
                 this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
                 target.y += this.pivotHeightHome;
                 target.x += this.player.position.x;
@@ -1982,7 +1985,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.3);
                 let pick = this.game.scene.pickWithRay(ray, (mesh => { return mesh instanceof ConstructionMesh; }));
                 if (pick && pick.hit) {
-                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + pick.distance * (1 - fRecoilSmooth);
+                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + Math.max(2, pick.distance) * (1 - fRecoilSmooth);
                 }
                 else {
                     this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + this.pivotRecoil * (1 - fRecoilSmooth);
@@ -3818,12 +3821,12 @@ class PlayerActionEditBrick {
                 let x;
                 let y;
                 if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
-                    x = player.game.canvas.clientWidth * 0.5;
-                    y = player.game.canvas.clientHeight * 0.5;
+                    x = player.game.canvas.width * 0.5;
+                    y = player.game.canvas.height * 0.5;
                 }
                 else {
-                    x = player.scene.pointerX;
-                    y = player.scene.pointerY;
+                    x = player.scene.pointerX * PerformanceWatcher.DEVICE_PIXEL_RATIO;
+                    y = player.scene.pointerY * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
                     return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
@@ -3930,12 +3933,12 @@ class PlayerActionEmptyHand {
                 let x;
                 let y;
                 if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
-                    x = player.game.canvas.clientWidth * 0.5;
-                    y = player.game.canvas.clientHeight * 0.5;
+                    x = player.game.canvas.width * 0.5;
+                    y = player.game.canvas.height * 0.5;
                 }
                 else {
-                    x = player.scene.pointerX;
-                    y = player.scene.pointerY;
+                    x = player.scene.pointerX * PerformanceWatcher.DEVICE_PIXEL_RATIO;
+                    y = player.scene.pointerY * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
                     return mesh instanceof DodoInteractCollider && mesh != player.dodo.dodoInteractCollider;
@@ -3994,12 +3997,12 @@ class PlayerActionTemplate {
                 let x;
                 let y;
                 if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
-                    x = player.game.canvas.clientWidth * 0.5;
-                    y = player.game.canvas.clientHeight * 0.5;
+                    x = player.game.canvas.width * 0.5;
+                    y = player.game.canvas.height * 0.5;
                 }
                 else {
-                    x = player.scene.pointerX;
-                    y = player.scene.pointerY;
+                    x = player.scene.pointerX * PerformanceWatcher.DEVICE_PIXEL_RATIO;
+                    y = player.scene.pointerY * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
                     return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
@@ -4025,12 +4028,12 @@ class PlayerActionTemplate {
                 let x;
                 let y;
                 if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
-                    x = player.game.canvas.clientWidth * 0.5;
-                    y = player.game.canvas.clientHeight * 0.5;
+                    x = player.game.canvas.width * 0.5;
+                    y = player.game.canvas.height * 0.5;
                 }
                 else {
-                    x = player.scene.pointerX;
-                    y = player.scene.pointerY;
+                    x = player.scene.pointerX * PerformanceWatcher.DEVICE_PIXEL_RATIO;
+                    y = player.scene.pointerY * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
                     return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
@@ -4113,12 +4116,12 @@ class PlayerActionTemplate {
                 let x;
                 let y;
                 if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
-                    x = player.game.canvas.clientWidth * 0.5;
-                    y = player.game.canvas.clientHeight * 0.5;
+                    x = player.game.canvas.width * 0.5;
+                    y = player.game.canvas.height * 0.5;
                 }
                 else {
-                    x = player.scene.pointerX;
-                    y = player.scene.pointerY;
+                    x = player.scene.pointerX * PerformanceWatcher.DEVICE_PIXEL_RATIO;
+                    y = player.scene.pointerY * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
                     return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
@@ -6386,22 +6389,24 @@ class Dodo extends Creature {
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
         this.updateConstructionDIDJRange();
-        for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
-            for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
-                let construction = this.getCurrentConstruction(di, dj);
-                if (construction) {
-                    if (construction.mesh) {
-                        let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, construction.mesh, true);
-                        if (col.hit) {
-                            let delta = col.normal.scale(col.depth * 1.2);
-                            this.position.addInPlace(delta);
-                            let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
-                            this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
-                            if (col.normal.y > 0.5) {
-                                this.gravityVelocity *= 0.5;
-                            }
-                            else if (col.normal.y < -0.5) {
-                                this.gravityVelocity = Math.min(this.gravityVelocity, 0);
+        if (!this.brain.inDialog) {
+            for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
+                for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
+                    let construction = this.getCurrentConstruction(di, dj);
+                    if (construction) {
+                        if (construction.mesh) {
+                            let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, construction.mesh, true);
+                            if (col.hit) {
+                                let delta = col.normal.scale(col.depth * 1.2);
+                                this.position.addInPlace(delta);
+                                let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
+                                this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
+                                if (col.normal.y > 0.5) {
+                                    this.gravityVelocity *= 0.5;
+                                }
+                                else if (col.normal.y < -0.5) {
+                                    this.gravityVelocity = Math.min(this.gravityVelocity, 0);
+                                }
                             }
                         }
                     }
@@ -6526,17 +6531,17 @@ class Dodo extends Creature {
         let center = this.currentConstructions[1][1];
         if (center) {
             let dx = Math.abs(this.position.x - center.position.x);
-            if (dx < Construction.SIZE_m * 0.1) {
+            if (dx < Construction.SIZE_m * 0.2) {
                 this._constructionRange.di0--;
             }
-            if (dx > Construction.SIZE_m * 0.9) {
+            if (dx > Construction.SIZE_m * 0.8) {
                 this._constructionRange.di1++;
             }
             let dz = Math.abs(this.position.z - center.position.z);
-            if (dz < Construction.SIZE_m * 0.15) {
+            if (dz < Construction.SIZE_m * 0.2) {
                 this._constructionRange.dj0--;
             }
-            if (dz > Construction.SIZE_m * 0.85) {
+            if (dz > Construction.SIZE_m * 0.8) {
                 this._constructionRange.dj1++;
             }
         }
@@ -6586,17 +6591,17 @@ class Dodo extends Creature {
         let center = this.currentChuncks[1][1];
         if (center) {
             let dx = Math.abs(this.position.x - center.position.x);
-            if (dx < Chunck.SIZE_m * 0.15) {
+            if (dx < Chunck.SIZE_m * 0.5) {
                 this._chunckRange.di0--;
             }
-            if (dx > Chunck.SIZE_m * 0.85) {
+            if (dx > Chunck.SIZE_m * 0.5) {
                 this._chunckRange.di1++;
             }
             let dz = Math.abs(this.position.z - center.position.z);
-            if (dz < Chunck.SIZE_m * 0.15) {
+            if (dz < Chunck.SIZE_m * 0.5) {
                 this._chunckRange.dj0--;
             }
-            if (dz > Chunck.SIZE_m * 0.85) {
+            if (dz > Chunck.SIZE_m * 0.5) {
                 this._chunckRange.dj1++;
             }
         }

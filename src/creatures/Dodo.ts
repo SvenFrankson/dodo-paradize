@@ -1037,29 +1037,32 @@ class Dodo extends Creature {
         //this.body.position.copyFrom(this.bodyTargetPos);
 
         this.updateConstructionDIDJRange();
-        for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
-            for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
-                let construction = this.getCurrentConstruction(di, dj);
-                if (construction) {
-                    if (construction.mesh) {
-                        let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, construction.mesh, true);
-                        if (col.hit) {
-                            let delta = col.normal.scale(col.depth * 1.2);
-                            this.position.addInPlace(delta);
+        if (!this.brain.inDialog) {
+            for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
+                for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
+                    let construction = this.getCurrentConstruction(di, dj);
+                    if (construction) {
+                        if (construction.mesh) {
+                            let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, construction.mesh, true);
+                            if (col.hit) {
+                                let delta = col.normal.scale(col.depth * 1.2);
+                                this.position.addInPlace(delta);
 
-                            let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
-                            this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
-                            if (col.normal.y > 0.5) {
-                                this.gravityVelocity *= 0.5;
-                            }
-                            else if (col.normal.y < -0.5) {
-                                this.gravityVelocity = Math.min(this.gravityVelocity, 0);
+                                let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
+                                this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
+                                if (col.normal.y > 0.5) {
+                                    this.gravityVelocity *= 0.5;
+                                }
+                                else if (col.normal.y < -0.5) {
+                                    this.gravityVelocity = Math.min(this.gravityVelocity, 0);
+                                }
                             }
                         }
                     }
                 }
             }
         }
+        
 
         let right = this.feet[0].position.subtract(this.feet[1].position);
         right.normalize();
@@ -1206,18 +1209,18 @@ class Dodo extends Creature {
         let center = this.currentConstructions[1][1];
         if (center) {
             let dx = Math.abs(this.position.x - center.position.x);
-            if (dx < Construction.SIZE_m * 0.1) {
+            if (dx < Construction.SIZE_m * 0.2) {
                 this._constructionRange.di0--;
             }
-            if (dx > Construction.SIZE_m * 0.9) {
+            if (dx > Construction.SIZE_m * 0.8) {
                 this._constructionRange.di1++;
             }
 
             let dz = Math.abs(this.position.z - center.position.z);
-            if (dz < Construction.SIZE_m * 0.15) {
+            if (dz < Construction.SIZE_m * 0.2) {
                 this._constructionRange.dj0--;
             }
-            if (dz > Construction.SIZE_m * 0.85) {
+            if (dz > Construction.SIZE_m * 0.8) {
                 this._constructionRange.dj1++;
             }
         }
@@ -1275,18 +1278,18 @@ class Dodo extends Creature {
         let center = this.currentChuncks[1][1];
         if (center) {
             let dx = Math.abs(this.position.x - center.position.x);
-            if (dx < Chunck.SIZE_m * 0.15) {
+            if (dx < Chunck.SIZE_m * 0.5) {
                 this._chunckRange.di0--;
             }
-            if (dx > Chunck.SIZE_m * 0.85) {
+            if (dx > Chunck.SIZE_m * 0.5) {
                 this._chunckRange.di1++;
             }
 
             let dz = Math.abs(this.position.z - center.position.z);
-            if (dz < Chunck.SIZE_m * 0.15) {
+            if (dz < Chunck.SIZE_m * 0.5) {
                 this._chunckRange.dj0--;
             }
-            if (dz > Chunck.SIZE_m * 0.85) {
+            if (dz > Chunck.SIZE_m * 0.5) {
                 this._chunckRange.dj1++;
             }
         }

@@ -25,12 +25,12 @@ class PlayerActionEmptyHand {
                 let x: number;
                 let y: number;
                 if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
-                    x = player.game.canvas.clientWidth * 0.5;
-                    y = player.game.canvas.clientHeight * 0.5;
+                    x = player.game.canvas.width * 0.5;
+                    y = player.game.canvas.height * 0.5;
                 }
                 else {
-                    x = player.scene.pointerX;
-                    y = player.scene.pointerY;
+                    x = player.scene.pointerX * PerformanceWatcher.DEVICE_PIXEL_RATIO;
+                    y = player.scene.pointerY * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                 }
                 let hit = player.game.scene.pick(
                     x,

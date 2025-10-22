@@ -31,7 +31,7 @@
 			}
 
 			#click-anywhere-screen h1 {
-				font-family: Julee, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+				font-family: "Cartoon", 'Segoe UI', Tahoma, "Geneva", Verdana, sans-serif;
 				font-size: 70px;
 				position: absolute;
 				bottom: 0;
@@ -157,7 +157,7 @@
 		</div>
 
 		<div id="ingame-ui" style="display: none">
-			<touch-joystick id="touch-input-move" class="touch-joystick"></touch-joystick>
+			<touch-joystick id="touch-input-move" class="touch-joystick touchscreen-show"></touch-joystick>
 			<svg id="center-pointer" viewBox="-20 -20 40 40">
 				<line stroke="white" stroke-width="2" x1="0" x2="0" y1="-20" y2="20"></line>
 				<line stroke="white" stroke-width="2" x1="-20" x2="20" y1="0" y2="0"></line>
@@ -175,17 +175,16 @@
 				<div id="action-9" class="bar-tile"><span class="label right">9</span></div>
 				<div id="action-0" class="bar-tile"><span class="label right">0</span></div>
 			</div>
+			<div id="menu-bar">
+				<div id="travel" class="bar-tile" style="background-color: white; background-image: url(datas/icons/location_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label">T</span></div>
+				<div id="inventory" class="bar-tile" style="background-color: white; background-image: url(datas/icons/inventory_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label">I</span></div>
+			</div>
 			<div id="dialog-container" style="display: none">
 				<div class="dialog-title"></div>
 				<div id="dialog-lines-container">
 					
 				</div>
 			</div>
-		</div>
-
-		<div id="menu-bar">
-			<div id="travel" class="bar-tile" style="background-color: white; background-image: url(datas/icons/location_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label">T</span></div>
-			<div id="inventory" class="bar-tile" style="background-color: white; background-image: url(datas/icons/inventory_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label">I</span></div>
 		</div>
 
 		<div id="home-page" style="display: none">
