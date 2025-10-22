@@ -5,6 +5,8 @@ class MiniatureFactory {
     public light: BABYLON.HemisphericLight;
     public camera: BABYLON.ArcRotateCamera;
 
+    private _cachedData: Map<string, string> = new Map<string, string>();
+
     constructor(public game: Game) {
 
     }
@@ -28,19 +30,38 @@ class MiniatureFactory {
     }
 
     public async makeBrickIconString(brickId: number | string): Promise<string> {
+        let index = Brick.BrickIdToIndex(brickId);
+
+        let key = "brick_" + index.toFixed(0);
+        if (this._cachedData.get(key)) {
+            return this._cachedData.get(key);
+        }
+
         let canvas = await this.makeBrickIcon(brickId);
-        return canvas.toDataURL();
+        
+        let dataUrl = canvas.toDataURL();
+        this._cachedData.set(key, dataUrl);
+        return dataUrl;
     }
 
     public async makePaintIconString(colorId: number | string): Promise<string> {
         let index = DodoColorIdToIndex(colorId);
+
+        let key = "paint_" + index.toFixed(0);
+        if (this._cachedData.get(key)) {
+            return this._cachedData.get(key);
+        }
+
         let canvas = document.createElement("canvas");
         canvas.width = 2;
         canvas.height = 2;
         let context = canvas.getContext("2d");
         context.fillStyle = DodoColors[index].hex;
         context.fillRect(0, 0, 2, 2);
-        return canvas.toDataURL();
+
+        let dataUrl = canvas.toDataURL();
+        this._cachedData.set(key, dataUrl);
+        return dataUrl;
     }
 
     public async makeBrickIcon(brickId: number | string): Promise<HTMLCanvasElement> {

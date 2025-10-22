@@ -1242,6 +1242,7 @@ requestAnimationFrame(async () => {
 class MiniatureFactory {
     constructor(game) {
         this.game = game;
+        this._cachedData = new Map();
     }
     initialize() {
         let canvas = document.createElement("canvas");
@@ -1260,18 +1261,31 @@ class MiniatureFactory {
         //this.debugDownloadScreenshot();
     }
     async makeBrickIconString(brickId) {
+        let index = Brick.BrickIdToIndex(brickId);
+        let key = "brick_" + index.toFixed(0);
+        if (this._cachedData.get(key)) {
+            return this._cachedData.get(key);
+        }
         let canvas = await this.makeBrickIcon(brickId);
-        return canvas.toDataURL();
+        let dataUrl = canvas.toDataURL();
+        this._cachedData.set(key, dataUrl);
+        return dataUrl;
     }
     async makePaintIconString(colorId) {
         let index = DodoColorIdToIndex(colorId);
+        let key = "paint_" + index.toFixed(0);
+        if (this._cachedData.get(key)) {
+            return this._cachedData.get(key);
+        }
         let canvas = document.createElement("canvas");
         canvas.width = 2;
         canvas.height = 2;
         let context = canvas.getContext("2d");
         context.fillStyle = DodoColors[index].hex;
         context.fillRect(0, 0, 2, 2);
-        return canvas.toDataURL();
+        let dataUrl = canvas.toDataURL();
+        this._cachedData.set(key, dataUrl);
+        return dataUrl;
     }
     async makeBrickIcon(brickId) {
         let brickIndex = Brick.BrickIdToIndex(brickId);
