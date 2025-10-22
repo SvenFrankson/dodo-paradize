@@ -7,6 +7,8 @@ class PlayerActionEditBrick {
         editBrickAction.backgroundColor = "#00000080";
         editBrickAction.iconUrl = "datas/icons/move_icon.png";
 
+        let fluke = 0;
+
         let aimedObject: IAimable;
         let setAimedObject = (b: IAimable) => {
             if (b != aimedObject) {
@@ -79,8 +81,15 @@ class PlayerActionEditBrick {
                         aimedObject.dispose();
                         construction.updateMesh();
                         player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
+                        fluke = 0;
+                        return;
                     }
                 }
+            }
+            fluke++;
+            if (fluke > 3) {
+                fluke = 0;
+                player.playerActionManager.unEquipAction();
             }
         }
 
@@ -96,8 +105,15 @@ class PlayerActionEditBrick {
                         construction.updateMesh();
                         construction.saveToLocalStorage();
                         construction.saveToServer();
+                        fluke = 0;
+                        return;
                     }
                 }
+            }
+            fluke++;
+            if (fluke > 3) {
+                fluke = 0;
+                player.playerActionManager.unEquipAction();
             }
         }
 

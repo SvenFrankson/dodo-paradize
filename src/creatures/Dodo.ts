@@ -98,6 +98,8 @@ var DodoColors = [
     { name: "White", color: BABYLON.Color3.FromHexString("#ffffff"), textColor: "black", hex: "#000000" }
 ]
 
+var DodoColorDefaultIndex = DodoColors.length - 1;
+
 DodoColors.forEach(c => {
     let sum = c.color.r + c.color.g + c.color.b;
     if (sum < 2) {

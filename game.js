@@ -3800,6 +3800,7 @@ class PlayerActionEditBrick {
         let editBrickAction = new PlayerAction("edit-brick-action", player);
         editBrickAction.backgroundColor = "#00000080";
         editBrickAction.iconUrl = "datas/icons/move_icon.png";
+        let fluke = 0;
         let aimedObject;
         let setAimedObject = (b) => {
             if (b != aimedObject) {
@@ -3865,8 +3866,15 @@ class PlayerActionEditBrick {
                         aimedObject.dispose();
                         construction.updateMesh();
                         player.currentAction = await PlayerActionTemplate.CreateBrickAction(player, brickId, brickColorIndex, r, true);
+                        fluke = 0;
+                        return;
                     }
                 }
+            }
+            fluke++;
+            if (fluke > 3) {
+                fluke = 0;
+                player.playerActionManager.unEquipAction();
             }
         };
         editBrickAction.onRightPointerUp = (duration, onScreenDistance) => {
@@ -3881,8 +3889,15 @@ class PlayerActionEditBrick {
                         construction.updateMesh();
                         construction.saveToLocalStorage();
                         construction.saveToServer();
+                        fluke = 0;
+                        return;
                     }
                 }
+            }
+            fluke++;
+            if (fluke > 3) {
+                fluke = 0;
+                player.playerActionManager.unEquipAction();
             }
         };
         editBrickAction.onUnequip = () => {
@@ -4025,7 +4040,7 @@ class PlayerActionTemplate {
                     let constructionIJ = Construction.worldPosToIJ(hit.pickedPoint);
                     let construction = player.game.terrainManager.getOrCreateConstruction(constructionIJ.i, constructionIJ.j);
                     if (construction && construction.isPlayerAllowedToEdit()) {
-                        let brick = BrickFactory.NewBrick(brickIndex, isFinite(colorIndex) ? colorIndex : 0, construction);
+                        let brick = BrickFactory.NewBrick(brickIndex, isFinite(colorIndex) ? colorIndex : DodoColorDefaultIndex, construction);
                         let pos = hit.pickedPoint.add(n).subtractInPlace(construction.position);
                         brick.posI = Math.round(pos.x / BRICK_S);
                         brick.posJ = Math.round(pos.z / BRICK_S);
@@ -5574,6 +5589,7 @@ var DodoColors = [
     { name: "Misty Rose", color: BABYLON.Color3.FromHexString("#f6e8e0"), textColor: "black", hex: "#000000" },
     { name: "White", color: BABYLON.Color3.FromHexString("#ffffff"), textColor: "black", hex: "#000000" }
 ];
+var DodoColorDefaultIndex = DodoColors.length - 1;
 DodoColors.forEach(c => {
     let sum = c.color.r + c.color.g + c.color.b;
     if (sum < 2) {
