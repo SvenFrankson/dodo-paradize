@@ -248,10 +248,18 @@ class NetworkManager {
         return undefined;
     }
 
+    private _updateServerPlayerPositionCD: number = 0;
     private _updateServerPlayerListCD: number = 0;
     private _updatePositionToPeersCD: number = 0;
     private _checkDisconnectedCD: number = 0;
     public update(dt: number): void {
+        
+        this._updateServerPlayerPositionCD -= dt;
+        if (this._updateServerPlayerPositionCD < 0) {
+            this._updateServerPlayerPositionCD = 60;
+            this.connectToTiaratumServer();
+        }
+
         if (this.connectedToTiaratumServer) {
             this._updateServerPlayerListCD -= dt;
             if (this._updateServerPlayerListCD < 0) {

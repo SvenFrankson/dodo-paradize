@@ -1057,9 +1057,6 @@ class Game {
             let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
             let action = PlayerActionEditBrick.Create(playerBrain);
             playerBrain.playerActionManager.linkAction(action, 1, true);
-            for (let brickIndex = 0; brickIndex < BRICK_LIST.length; brickIndex++) {
-                this.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this));
-            }
             this.npcManager.instantiate();
         }
     }
@@ -1359,6 +1356,7 @@ class NetworkManager {
         this.receivedData = new Map();
         this.connectedToTiaratumServer = false;
         this.connectedToPeerJSServer = false;
+        this._updateServerPlayerPositionCD = 0;
         this._updateServerPlayerListCD = 0;
         this._updatePositionToPeersCD = 0;
         this._checkDisconnectedCD = 0;
@@ -1566,6 +1564,11 @@ class NetworkManager {
         return undefined;
     }
     update(dt) {
+        this._updateServerPlayerPositionCD -= dt;
+        if (this._updateServerPlayerPositionCD < 0) {
+            this._updateServerPlayerPositionCD = 60;
+            this.connectToTiaratumServer();
+        }
         if (this.connectedToTiaratumServer) {
             this._updateServerPlayerListCD -= dt;
             if (this._updateServerPlayerListCD < 0) {
@@ -1991,6 +1994,7 @@ class ScreenLoger {
         return ScreenLoger._container;
     }
     static Log(s) {
+        return;
         let line = document.createElement("div");
         line.classList.add("screen-loger-line");
         line.innerText = s;
@@ -3400,7 +3404,7 @@ class PlayerInventory {
     addItem(item) {
         let existingItem = this.items.find(it => { return it.name === item.name; });
         if (existingItem) {
-            existingItem.count += item.count;
+            //existingItem.count += item.count;
         }
         else {
             this.items.push(item);
@@ -5608,9 +5612,16 @@ class DodoInteractCollider extends BABYLON.Mesh {
         });
     }
 }
+var DodoUpdateLoopQuality;
+(function (DodoUpdateLoopQuality) {
+    DodoUpdateLoopQuality[DodoUpdateLoopQuality["Zero"] = 0] = "Zero";
+    DodoUpdateLoopQuality[DodoUpdateLoopQuality["Low"] = 1] = "Low";
+    DodoUpdateLoopQuality[DodoUpdateLoopQuality["Max"] = 2] = "Max";
+})(DodoUpdateLoopQuality || (DodoUpdateLoopQuality = {}));
 class Dodo extends Creature {
     constructor(peerId, name, game, prop) {
         super(peerId, game);
+        this.updateLoopQuality = DodoUpdateLoopQuality.Max;
         this.peerId = null;
         this.gameId = -1;
         this.role = "";
@@ -6156,6 +6167,9 @@ class Dodo extends Creature {
         });
     }
     walk() {
+        if (this.updateLoopQuality <= DodoUpdateLoopQuality.Zero) {
+            return;
+        }
         if (this.walking === 0 && this.isAlive && !this.jumping) {
             let deltaPos = this.position.subtract(this.body.position);
             let doWalk = false;
@@ -7841,7 +7855,7 @@ class NPCManager {
         this.brickMerchant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(7.21, 0.53, 3.78);
         this.brickMerchant.brain.subBrains[BrainMode.Idle].positionRadius = 0.3;
         this.brickMerchant.brain.initialize();
-        this.paintMerchant = new Dodo("paint-merchant", "LENARD ANGELO", this.game, { style: "232507230115", role: "Paint Merchant" });
+        this.paintMerchant = new Dodo("paint-merchant", "LENARD ANGELO", this.game, { style: "15090517031e", role: "Paint Merchant" });
         this.paintMerchant.brain = new Brain(this.paintMerchant, BrainMode.Idle);
         this.paintMerchant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(-4.24, 0.94, 2.67);
         this.paintMerchant.brain.subBrains[BrainMode.Idle].positionRadius = 0.3;
@@ -7916,22 +7930,41 @@ class NPCManager {
             new NPCDialogTextLine(40, "Something went wrong but I don't know what."),
             new NPCDialogTextLine(1000, "Have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
         ]);
+        let brickMerchantCount = 0;
         await this.brickMerchant.instantiate();
         this.brickMerchant.unfold();
         this.brickMerchant.setWorldPosition(this.brickMerchant.brain.subBrains[BrainMode.Idle].positionZero);
         this.game.npcDodos.push(this.brickMerchant);
         this.brickMerchant.brain.npcDialog = new NPCDialog(this.brickMerchant, [
             new NPCDialogTextLine(0, "Good Morning !"),
-            new NPCDialogTextLine(1, "My name is AGOSTINHO TIMON. I make sure every Dodo get a fair share of construction material."),
-            new NPCDialogTextLine(2, "Do you want some construction blocks ?", new NPCDialogResponse("Yes, I would like to build something.", 10), new NPCDialogResponse("No, thanks.", 100)),
-            new NPCDialogCheckLine(10, async () => {
-                for (let n = 0; n < 5; n++) {
-                    let brickIndex = Math.floor(BRICK_LIST.length * Math.random());
-                    this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
+            new NPCDialogTextLine(1, "My name is " + this.brickMerchant.name + ". I make sure every Dodo gets a fair share of construction material."),
+            new NPCDialogTextLine(2, "Blocks, Tiles, Windows, Curbs... You name it, I have it !"),
+            new NPCDialogCheckLine(3, async () => {
+                if (brickMerchantCount > 2) {
+                    return 100;
                 }
-                return 1000;
+                return 20;
             }),
-            new NPCDialogTextLine(1000, "Here you go, have fun with your Blocks, see you soon !", new NPCDialogResponse("Thanks, bye !", -1))
+            new NPCDialogTextLine(20, "Do you need Bricks ?", new NPCDialogResponse("Yes, can I have some Bricks please ?", 50), new NPCDialogResponse("No, I already have what I need.", 1000)),
+            new NPCDialogCheckLine(50, async () => {
+                if (brickMerchantCount < 2) {
+                    brickMerchantCount++;
+                    for (let n = 0; n < 5; n++) {
+                        let brickIndex = Math.floor(BRICK_LIST.length * Math.random());
+                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
+                    }
+                }
+                else {
+                    brickMerchantCount++;
+                    for (let brickIndex = 0; brickIndex < BRICK_LIST.length; brickIndex++) {
+                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
+                    }
+                }
+                return 90;
+            }),
+            new NPCDialogTextLineNextIndex(90, "There, take it and go build things ! Come back if you need more.", 1000),
+            new NPCDialogTextLineNextIndex(100, "Great ! You already have all the Bricks you need.", 1000),
+            new NPCDialogTextLine(1000, "Have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
         ]);
         let paintMerchantCount = 0;
         await this.paintMerchant.instantiate();
@@ -7953,8 +7986,8 @@ class NPCManager {
                 if (paintMerchantCount < 2) {
                     paintMerchantCount++;
                     for (let n = 0; n < 5; n++) {
-                        let brickIndex = Math.floor(DodoColors.length * Math.random());
-                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(DodoColors[brickIndex].name, InventoryCategory.Paint, this.game));
+                        let colorIndex = Math.floor(DodoColors.length * Math.random());
+                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(DodoColors[colorIndex].name, InventoryCategory.Paint, this.game));
                     }
                 }
                 else {

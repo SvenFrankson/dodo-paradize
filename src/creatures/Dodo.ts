@@ -161,8 +161,15 @@ class DodoInteractCollider extends BABYLON.Mesh {
     }
 }
 
+enum DodoUpdateLoopQuality {
+    Zero,
+    Low,
+    Max
+}
+
 class Dodo extends Creature {
 
+    public updateLoopQuality: DodoUpdateLoopQuality = DodoUpdateLoopQuality.Max;
     public peerId: string = null;
     public conn: Peer.DataConnection;
     public gameId: number = -1;
@@ -814,6 +821,9 @@ class Dodo extends Creature {
     public walking: number = 0;
     public footIndex: number = 0;
     public walk(): void {
+        if (this.updateLoopQuality <= DodoUpdateLoopQuality.Zero) {
+            return;
+        }
         if (this.walking === 0 && this.isAlive && !this.jumping) {
             let deltaPos = this.position.subtract(this.body.position);
             let doWalk = false;

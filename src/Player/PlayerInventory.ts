@@ -52,7 +52,7 @@ class PlayerInventory {
     public addItem(item: PlayerInventoryItem): void {
         let existingItem = this.items.find(it => { return it.name === item.name; });
         if (existingItem) {
-            existingItem.count += item.count;
+            //existingItem.count += item.count;
         }
         else {
             this.items.push(item);

@@ -23,7 +23,7 @@ class NPCManager {
         (this.brickMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionRadius = 0.3;
         this.brickMerchant.brain.initialize();
         
-        this.paintMerchant = new Dodo("paint-merchant", "LENARD ANGELO", this.game, { style: "232507230115", role: "Paint Merchant" });
+        this.paintMerchant = new Dodo("paint-merchant", "LENARD ANGELO", this.game, { style: "15090517031e", role: "Paint Merchant" });
         this.paintMerchant.brain = new Brain(this.paintMerchant, BrainMode.Idle);
         (this.paintMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero = new BABYLON.Vector3(-4.24, 0.94, 2.67);
         (this.paintMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionRadius = 0.3;
@@ -117,25 +117,44 @@ class NPCManager {
             )
         ]);
         
+        let brickMerchantCount: number = 0;
         await this.brickMerchant.instantiate();
         this.brickMerchant.unfold();
         this.brickMerchant.setWorldPosition((this.brickMerchant.brain.subBrains[BrainMode.Idle] as BrainIdle).positionZero);
         this.game.npcDodos.push(this.brickMerchant);
         this.brickMerchant.brain.npcDialog = new NPCDialog(this.brickMerchant, [
             new NPCDialogTextLine(0, "Good Morning !"),
-            new NPCDialogTextLine(1, "My name is AGOSTINHO TIMON. I make sure every Dodo get a fair share of construction material."),
-            new NPCDialogTextLine(2, "Do you want some construction blocks ?",
-                new NPCDialogResponse("Yes, I would like to build something.", 10),
-                new NPCDialogResponse("No, thanks.", 100),
-            ),
-            new NPCDialogCheckLine(10, async () => {
-                for (let n = 0; n < 5; n++) {
-                    let brickIndex = Math.floor(BRICK_LIST.length * Math.random());
-                    this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
+            new NPCDialogTextLine(1, "My name is " + this.brickMerchant.name + ". I make sure every Dodo gets a fair share of construction material."),
+            new NPCDialogTextLine(2, "Blocks, Tiles, Windows, Curbs... You name it, I have it !"),
+            new NPCDialogCheckLine(3, async () => {
+                if (brickMerchantCount > 2) {
+                    return 100;
                 }
-                return 1000
+                return 20;
             }),
-            new NPCDialogTextLine(1000, "Here you go, have fun with your Blocks, see you soon !",
+            new NPCDialogTextLine(20, "Do you need Bricks ?",
+                new NPCDialogResponse("Yes, can I have some Bricks please ?", 50),
+                new NPCDialogResponse("No, I already have what I need.", 1000),
+            ),
+            new NPCDialogCheckLine(50, async () => {
+                if (brickMerchantCount < 2) {
+                    brickMerchantCount++;
+                    for (let n = 0; n < 5; n++) {
+                        let brickIndex = Math.floor(BRICK_LIST.length * Math.random());
+                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
+                    }
+                }
+                else {
+                    brickMerchantCount++;
+                    for (let brickIndex = 0; brickIndex < BRICK_LIST.length; brickIndex++) {
+                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this.game));
+                    }
+                }
+                return 90;
+            }),
+            new NPCDialogTextLineNextIndex(90, "There, take it and go build things ! Come back if you need more.", 1000),
+            new NPCDialogTextLineNextIndex(100, "Great ! You already have all the Bricks you need.", 1000),
+            new NPCDialogTextLine(1000, "Have a nice day !",
                 new NPCDialogResponse("Thanks, bye !", -1)
             )
         ]);
@@ -163,8 +182,8 @@ class NPCManager {
                 if (paintMerchantCount < 2) {
                     paintMerchantCount++;
                     for (let n = 0; n < 5; n++) {
-                        let brickIndex = Math.floor(DodoColors.length * Math.random());
-                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(DodoColors[brickIndex].name, InventoryCategory.Paint, this.game));
+                        let colorIndex = Math.floor(DodoColors.length * Math.random());
+                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(DodoColors[colorIndex].name, InventoryCategory.Paint, this.game));
                     }
                 }
                 else {
