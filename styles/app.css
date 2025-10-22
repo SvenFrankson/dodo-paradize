@@ -263,6 +263,7 @@ body.vertical #dodo-color-picker {
     color: white;
     font-family: Roboto;
     font-size: 16px;
+    font-weight: 300;
     width: 800px;
     background-color: #2b2821D0;
     padding: 0px 10px 10px 10px;
@@ -290,6 +291,7 @@ body.vertical #dodo-color-picker {
     color: white;
     background-color: #2b2821;
     font-family: Roboto;
+    font-weight: 500;
     margin-bottom: 10px;
     margin-top: -1px;
     margin-left: -11px;

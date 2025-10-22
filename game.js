@@ -1087,6 +1087,7 @@ class Game {
     }
     update() {
         let rawDT = this.scene.deltaTime / 1000;
+        rawDT = Nabu.MinMax(rawDT, 0.001, 0.1);
         this.performanceWatcher.update(rawDT);
         if (isFinite(rawDT)) {
             this.globalTimer += rawDT;
