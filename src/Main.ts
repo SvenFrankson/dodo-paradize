@@ -555,19 +555,8 @@ class Game {
 
             let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
             playerBrain.playerActionManager.linkAction(action, 1);
-
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick-corner-curved_3x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("tile_4x4", InventoryCategory.Brick, this));
             
             this.npcManager.instantiate();
-
-            for (let i = 0; i < DodoColors.length; i++) {
-                playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
-            }
         }
     }
 

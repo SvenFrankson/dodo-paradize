@@ -1058,16 +1058,7 @@ class Game {
             let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
             let action = await PlayerActionTemplate.CreateBrickAction(playerBrain, "brick_4x1", 0);
             playerBrain.playerActionManager.linkAction(action, 1);
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_1x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_2x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_4x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick_6x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("brick-corner-curved_3x1", InventoryCategory.Brick, this));
-            playerBrain.inventory.addItem(new PlayerInventoryItem("tile_4x4", InventoryCategory.Brick, this));
             this.npcManager.instantiate();
-            for (let i = 0; i < DodoColors.length; i++) {
-                playerBrain.inventory.addItem(new PlayerInventoryItem(DodoColors[i].name, InventoryCategory.Paint, this));
-            }
         }
     }
     animate() {
@@ -7953,16 +7944,21 @@ class NPCManager {
         this.brickMerchant = new Dodo("brick-merchant", "AGOSTINHO TIMON", this.game, { style: "232507230115", role: "Brick Merchant" });
         this.brickMerchant.brain = new Brain(this.brickMerchant, BrainMode.Idle);
         this.brickMerchant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(7.21, 0.53, 3.78);
-        this.brickMerchant.brain.subBrains[BrainMode.Idle].positionRadius = 0.5;
+        this.brickMerchant.brain.subBrains[BrainMode.Idle].positionRadius = 0.3;
         this.brickMerchant.brain.initialize();
+        this.paintMerchant = new Dodo("paint-merchant", "LENARD ANGELO", this.game, { style: "232507230115", role: "Paint Merchant" });
+        this.paintMerchant.brain = new Brain(this.paintMerchant, BrainMode.Idle);
+        this.paintMerchant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(-4.24, 0.94, 2.67);
+        this.paintMerchant.brain.subBrains[BrainMode.Idle].positionRadius = 0.3;
+        this.paintMerchant.brain.initialize();
         this.welcomeDodo = new Dodo("welcome-dodo", "SVEN", this.game, { style: "1511280e0309", role: "New Player Orientation" });
         this.welcomeDodo.brain = new Brain(this.welcomeDodo, BrainMode.Idle);
         this.welcomeDodo.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.85, 0, 14.31);
         this.welcomeDodo.brain.initialize();
-        this.notKingDodo = new Dodo("not-king-dodo", "LUIS", this.game, { style: "232a20270409", role: "Not The King" });
+        this.notKingDodo = new Dodo("not-king-dodo", "CARLOS LUIS", this.game, { style: "232a20270409", role: "Not The King" });
         this.notKingDodo.brain = new Brain(this.notKingDodo, BrainMode.Idle);
         this.notKingDodo.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(-6.88, 2.14, 14.50);
-        this.notKingDodo.brain.subBrains[BrainMode.Idle].positionRadius = 0.5;
+        this.notKingDodo.brain.subBrains[BrainMode.Idle].positionRadius = 0.3;
         this.notKingDodo.brain.initialize();
     }
     async instantiate() {
@@ -7971,7 +7967,7 @@ class NPCManager {
         this.landServant.setWorldPosition(new BABYLON.Vector3(1.25, 0, 25.56));
         this.game.npcDodos.push(this.landServant);
         this.landServant.brain.npcDialog = new NPCDialog(this.landServant, [
-            new NPCDialogTextLine(0, "Good Morning Sir !"),
+            new NPCDialogTextLine(0, "Hi !"),
             new NPCDialogTextLine(1, "I am BOADICEA BIPIN, Head of the Departement of Urbanism and Land Survey."),
             new NPCDialogTextLine(2, "Do you wish to build on a terrain parcel ?", new NPCDialogResponse("Yes, I would like to build something.", 3), new NPCDialogResponse("No, thanks.", 100)),
             new NPCDialogTextLine(3, "Do you know the building rules in Dodopolis ?", new NPCDialogResponse("Yes, but I would love to hear it again.", 4), new NPCDialogResponse("No, what are the rules ?", 4)),
@@ -8025,7 +8021,7 @@ class NPCManager {
         this.brickMerchant.setWorldPosition(this.brickMerchant.brain.subBrains[BrainMode.Idle].positionZero);
         this.game.npcDodos.push(this.brickMerchant);
         this.brickMerchant.brain.npcDialog = new NPCDialog(this.brickMerchant, [
-            new NPCDialogTextLine(0, "Good Morning Sir !"),
+            new NPCDialogTextLine(0, "Good Morning !"),
             new NPCDialogTextLine(1, "My name is AGOSTINHO TIMON. I make sure every Dodo get a fair share of construction material."),
             new NPCDialogTextLine(2, "Do you want some construction blocks ?", new NPCDialogResponse("Yes, I would like to build something.", 10), new NPCDialogResponse("No, thanks.", 100)),
             new NPCDialogCheckLine(10, async () => {
@@ -8036,6 +8032,42 @@ class NPCManager {
                 return 1000;
             }),
             new NPCDialogTextLine(1000, "Here you go, have fun with your Blocks, see you soon !", new NPCDialogResponse("Thanks, bye !", -1))
+        ]);
+        let paintMerchantCount = 0;
+        await this.paintMerchant.instantiate();
+        this.paintMerchant.unfold();
+        this.paintMerchant.setWorldPosition(this.paintMerchant.brain.subBrains[BrainMode.Idle].positionZero);
+        this.game.npcDodos.push(this.paintMerchant);
+        this.paintMerchant.brain.npcDialog = new NPCDialog(this.paintMerchant, [
+            new NPCDialogTextLine(0, "Hello !"),
+            new NPCDialogTextLine(1, "Do you something feel like this world could use some colors ?"),
+            new NPCDialogTextLine(2, "If so, you found right place ! I am " + this.paintMerchant.name + ", pigment-maker."),
+            new NPCDialogCheckLine(3, async () => {
+                if (paintMerchantCount > 2) {
+                    return 100;
+                }
+                return 20;
+            }),
+            new NPCDialogTextLine(20, "Do you want to try some of my paint ?", new NPCDialogResponse("Yes, can I have some paint please ?", 50), new NPCDialogResponse("No, I already have what I need.", 100)),
+            new NPCDialogCheckLine(50, async () => {
+                if (paintMerchantCount < 2) {
+                    paintMerchantCount++;
+                    for (let n = 0; n < 5; n++) {
+                        let brickIndex = Math.floor(DodoColors.length * Math.random());
+                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(DodoColors[brickIndex].name, InventoryCategory.Paint, this.game));
+                    }
+                }
+                else {
+                    paintMerchantCount++;
+                    for (let colorIndex = 0; colorIndex < DodoColors.length; colorIndex++) {
+                        this.game.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(DodoColors[colorIndex].name, InventoryCategory.Paint, this.game));
+                    }
+                }
+                return 90;
+            }),
+            new NPCDialogTextLineNextIndex(90, "There, take it and add some colors to the world ! Come back if you need more.", 1000),
+            new NPCDialogTextLineNextIndex(100, "Great ! You already have all the paint you need.", 1000),
+            new NPCDialogTextLine(1000, "Have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
         ]);
         await this.welcomeDodo.instantiate();
         this.welcomeDodo.unfold();
