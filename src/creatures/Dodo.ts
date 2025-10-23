@@ -690,6 +690,8 @@ class Dodo extends Creature {
 
         this.head.position.copyFrom(p);
         this.head.position.y += this.bodyHeight + 0.5;
+
+        this.targetLook.copyFrom(this.head.position).addInPlace(this.forward.scale(5));
         
         this.feet[0].position.copyFrom(p);
         this.feet[1].position.copyFrom(p);
