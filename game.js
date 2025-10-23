@@ -8069,12 +8069,24 @@ class NPCManager {
         this.game.npcDodos.push(this.welcomeDodo);
         this.welcomeDodo.brain.npcDialog = new NPCDialog(this.welcomeDodo, [
             new NPCDialogTextLine(0, "Salut !"),
-            new NPCDialogTextLine(1, "My name is " + this.welcomeDodo.name + ". Welcome to Dodopolis."),
-            new NPCDialogTextLine(2, "If you have question about this place, I can try to answer it !", new NPCDialogResponse("What is Dodopolis ?", 10), new NPCDialogResponse("What can I do here ?", 20), new NPCDialogResponse("How does Dodopolis run ?", 30), new NPCDialogResponse("Who made Dodopolis ?", 40), new NPCDialogResponse("No thanks.", 1000)),
-            new NPCDialogTextLineNextIndex(10, "Dodopolis is a multiplayer construction game. It was made during the Revival Jam 2025, hosted by the Society of Play.", 2),
-            new NPCDialogTextLineNextIndex(20, "You can enjoy other players construction, and borrow a piece of land to create your own things.", 2),
-            new NPCDialogTextLineNextIndex(30, "Dodopolis is writen in Typescript and runs in your browser. BabylonJS is used for 3D rendering. PeerJS connects the Dodos together. A server hosts your constructions.", 2),
-            new NPCDialogTextLineNextIndex(40, "Dodopolis is developped by me, SVEN, from Tiaratum Games.", 2),
+            new NPCDialogTextLine(1, "My name is " + this.welcomeDodo.name + ". Welcome to Dodopolis !"),
+            new NPCDialogTextLine(2, "I'm glad to see you there, if you have a question about this place, I can try to answer it !"),
+            new NPCDialogTextLine(3, "What do you want to know ?", new NPCDialogResponse("What is Dodopolis ?", 10), new NPCDialogResponse("What can I do here ?", 20), new NPCDialogResponse("Where can I find Bricks and Paints ?", 30), new NPCDialogResponse("Where can I use Bricks and Paints ?", 40), new NPCDialogResponse("How does Dodopolis run ?", 100), new NPCDialogResponse("Who made Dodopolis ?", 110), new NPCDialogResponse("I saw a bug", 120), new NPCDialogResponse("Nothing...", 1000)),
+            new NPCDialogTextLineNextIndex(10, "Dodopolis the city you are currently visiting ! A place for all Dodos to enjoy.", 11),
+            new NPCDialogTextLine(11, "It is also a multiplayer construction game, made during the Revival Jam 2025, hosted by the Society of Play.", new NPCDialogResponse("Ok !", 3)),
+            new NPCDialogTextLine(20, "You can enjoy other players construction, and borrow a piece of land to create your own things.", new NPCDialogResponse("Ok !", 3)),
+            new NPCDialogTextLineNextIndex(30, "Look for the shops named 'Bricks & Blocks' and 'Paint & Pigments', then talk to the Dodos inside.", 31),
+            new NPCDialogTextLine(31, "Open your inventory with [I] to equip your findings.", new NPCDialogResponse("Ok !", 3)),
+            new NPCDialogTextLine(40, "You need to either be in the Playground Area, or borrow a piece of land to build by talking to the Urbanist, Bodicea Bipin.", new NPCDialogResponse("Ok !", 3)),
+            new NPCDialogTextLineNextIndex(100, "Dodopolis is writen in Typescript and runs in your browser.", 101),
+            new NPCDialogTextLineNextIndex(101, "BabylonJS is used for 3D rendering.", 102),
+            new NPCDialogTextLineNextIndex(102, "PeerJS connects the Dodos together.", 103),
+            new NPCDialogTextLine(103, "A simple PHP server and database hosts your constructions.", new NPCDialogResponse("Ok !", 3)),
+            new NPCDialogTextLineNextIndex(110, "Dodopolis is developped by me, Sven from Tiaratum Games.", 111),
+            new NPCDialogTextLineNextIndex(111, "It would not exist without the fantastic work of the BabylonJS developers.", 112),
+            new NPCDialogTextLineNextIndex(112, "P2P connections are possible thanks to the PeerJS developers.", 113),
+            new NPCDialogTextLine(113, "The Color palette is the Lospec 500 palette, made by the Lospec Community.", new NPCDialogResponse("Ok !", 3)),
+            new NPCDialogTextLine(120, "My bad ! You may visit www.tiaratum.com to contact me and tell me more about the issue you encountered. Thanks !", new NPCDialogResponse("Ok !", 3)),
             new NPCDialogTextLine(1000, "Thanks for hanging around, have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
         ]);
         await this.notKingDodo.instantiate();
