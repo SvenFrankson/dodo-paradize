@@ -51,6 +51,7 @@ class PlayerActionTemplate {
         }
 
         brickAction.onPointerUp = () => {
+            player.game.playerBrainPlayer.lockControl = false;
             if (player.playMode === PlayMode.Playing) {
                 let x: number;
                 let y: number;

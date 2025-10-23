@@ -278,6 +278,7 @@ body.vertical #dodo-color-picker {
   top: 10px;
   z-index: 1;
   color: lime;
+  pointer-events: none;
 }
 
 .screen-loger-line {
@@ -285,16 +286,18 @@ body.vertical #dodo-color-picker {
 }
 
 #dialog-container {
+    --dialog-container-width: min(800px, calc(100vw - 30px));
+    --dialog-container-side-padding: 10px;
     position: fixed;
-    left: calc(50vw - 400px);
+    left: calc(50vw - var(--dialog-container-width) * 0.5 - var(--dialog-container-side-padding));
     bottom: 0;
     color: white;
     font-family: Roboto;
     font-size: 16px;
     font-weight: 300;
-    width: 800px;
+    width: var(--dialog-container-width);
     background-color: #2b2821D0;
-    padding: 0px 10px 10px 10px;
+    padding: 0px var(--dialog-container-side-padding) 10px var(--dialog-container-side-padding);
     border-top: 1px solid white;
     border-left: 1px solid white;
     border-right: 1px solid white;
@@ -340,11 +343,12 @@ body.vertical #dodo-color-picker {
 }
 
 .dialog-response-line {
-    margin-left: calc((800px - 400px) * 0.5);
+    --dialog-response-line-width: min(400px, 80vw);
+    margin-left: calc((var(--dialog-container-width) - var(--dialog-response-line-width)) * 0.5);
     margin-bottom: 5px;
     border: 1px solid white;
     border-radius: 5px;
-    width: 400px;
+    width: var(--dialog-response-line-width);
     padding: 2px 0px 2px 0px;
 }
 
@@ -369,4 +373,15 @@ body.vertical #dodo-color-picker {
 .dialog-response-line .text {
     display: inline-block;
     padding-right: 20px;
+}
+
+@media (width < 1200px) {
+    .dialog-response-line .index {
+        width: 20px;
+        padding-right: 10px;
+    }
+
+    .dialog-response-line .text {
+        padding-right: 10px;
+    }
 }

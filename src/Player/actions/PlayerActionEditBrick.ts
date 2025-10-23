@@ -1,6 +1,7 @@
 class PlayerActionEditBrick {
 
     public static Create(player: BrainPlayer): PlayerAction {
+        let inputManager = player.game.inputManager;
         let actionRange: number = 6;
         let actionRangeSquared: number = actionRange * actionRange;
         let editBrickAction = new PlayerAction("edit-brick-action", player);
@@ -26,7 +27,7 @@ class PlayerActionEditBrick {
             if (player.playMode === PlayMode.Playing) {
                 let x: number;
                 let y: number;
-                if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
+                if (player.gamepadInControl || inputManager.isPointerLocked) {
                     x = player.game.canvas.width * 0.5;
                     y = player.game.canvas.height * 0.5;
                 }
@@ -67,7 +68,18 @@ class PlayerActionEditBrick {
             setAimedObject(undefined);
         }
 
+        editBrickAction.onPointerDown = async () => {
+            if (IsTouchScreen) {
+                editBrickAction.onUpdate();
+                if (aimedObject != undefined) {
+                    await editBrickAction.onPointerUp();
+                    player.game.playerBrainPlayer.lockControl = true;
+                }
+            }
+        }
+
         editBrickAction.onPointerUp = async (duration, onScreenDistance) => {
+            player.game.playerBrainPlayer.lockControl = false;
             if (onScreenDistance > 4) {
                 return;
             }

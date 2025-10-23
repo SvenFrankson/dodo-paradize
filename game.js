@@ -4023,6 +4023,7 @@ class TravelView extends HTMLElement {
 customElements.define("travel-page", TravelView);
 class PlayerActionEditBrick {
     static Create(player) {
+        let inputManager = player.game.inputManager;
         let actionRange = 6;
         let actionRangeSquared = actionRange * actionRange;
         let editBrickAction = new PlayerAction("edit-brick-action", player);
@@ -4045,7 +4046,7 @@ class PlayerActionEditBrick {
             if (player.playMode === PlayMode.Playing) {
                 let x;
                 let y;
-                if (player.gamepadInControl || player.game.inputManager.isPointerLocked) {
+                if (player.gamepadInControl || inputManager.isPointerLocked) {
                     x = player.game.canvas.width * 0.5;
                     y = player.game.canvas.height * 0.5;
                 }
@@ -4080,7 +4081,17 @@ class PlayerActionEditBrick {
             }
             setAimedObject(undefined);
         };
+        editBrickAction.onPointerDown = async () => {
+            if (IsTouchScreen) {
+                editBrickAction.onUpdate();
+                if (aimedObject != undefined) {
+                    await editBrickAction.onPointerUp();
+                    player.game.playerBrainPlayer.lockControl = true;
+                }
+            }
+        };
         editBrickAction.onPointerUp = async (duration, onScreenDistance) => {
+            player.game.playerBrainPlayer.lockControl = false;
             if (onScreenDistance > 4) {
                 return;
             }
@@ -4254,6 +4265,7 @@ class PlayerActionTemplate {
             }
         };
         brickAction.onPointerUp = () => {
+            player.game.playerBrainPlayer.lockControl = false;
             if (player.playMode === PlayMode.Playing) {
                 let x;
                 let y;
@@ -7121,6 +7133,7 @@ class BrainPlayer extends SubBrain {
         super(brain);
         this._targetQ = BABYLON.Quaternion.Identity();
         this._targetLook = BABYLON.Vector3.Zero();
+        this.lockControl = false;
         this.gamepadInControl = false;
         this._pointerDownX = -100;
         this._pointerDownY = -100;
@@ -7367,9 +7380,11 @@ class BrainPlayer extends SubBrain {
             }
             let dir = this.dodo.right.scale(moveInput.x * 0.75).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.75)));
             if (dir.lengthSquared() > 0) {
-                let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.2);
-                BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, dir.scale(this.dodo.speed), 1 - fSpeed, this.dodo.animatedSpeed);
-                this.dodo.position.addInPlace(dir.scale(this.dodo.animatedSpeed.length() * dt));
+                if (!this.lockControl) {
+                    let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.2);
+                    BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, dir.scale(this.dodo.speed), 1 - fSpeed, this.dodo.animatedSpeed);
+                    this.dodo.position.addInPlace(dir.scale(this.dodo.animatedSpeed.length() * dt));
+                }
             }
             else {
                 let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
@@ -7386,8 +7401,10 @@ class BrainPlayer extends SubBrain {
         this._smoothedRotateYAxisInput = this._smoothedRotateYAxisInput * this._pointerSmoothness + this._rotateYAxisInput * (1 - this._pointerSmoothness);
         this._rotateXAxisInput = 0;
         this._rotateYAxisInput = 0;
-        this.game.camera.verticalAngle += this._smoothedRotateXAxisInput;
-        this.dodo.rotate(BABYLON.Axis.Y, this._smoothedRotateYAxisInput);
+        if (!this.lockControl) {
+            this.game.camera.verticalAngle += this._smoothedRotateXAxisInput;
+            this.dodo.rotate(BABYLON.Axis.Y, this._smoothedRotateYAxisInput);
+        }
         let f = 1;
         if (this.game.gameMode === GameMode.Home) {
             let dir = this.game.camera.globalPosition.subtract(this.dodo.position);

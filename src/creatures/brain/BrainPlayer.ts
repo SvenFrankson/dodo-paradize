@@ -41,6 +41,7 @@ class BrainPlayer extends SubBrain {
 
     private _targetQ: BABYLON.Quaternion = BABYLON.Quaternion.Identity();
     private _targetLook: BABYLON.Vector3 = BABYLON.Vector3.Zero();
+    public lockControl: boolean = false;
 
     public gamepadInControl: boolean = false;
     private _pointerDownX: number = - 100;
@@ -292,9 +293,11 @@ class BrainPlayer extends SubBrain {
             }
             let dir = this.dodo.right.scale(moveInput.x * 0.75).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.75)));
             if (dir.lengthSquared() > 0) {
-                let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.2);
-                BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, dir.scale(this.dodo.speed), 1 - fSpeed, this.dodo.animatedSpeed);
-                this.dodo.position.addInPlace(dir.scale(this.dodo.animatedSpeed.length() * dt));
+                if (!this.lockControl) {
+                    let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.2);
+                    BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, dir.scale(this.dodo.speed), 1 - fSpeed, this.dodo.animatedSpeed);
+                    this.dodo.position.addInPlace(dir.scale(this.dodo.animatedSpeed.length() * dt));
+                }
             }
             else {
                 let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
@@ -314,8 +317,10 @@ class BrainPlayer extends SubBrain {
         this._rotateXAxisInput = 0;
         this._rotateYAxisInput = 0;
 
-        this.game.camera.verticalAngle += this._smoothedRotateXAxisInput;
-        this.dodo.rotate(BABYLON.Axis.Y, this._smoothedRotateYAxisInput);
+        if (!this.lockControl) {
+            this.game.camera.verticalAngle += this._smoothedRotateXAxisInput;
+            this.dodo.rotate(BABYLON.Axis.Y, this._smoothedRotateYAxisInput);
+        }
 
         let f = 1;
         if (this.game.gameMode === GameMode.Home) {
