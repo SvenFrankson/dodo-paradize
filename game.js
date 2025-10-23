@@ -2009,7 +2009,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
         this.dialogOffset = BABYLON.Vector3.Zero();
         this.dialogRotation = 0;
         this.minZ = 0.1;
-        this.maxZ = 1000;
+        this.maxZ = 2000;
     }
     get verticalAngle() {
         return this._verticalAngle;
@@ -6531,6 +6531,17 @@ class Dodo extends Creature {
                     }
                 }
             }
+        }
+        // panik
+        if (this.game.gameMode === GameMode.Playing && this.position.y < -5) {
+            let y = this.game.terrain.worldPosToTerrainAltitude(this.position);
+            if (y != null) {
+                this.position.y = y;
+            }
+            else {
+                this.position.y = 5;
+            }
+            this.gravityVelocity = 0;
         }
         let f = 0.5;
         let halfFeetDistance = BABYLON.Vector3.Distance(this.feet[0].position, this.feet[1].position) * 0.5;

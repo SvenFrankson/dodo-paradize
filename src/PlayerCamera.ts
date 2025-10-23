@@ -19,7 +19,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
     constructor(public game: Game) {
         super("player-camera", BABYLON.Vector3.Zero());
         this.minZ = 0.1;
-        this.maxZ = 1000;
+        this.maxZ = 2000;
     }
 
     public onUpdate(dt: number): void {
