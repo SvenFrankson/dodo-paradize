@@ -684,7 +684,7 @@ function StorageSetItem(key, value) {
 }
 var SHARE_SERVICE_PATH = "https://dodopolis.tiaratum.com/index.php/";
 if (location.host.startsWith("127.0.0.1")) {
-    SHARE_SERVICE_PATH = "http://localhost/index.php/";
+    //SHARE_SERVICE_PATH = "http://localhost/index.php/";
 }
 async function WaitPlayerInteraction() {
     return new Promise(resolve => {
@@ -720,6 +720,7 @@ let onFirstPlayerInteractionTouch = (ev) => {
     document.body.removeEventListener("touchstart", onFirstPlayerInteractionTouch);
     IsTouchScreen = 1;
     document.body.classList.add("touchscreen");
+    Game.Instance.inputManager.canLockPointer = false;
     if (!PlayerHasInteracted) {
         firstPlayerInteraction();
     }
@@ -1397,19 +1398,17 @@ class NetworkManager {
         this.connectedToTiaratumServer = false;
         this.connectedToPeerJSServer = false;
         this._networkDodosIterator = 0;
-        this._updateServerPlayerPositionCD = 0;
-        this._updateServerPlayerListCD = 0;
+        this._updateServerPlayerPositionCD = 60;
+        this._updateServerPlayerListCD = 30;
         this._updatePositionToPeersR0CD = 0;
         this._updatePositionToPeersR1CD = 0;
         this._updatePositionToPeersR2CD = 0;
         this._checkDisconnectedCD = 0;
-        ScreenLoger.Log("Create NetworkManager");
         if (window.localStorage.getItem("token")) {
             this.token = window.localStorage.getItem("token");
         }
     }
     async initialize() {
-        ScreenLoger.Log("Initialize NetworkManager");
         await this.connectToTiaratumServer();
         if (this.claimedConstructionI != null && this.claimedConstructionJ != null) {
             this.claimConstruction(this.claimedConstructionI, this.claimedConstructionJ);
@@ -1450,12 +1449,9 @@ class NetworkManager {
             let responseJSON = JSON.parse(responseText);
             this.token = responseJSON.token;
             this.connectedToTiaratumServer = true;
+            ScreenLoger.Log("Connect to Tiaratum server");
             window.localStorage.setItem("token", this.token);
             this.game.playerDodo.gameId = responseJSON.gameId;
-            console.log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
-            ScreenLoger.Log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
-            console.log("token = " + this.token);
-            ScreenLoger.Log("token = " + this.token);
         }
         catch (e) {
             console.error(e);
@@ -1463,9 +1459,9 @@ class NetworkManager {
             ScreenLoger.Log(e);
         }
     }
-    async onPeerOpen(id) {
-        ScreenLoger.Log("Open peer connection, my ID is " + id);
-        this.game.playerDodo.peerId = id;
+    async onPeerOpen(peerId) {
+        ScreenLoger.Log("Open peer connection, my peerId is " + peerId);
+        this.game.playerDodo.peerId = peerId;
         this.connectedToPeerJSServer = true;
         await this.connectToTiaratumServer();
         await this.updateServerPlayersList();
@@ -1477,9 +1473,7 @@ class NetworkManager {
                 mode: "cors"
             });
             let responseText = await responseExistingPlayers.text();
-            console.log(responseText);
             let responseJSON = JSON.parse(responseText);
-            console.log(responseJSON);
             this.serverPlayersList = responseJSON.players;
             for (let n = 0; n < responseJSON.players.length; n++) {
                 let otherPlayer = responseJSON.players[n];
@@ -1487,6 +1481,7 @@ class NetworkManager {
                     this.connectToPlayer(otherPlayer.peerId);
                 }
             }
+            ScreenLoger.Log("Update network players list. " + this.serverPlayersList.length + " player(s) to connect.");
         }
         catch (e) {
             console.error(e);
@@ -1568,7 +1563,7 @@ class NetworkManager {
             j: j,
             token: token
         };
-        ScreenLoger.Log("ClaimConstruction " + i + " " + j + " with " + token);
+        ScreenLoger.Log("Attempt to reserve Construction " + i + " " + j);
         let headers = {
             "Content-Type": "application/json",
         };
@@ -1586,6 +1581,7 @@ class NetworkManager {
                 if (response) {
                     this.game.networkManager.claimedConstructionI = response.i;
                     this.game.networkManager.claimedConstructionJ = response.j;
+                    ScreenLoger.Log("Reserve Construction " + i + " " + j);
                     SavePlayerToLocalStorage(this.game);
                     let construction = this.game.terrainManager.getConstruction(this.game.networkManager.claimedConstructionI, this.game.networkManager.claimedConstructionJ);
                     if (construction) {
@@ -2090,7 +2086,6 @@ class ScreenLoger {
         return ScreenLoger._container;
     }
     static Log(s) {
-        return;
         let line = document.createElement("div");
         line.classList.add("screen-loger-line");
         line.innerText = s;
@@ -4188,17 +4183,22 @@ class PlayerActionEmptyHand {
             if (onScreenDistance > 4) {
                 return;
             }
+            ScreenLoger.Log("PlayerActionEmptyHand.onPointerUp. aimedObject = " + (aimedObject != undefined));
             if (player.playMode === PlayMode.Playing) {
                 if (aimedObject instanceof DodoInteractCollider) {
                     if (aimedObject.dodo.brain.npcDialog) {
+                        ScreenLoger.Log("Alpha");
                         let canvas = aimedObject.dodo.game.canvas;
-                        document.exitPointerLock();
+                        player.game.inputManager.safeExitPointerLock();
+                        ScreenLoger.Log("Bravo");
                         player.game.inputManager.temporaryNoPointerLock = true;
+                        ScreenLoger.Log("Charly");
                         aimedObject.dodo.brain.npcDialog.onNextStop = () => {
                             player.game.inputManager.temporaryNoPointerLock = false;
-                            canvas.requestPointerLock();
+                            player.game.inputManager.safeRequestPointerLock();
                         };
                         aimedObject.dodo.brain.npcDialog.start();
+                        ScreenLoger.Log("Delta");
                     }
                 }
             }
@@ -6309,7 +6309,6 @@ class Dodo extends Creature {
         }
     }
     setWorldPosition(p) {
-        ScreenLoger.Log("setWorldPosition " + p);
         this.position.copyFrom(p);
         this.computeWorldMatrix(true);
         this.body.position.copyFrom(p);
@@ -7296,9 +7295,9 @@ class BrainPlayer extends SubBrain {
             }
             else {
                 if (this.game.inputManager.isPointerLocked) {
-                    document.exitPointerLock();
+                    this.game.inputManager.safeExitPointerLock();
                     this.game.playerInventoryView.onNextHide = () => {
-                        this.game.canvas.requestPointerLock();
+                        this.game.inputManager.safeRequestPointerLock();
                     };
                 }
                 this.game.playerInventoryView.show(0.2);
@@ -7310,9 +7309,9 @@ class BrainPlayer extends SubBrain {
             }
             else {
                 if (this.game.inputManager.isPointerLocked) {
-                    document.exitPointerLock();
+                    this.game.inputManager.safeExitPointerLock();
                     this.game.travelView.onNextHide = () => {
-                        this.game.canvas.requestPointerLock();
+                        this.game.inputManager.safeRequestPointerLock();
                     };
                 }
                 this.game.travelView.show(0.2);

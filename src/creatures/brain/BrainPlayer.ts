@@ -122,9 +122,9 @@ class BrainPlayer extends SubBrain {
             }
             else {
                 if (this.game.inputManager.isPointerLocked) {
-                    document.exitPointerLock();
+                    this.game.inputManager.safeExitPointerLock();
                     this.game.playerInventoryView.onNextHide = () => {
-                        this.game.canvas.requestPointerLock();
+                        this.game.inputManager.safeRequestPointerLock();
                     }
                 }
                 this.game.playerInventoryView.show(0.2);
@@ -137,9 +137,9 @@ class BrainPlayer extends SubBrain {
             }
             else {
                 if (this.game.inputManager.isPointerLocked) {
-                    document.exitPointerLock();
+                    this.game.inputManager.safeExitPointerLock();
                     this.game.travelView.onNextHide = () => {
-                        this.game.canvas.requestPointerLock();
+                        this.game.inputManager.safeRequestPointerLock();
                     }
                 }
                 this.game.travelView.show(0.2);

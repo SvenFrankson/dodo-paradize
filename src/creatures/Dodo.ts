@@ -679,7 +679,6 @@ class Dodo extends Creature {
     }
 
     public setWorldPosition(p: BABYLON.Vector3): void {
-        ScreenLoger.Log("setWorldPosition " + p)
         this.position.copyFrom(p);
 
         this.computeWorldMatrix(true);

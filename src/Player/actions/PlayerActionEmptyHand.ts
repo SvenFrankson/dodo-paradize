@@ -56,17 +56,22 @@ class PlayerActionEmptyHand {
             if (onScreenDistance > 4) {
                 return;
             }
+            ScreenLoger.Log("PlayerActionEmptyHand.onPointerUp. aimedObject = " + (aimedObject != undefined));
             if (player.playMode === PlayMode.Playing) {
                 if (aimedObject instanceof DodoInteractCollider) {
                     if (aimedObject.dodo.brain.npcDialog) {
+                        ScreenLoger.Log("Alpha");
                         let canvas = aimedObject.dodo.game.canvas;
-                        document.exitPointerLock();
+                        player.game.inputManager.safeExitPointerLock();
+                        ScreenLoger.Log("Bravo");
                         player.game.inputManager.temporaryNoPointerLock = true;
+                        ScreenLoger.Log("Charly");
                         aimedObject.dodo.brain.npcDialog.onNextStop = () => {
                             player.game.inputManager.temporaryNoPointerLock = false;
-                            canvas.requestPointerLock();
+                            player.game.inputManager.safeRequestPointerLock();
                         }
                         aimedObject.dodo.brain.npcDialog.start();
+                        ScreenLoger.Log("Delta");
                     }
                 }
             }

@@ -15,15 +15,12 @@ class NetworkManager {
     public connectedToPeerJSServer: boolean = false;
 
     constructor(public game: Game) {
-        ScreenLoger.Log("Create NetworkManager");
         if (window.localStorage.getItem("token")) {
             this.token = window.localStorage.getItem("token");
         }
     }
 
     public async initialize(): Promise<void> {
-        ScreenLoger.Log("Initialize NetworkManager");
-
         await this.connectToTiaratumServer();
 
         if (this.claimedConstructionI != null && this.claimedConstructionJ != null) {
@@ -70,13 +67,10 @@ class NetworkManager {
             this.token = responseJSON.token;
             
             this.connectedToTiaratumServer = true;
+            ScreenLoger.Log("Connect to Tiaratum server");
             window.localStorage.setItem("token", this.token);
             
             this.game.playerDodo.gameId = responseJSON.gameId;
-            console.log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
-            ScreenLoger.Log("playerDodo.gameId = " + this.game.playerDodo.gameId.toFixed(0));
-            console.log("token = " + this.token);
-            ScreenLoger.Log("token = " + this.token);
         }
         catch(e) {
             console.error(e);
@@ -85,9 +79,9 @@ class NetworkManager {
         }
     }
 
-    public async onPeerOpen(id: string): Promise<void> {
-        ScreenLoger.Log("Open peer connection, my ID is " + id);
-        this.game.playerDodo.peerId = id;
+    public async onPeerOpen(peerId: string): Promise<void> {
+        ScreenLoger.Log("Open peer connection, my peerId is " + peerId);
+        this.game.playerDodo.peerId = peerId;
         this.connectedToPeerJSServer = true;
 
         await this.connectToTiaratumServer();
@@ -102,9 +96,7 @@ class NetworkManager {
                 mode: "cors"
             });
             let responseText = await responseExistingPlayers.text();
-            console.log(responseText);
             let responseJSON = JSON.parse(responseText);
-            console.log(responseJSON);
 
             this.serverPlayersList = responseJSON.players;
             for (let n = 0; n < responseJSON.players.length; n++) {
@@ -113,6 +105,8 @@ class NetworkManager {
                     this.connectToPlayer(otherPlayer.peerId);
                 }
             }
+
+            ScreenLoger.Log("Update network players list. " + this.serverPlayersList.length + " player(s) to connect.");
         }
         catch (e) {
             console.error(e);
@@ -208,7 +202,7 @@ class NetworkManager {
             j: j,
             token: token
         }
-        ScreenLoger.Log("ClaimConstruction " + i + " " + j + " with " + token);
+        ScreenLoger.Log("Attempt to reserve Construction " + i + " " + j);
 
         let headers = {
             "Content-Type": "application/json",
@@ -227,6 +221,7 @@ class NetworkManager {
                 if (response) {
                     this.game.networkManager.claimedConstructionI = response.i;
                     this.game.networkManager.claimedConstructionJ = response.j;
+                    ScreenLoger.Log("Reserve Construction " + i + " " + j);
                     SavePlayerToLocalStorage(this.game);
                     let construction = this.game.terrainManager.getConstruction(this.game.networkManager.claimedConstructionI, this.game.networkManager.claimedConstructionJ);
                     if (construction) {
@@ -249,8 +244,8 @@ class NetworkManager {
     }
 
     private _networkDodosIterator: number = 0;
-    private _updateServerPlayerPositionCD: number = 0;
-    private _updateServerPlayerListCD: number = 0;
+    private _updateServerPlayerPositionCD: number = 60;
+    private _updateServerPlayerListCD: number = 30;
     private _updatePositionToPeersR0CD: number = 0;
     private _updatePositionToPeersR1CD: number = 0;
     private _updatePositionToPeersR2CD: number = 0;
