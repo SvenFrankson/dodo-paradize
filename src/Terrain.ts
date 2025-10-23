@@ -113,7 +113,7 @@ class Terrain {
 
             return (h0 * (1 - dj) + h1 * dj) * TILE_H;
         }
-        return 0;
+        return null;
     }
 
     public async generateChunck(iChunck: number, jChunck: number): Promise<Chunck> {

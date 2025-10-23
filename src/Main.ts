@@ -242,6 +242,7 @@ class Game {
     public colorPicker: ColorPicker;
     public playerActionView: PlayerActionView;
     public playerInventoryView: PlayerInventoryView;
+    public travelView: TravelView;
     public terrain: Terrain;
     public terrainManager: TerrainManager;
     public npcManager: NPCManager;
@@ -450,6 +451,7 @@ class Game {
         this.colorPicker.initColorButtons(this);
 
         this.playerInventoryView = document.querySelector("inventory-page") as PlayerInventoryView;
+        this.travelView = document.querySelector("travel-page") as TravelView;
         
         this.playerActionView = new PlayerActionView();
         this.homeMenuPlate = new HomeMenuPlate(this);

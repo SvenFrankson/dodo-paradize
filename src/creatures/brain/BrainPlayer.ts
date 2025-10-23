@@ -131,6 +131,21 @@ class BrainPlayer extends SubBrain {
             }
         })
 
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.TRAVEL, () => {
+            if (this.game.travelView.shown) {
+                this.game.travelView.hide(0.2);
+            }
+            else {
+                if (this.game.inputManager.isPointerLocked) {
+                    document.exitPointerLock();
+                    this.game.travelView.onNextHide = () => {
+                        this.game.canvas.requestPointerLock();
+                    }
+                }
+                this.game.travelView.show(0.2);
+            }
+        })
+
         this.game.inputManager.addMappedKeyDownListener(KeyInput.INVENTORY_PREV_CAT, () => {
             if (this.playMode === PlayMode.Inventory) {
                 this.game.playerInventoryView.setCurrentCategory(this.game.playerInventoryView.prevCategory);

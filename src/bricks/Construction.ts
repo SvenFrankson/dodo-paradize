@@ -237,6 +237,9 @@ class Construction extends BABYLON.Mesh {
         points.forEach(pt => {
             pt.addInPlace(worldOffset);
             pt.y = this.terrain.worldPosToTerrainAltitude(pt);
+            if (pt.y === null) {
+                pt.y = 0;
+            }
             pt.subtractInPlace(worldOffset);
 
         });

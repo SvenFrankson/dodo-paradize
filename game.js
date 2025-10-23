@@ -343,16 +343,17 @@ var KeyInput;
     KeyInput[KeyInput["INVENTORY_PREV_CAT"] = 15] = "INVENTORY_PREV_CAT";
     KeyInput[KeyInput["INVENTORY_NEXT_CAT"] = 16] = "INVENTORY_NEXT_CAT";
     KeyInput[KeyInput["INVENTORY_EQUIP_ITEM"] = 17] = "INVENTORY_EQUIP_ITEM";
-    KeyInput[KeyInput["NEXT_SHAPE"] = 18] = "NEXT_SHAPE";
-    KeyInput[KeyInput["ROTATE_SELECTED"] = 19] = "ROTATE_SELECTED";
-    KeyInput[KeyInput["DELETE_SELECTED"] = 20] = "DELETE_SELECTED";
-    KeyInput[KeyInput["MOVE_FORWARD"] = 21] = "MOVE_FORWARD";
-    KeyInput[KeyInput["MOVE_LEFT"] = 22] = "MOVE_LEFT";
-    KeyInput[KeyInput["MOVE_BACK"] = 23] = "MOVE_BACK";
-    KeyInput[KeyInput["MOVE_RIGHT"] = 24] = "MOVE_RIGHT";
-    KeyInput[KeyInput["JUMP"] = 25] = "JUMP";
-    KeyInput[KeyInput["MAIN_MENU"] = 26] = "MAIN_MENU";
-    KeyInput[KeyInput["WORKBENCH"] = 27] = "WORKBENCH";
+    KeyInput[KeyInput["TRAVEL"] = 18] = "TRAVEL";
+    KeyInput[KeyInput["NEXT_SHAPE"] = 19] = "NEXT_SHAPE";
+    KeyInput[KeyInput["ROTATE_SELECTED"] = 20] = "ROTATE_SELECTED";
+    KeyInput[KeyInput["DELETE_SELECTED"] = 21] = "DELETE_SELECTED";
+    KeyInput[KeyInput["MOVE_FORWARD"] = 22] = "MOVE_FORWARD";
+    KeyInput[KeyInput["MOVE_LEFT"] = 23] = "MOVE_LEFT";
+    KeyInput[KeyInput["MOVE_BACK"] = 24] = "MOVE_BACK";
+    KeyInput[KeyInput["MOVE_RIGHT"] = 25] = "MOVE_RIGHT";
+    KeyInput[KeyInput["JUMP"] = 26] = "JUMP";
+    KeyInput[KeyInput["MAIN_MENU"] = 27] = "MAIN_MENU";
+    KeyInput[KeyInput["WORKBENCH"] = 28] = "WORKBENCH";
 })(KeyInput || (KeyInput = {}));
 class GameConfiguration extends Nabu.Configuration {
     constructor(configName, game) {
@@ -388,6 +389,7 @@ class GameConfiguration extends Nabu.Configuration {
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "INVENTORY_PREV_CAT", KeyInput.INVENTORY_PREV_CAT, "GamepadBtn4"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "INVENTORY_NEXT_CAT", KeyInput.INVENTORY_NEXT_CAT, "GamepadBtn5"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "INVENTORY_EQUIP_ITEM", KeyInput.INVENTORY_EQUIP_ITEM, "GamepadBtn0"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "TRAVEL", KeyInput.TRAVEL, "KeyT"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "NEXT_SHAPE", KeyInput.NEXT_SHAPE, "KeyZ"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ROTATE_SELECTED", KeyInput.ROTATE_SELECTED, "KeyR"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "DELETE_SELECTED", KeyInput.DELETE_SELECTED, "KeyX"),
@@ -977,6 +979,7 @@ class Game {
         this.colorPicker = document.querySelector("color-picker");
         this.colorPicker.initColorButtons(this);
         this.playerInventoryView = document.querySelector("inventory-page");
+        this.travelView = document.querySelector("travel-page");
         this.playerActionView = new PlayerActionView();
         this.homeMenuPlate = new HomeMenuPlate(this);
         this.terrain = new Terrain(this);
@@ -2274,7 +2277,7 @@ class Terrain {
             let h1 = h01 * (1 - di) + h11 * di;
             return (h0 * (1 - dj) + h1 * dj) * TILE_H;
         }
-        return 0;
+        return null;
     }
     async generateChunck(iChunck, jChunck) {
         let IMap = this.worldZero + Math.floor(iChunck * TILES_PER_CHUNCK / this.mapL);
@@ -3872,6 +3875,157 @@ function LoadPlayerPositionFromLocalStorage(game) {
     }
     return false;
 }
+class TravelView extends HTMLElement {
+    constructor() {
+        super(...arguments);
+        this._loaded = false;
+        this._shown = false;
+    }
+    static get observedAttributes() {
+        return [];
+    }
+    get loaded() {
+        return this._loaded;
+    }
+    waitLoaded() {
+        return new Promise(resolve => {
+            let step = () => {
+                if (this.loaded) {
+                    resolve();
+                }
+                else {
+                    requestAnimationFrame(step);
+                }
+            };
+            step();
+        });
+    }
+    get shown() {
+        return this._shown;
+    }
+    get onLoad() {
+        return this._onLoad;
+    }
+    set onLoad(callback) {
+        this._onLoad = callback;
+        if (this._loaded) {
+            this._onLoad();
+        }
+    }
+    connectedCallback() {
+        this.style.display = "none";
+        this.style.opacity = "0";
+        this._goToDodopolisBtn = document.querySelector("#travel-dodopolis");
+        this._goToPlaygroundBtn = document.querySelector("#travel-playground");
+        this._goToParcelBtn = document.querySelector("#travel-claimed-parcel");
+        this._goToParcelInfo = document.querySelector("#travel-claimed-parcel-info");
+        this._goToDodopolisBtn.onclick = () => {
+            this.hide();
+            Game.Instance.playerDodo.setWorldPosition(new BABYLON.Vector3(8.23, 0.937, 14.25));
+            Game.Instance.playerDodo.r = -Math.PI * 0.5;
+        };
+        this._goToPlaygroundBtn.onclick = () => {
+            this.hide();
+            Game.Instance.playerDodo.setWorldPosition(new BABYLON.Vector3(1.89, 0.80, 0.17));
+            Game.Instance.playerDodo.r = Math.PI * 0.75;
+        };
+        this._goToParcelBtn.onclick = () => {
+            this.hide();
+            if (Game.Instance.networkManager.claimedConstructionI != null && Game.Instance.networkManager.claimedConstructionJ != null) {
+                let p = new BABYLON.Vector3(Game.Instance.networkManager.claimedConstructionI * Construction.SIZE_m, 5, Game.Instance.networkManager.claimedConstructionJ * Construction.SIZE_m);
+                let y = Game.Instance.terrain.worldPosToTerrainAltitude(p);
+                if (y != null) {
+                    p.y = y;
+                }
+                Game.Instance.playerDodo.setWorldPosition(p);
+                Game.Instance.playerDodo.r = Math.PI * 0.25;
+            }
+        };
+        this.exterior = document.createElement("div");
+        this.exterior.classList.add("travel-exterior");
+        this.exterior.style.display = "none";
+        this.parentElement.appendChild(this.exterior);
+        this.exterior.onclick = () => {
+            this.hide();
+        };
+    }
+    attributeChangedCallback(name, oldValue, newValue) { }
+    update() {
+        if (Game.Instance.networkManager.claimedConstructionI != null && Game.Instance.networkManager.claimedConstructionJ != null) {
+            this._goToParcelInfo.style.display = "none";
+        }
+        else {
+            this._goToParcelInfo.style.display = "";
+        }
+    }
+    async show(duration = 0.2) {
+        return new Promise((resolve) => {
+            if (!this._shown) {
+                this._shown = true;
+                this.update();
+                this.exterior.style.display = "block";
+                this.style.display = "block";
+                let opacity0 = parseFloat(this.style.opacity);
+                let opacity1 = 1;
+                let t0 = performance.now();
+                let step = () => {
+                    let t = performance.now();
+                    let dt = (t - t0) / 1000;
+                    if (dt >= duration) {
+                        this.style.opacity = "1";
+                        resolve();
+                    }
+                    else {
+                        let f = dt / duration;
+                        this.style.opacity = ((1 - f) * opacity0 + f * opacity1).toFixed(2);
+                        requestAnimationFrame(step);
+                    }
+                };
+                step();
+            }
+        });
+    }
+    async hide(duration = 0.2) {
+        if (duration === 0) {
+            this._shown = false;
+            this.exterior.style.display = "none";
+            this.style.display = "none";
+            this.style.opacity = "0";
+        }
+        else {
+            return new Promise((resolve) => {
+                if (this._shown) {
+                    this._shown = false;
+                    this.exterior.style.display = "none";
+                    this.style.display = "block";
+                    let opacity0 = parseFloat(this.style.opacity);
+                    let opacity1 = 0;
+                    let t0 = performance.now();
+                    let step = () => {
+                        let t = performance.now();
+                        let dt = (t - t0) / 1000;
+                        if (dt >= duration) {
+                            this.style.display = "none";
+                            this.style.opacity = "0";
+                            if (this.onNextHide) {
+                                this.onNextHide();
+                                this.onNextHide = undefined;
+                            }
+                            resolve();
+                        }
+                        else {
+                            let f = dt / duration;
+                            this.style.opacity = ((1 - f) * opacity0 + f * opacity1).toFixed(2);
+                            requestAnimationFrame(step);
+                        }
+                    };
+                    step();
+                }
+            });
+        }
+    }
+}
+customElements.define("travel-page", TravelView);
 class PlayerActionEditBrick {
     static Create(player) {
         let actionRange = 6;
@@ -5367,6 +5521,9 @@ class Construction extends BABYLON.Mesh {
         points.forEach(pt => {
             pt.addInPlace(worldOffset);
             pt.y = this.terrain.worldPosToTerrainAltitude(pt);
+            if (pt.y === null) {
+                pt.y = 0;
+            }
             pt.subtractInPlace(worldOffset);
         });
         //Mummu.CatmullRomClosedPathInPlace(points);
@@ -7133,6 +7290,20 @@ class BrainPlayer extends SubBrain {
                     };
                 }
                 this.game.playerInventoryView.show(0.2);
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.TRAVEL, () => {
+            if (this.game.travelView.shown) {
+                this.game.travelView.hide(0.2);
+            }
+            else {
+                if (this.game.inputManager.isPointerLocked) {
+                    document.exitPointerLock();
+                    this.game.travelView.onNextHide = () => {
+                        this.game.canvas.requestPointerLock();
+                    };
+                }
+                this.game.travelView.show(0.2);
             }
         });
         this.game.inputManager.addMappedKeyDownListener(KeyInput.INVENTORY_PREV_CAT, () => {
