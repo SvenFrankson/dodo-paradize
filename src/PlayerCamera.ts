@@ -76,10 +76,10 @@ class PlayerCamera extends BABYLON.FreeCamera {
 
                 let ray = new BABYLON.Ray(camPivot, camDir.scale(-1), this.pivotRecoil);
 
-                let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+                let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.2);
                 let pick = this.game.scene.pickWithRay(ray, (mesh => { return mesh instanceof ConstructionMesh; }));
                 if (pick && pick.hit) {
-                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + Math.max(2, pick.distance) * (1 - fRecoilSmooth);
+                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + pick.distance * (1 - fRecoilSmooth);
                 }
                 else {
                     this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + this.pivotRecoil * (1 - fRecoilSmooth);
