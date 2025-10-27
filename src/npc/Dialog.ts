@@ -149,6 +149,7 @@ class NPCDialog {
         let title = document.querySelector("#dialog-container .dialog-title");
         title.innerHTML = this.dodo.name.toLocaleUpperCase();
         this.writeLine(this.dialogLines[0]);
+        (document.querySelector("#gameplay-ui") as HTMLDivElement).style.display = "none";
     }
 
     public stop(): void {
@@ -159,6 +160,7 @@ class NPCDialog {
         if (this.linesContainer) {
             this.linesContainer.innerHTML = "";
         }
+        (document.querySelector("#gameplay-ui") as HTMLDivElement).style.display = "";
         if (this.onNextStop) {
             this.onNextStop();
             this.onNextStop = undefined;

@@ -452,7 +452,13 @@ class Game {
         this.colorPicker.initColorButtons(this);
 
         this.playerInventoryView = document.querySelector("inventory-page") as PlayerInventoryView;
+        document.querySelector("#menu-inventory-btn").addEventListener("click", () => {
+            this.inputManager.doKeyInputDown(KeyInput.INVENTORY);
+        })
         this.travelView = document.querySelector("travel-page") as TravelView;
+        document.querySelector("#menu-travel-btn").addEventListener("click", () => {
+            this.inputManager.doKeyInputDown(KeyInput.TRAVEL);
+        })
         
         this.playerActionView = new PlayerActionView();
         this.homeMenuPlate = new HomeMenuPlate(this);

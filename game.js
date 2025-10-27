@@ -980,7 +980,13 @@ class Game {
         this.colorPicker = document.querySelector("color-picker");
         this.colorPicker.initColorButtons(this);
         this.playerInventoryView = document.querySelector("inventory-page");
+        document.querySelector("#menu-inventory-btn").addEventListener("click", () => {
+            this.inputManager.doKeyInputDown(KeyInput.INVENTORY);
+        });
         this.travelView = document.querySelector("travel-page");
+        document.querySelector("#menu-travel-btn").addEventListener("click", () => {
+            this.inputManager.doKeyInputDown(KeyInput.TRAVEL);
+        });
         this.playerActionView = new PlayerActionView();
         this.homeMenuPlate = new HomeMenuPlate(this);
         this.terrain = new Terrain(this);
@@ -1576,7 +1582,6 @@ class NetworkManager {
                 body: dataString,
             });
             let responseText = await response.text();
-            console.log(responseText);
             if (responseText) {
                 let response = JSON.parse(responseText);
                 if (response) {
@@ -2087,6 +2092,7 @@ class ScreenLoger {
         return ScreenLoger._container;
     }
     static Log(s) {
+        return;
         let line = document.createElement("div");
         line.classList.add("screen-loger-line");
         line.innerText = s;
@@ -8080,6 +8086,7 @@ class NPCDialog {
         let title = document.querySelector("#dialog-container .dialog-title");
         title.innerHTML = this.dodo.name.toLocaleUpperCase();
         this.writeLine(this.dialogLines[0]);
+        document.querySelector("#gameplay-ui").style.display = "none";
     }
     stop() {
         this.game.playerBrain.inDialog = undefined;
@@ -8089,6 +8096,7 @@ class NPCDialog {
         if (this.linesContainer) {
             this.linesContainer.innerHTML = "";
         }
+        document.querySelector("#gameplay-ui").style.display = "";
         if (this.onNextStop) {
             this.onNextStop();
             this.onNextStop = undefined;
