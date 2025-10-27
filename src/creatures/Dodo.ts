@@ -939,15 +939,11 @@ class Dodo extends Creature {
         }
 
         // panik
-        if (this.game.gameMode === GameMode.Playing && this.position.y < -5) {
-            let y = this.game.terrain.worldPosToTerrainAltitude(this.position);
-            if (y != null) {
-                this.position.y = y;
+        if (this.isPlayerControlled) {
+            if (this.game.gameMode === GameMode.Playing && this.position.y < 0) {
+                let groundAltitude = this.game.terrain.worldPosToTerrainAltitude(this.position);
+                this.position.y = Math.max(this.position.y, groundAltitude);
             }
-            else {
-                this.position.y = 5;
-            }
-            this.gravityVelocity = 0;
         }
 
         let f = 0.5;
@@ -1223,11 +1219,12 @@ class Dodo extends Creature {
 
     private _chunckRange: { di0: number, di1: number, dj0: number, dj1: number } = { di0: 0, di1: 0, dj0: 0, dj1: 0 }
     public updateChunckDIDJRange(): void {
-        this._chunckRange.di0 = 0;
-        this._chunckRange.di1 = 0;
-        this._chunckRange.dj0 = 0;
-        this._chunckRange.dj1 = 0;
+        this._chunckRange.di0 = -1;
+        this._chunckRange.di1 = 1;
+        this._chunckRange.dj0 = -1;
+        this._chunckRange.dj1 = 1;
 
+        /*
         let center = this.currentChuncks[1][1];
         if (center) {
             let dx = Math.abs(this.position.x - center.position.x);
@@ -1246,6 +1243,7 @@ class Dodo extends Creature {
                 this._chunckRange.dj1++;
             }
         }
+        */
     }
 
     public needUpdateCurrentChunck(): boolean {
