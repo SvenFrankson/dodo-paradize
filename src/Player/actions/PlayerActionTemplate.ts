@@ -50,6 +50,13 @@ class PlayerActionTemplate {
             }
         }
 
+        brickAction.onPointerDown = async () => {
+            if (IsTouchScreen) {
+                brickAction.onUpdate();
+                player.game.playerBrainPlayer.lockControl = true;
+            }
+        }
+
         brickAction.onPointerUp = () => {
             player.game.playerBrainPlayer.lockControl = false;
             if (player.playMode === PlayMode.Playing) {

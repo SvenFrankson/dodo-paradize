@@ -3623,17 +3623,9 @@ class PlayerInventoryView extends HTMLElement {
         this._categoryPaintsBtn.onclick = () => {
             this.setCurrentCategory(InventoryCategory.Paint);
         };
-        this._categoryIngredientsBtn = document.createElement("div");
-        this._categoryIngredientsBtn.classList.add("category-btn");
-        this._categoryIngredientsBtn.innerHTML = "INGREDIENTS";
-        categoriesContainer.appendChild(this._categoryIngredientsBtn);
-        this._categoryIngredientsBtn.onclick = () => {
-            this.setCurrentCategory(InventoryCategory.Ingredient);
-        };
         this._categoryBtns = [
             this._categoryBricksBtn,
-            this._categoryPaintsBtn,
-            this._categoryIngredientsBtn,
+            this._categoryPaintsBtn
         ];
         this._containerFrame = document.createElement("div");
         this._containerFrame.classList.add("container-frame");
@@ -3664,6 +3656,7 @@ class PlayerInventoryView extends HTMLElement {
                 this._shown = true;
                 this.exterior.style.display = "block";
                 this.style.display = "block";
+                document.querySelector("#gameplay-move-ui").style.display = "none";
                 let opacity0 = parseFloat(this.style.opacity);
                 let opacity1 = 1;
                 let t0 = performance.now();
@@ -3697,6 +3690,7 @@ class PlayerInventoryView extends HTMLElement {
                     this._shown = false;
                     this.exterior.style.display = "none";
                     this.style.display = "block";
+                    document.querySelector("#gameplay-move-ui").style.display = "";
                     let opacity0 = parseFloat(this.style.opacity);
                     let opacity1 = 0;
                     let t0 = performance.now();
@@ -4269,6 +4263,12 @@ class PlayerActionTemplate {
             }
             if (previewMesh) {
                 previewMesh.isVisible = false;
+            }
+        };
+        brickAction.onPointerDown = async () => {
+            if (IsTouchScreen) {
+                brickAction.onUpdate();
+                player.game.playerBrainPlayer.lockControl = true;
             }
         };
         brickAction.onPointerUp = () => {

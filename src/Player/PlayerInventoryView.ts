@@ -33,7 +33,6 @@ class PlayerInventoryView extends HTMLElement implements Nabu.IPage {
     private _categoryAllBtn: HTMLDivElement;
     private _categoryBricksBtn: HTMLDivElement;
     private _categoryPaintsBtn: HTMLDivElement;
-    private _categoryIngredientsBtn: HTMLDivElement;
     private _categoryBtns: HTMLDivElement[];
     public exterior: HTMLDivElement;
 
@@ -127,19 +126,10 @@ class PlayerInventoryView extends HTMLElement implements Nabu.IPage {
         this._categoryPaintsBtn.onclick = () => {
             this.setCurrentCategory(InventoryCategory.Paint);
         }
-        
-        this._categoryIngredientsBtn = document.createElement("div");
-        this._categoryIngredientsBtn.classList.add("category-btn");
-        this._categoryIngredientsBtn.innerHTML = "INGREDIENTS";
-        categoriesContainer.appendChild(this._categoryIngredientsBtn);
-        this._categoryIngredientsBtn.onclick = () => {
-            this.setCurrentCategory(InventoryCategory.Ingredient);
-        }
 
         this._categoryBtns = [
             this._categoryBricksBtn,
-            this._categoryPaintsBtn,
-            this._categoryIngredientsBtn,
+            this._categoryPaintsBtn
         ]
 
         this._containerFrame = document.createElement("div");
@@ -179,6 +169,7 @@ class PlayerInventoryView extends HTMLElement implements Nabu.IPage {
                 this._shown = true;
                 this.exterior.style.display = "block";
                 this.style.display = "block";
+                (document.querySelector("#gameplay-move-ui") as HTMLDivElement).style.display = "none";
                 let opacity0 = parseFloat(this.style.opacity);
                 let opacity1 = 1;
                 let t0 = performance.now();
@@ -211,6 +202,7 @@ class PlayerInventoryView extends HTMLElement implements Nabu.IPage {
                     this._shown = false;
                     this.exterior.style.display = "none";
                     this.style.display = "block";
+                    (document.querySelector("#gameplay-move-ui") as HTMLDivElement).style.display = "";
                     let opacity0 = parseFloat(this.style.opacity);
                     let opacity1 = 0;
                     let t0 = performance.now();

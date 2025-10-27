@@ -159,22 +159,24 @@
 		<div id="ingame-ui" style="display: none">
 			<div id="gameplay-ui">
 				<div id="action-bar">
-					<div id="action-1" class="bar-tile"><span class="label right">1</span></div>
-					<div id="action-2" class="bar-tile"><span class="label right">2</span></div>
-					<div id="action-3" class="bar-tile"><span class="label right">3</span></div>
-					<div id="action-4" class="bar-tile"><span class="label right">4</span></div>
-					<div id="action-5" class="bar-tile"><span class="label right">5</span></div>
-					<div id="action-6" class="bar-tile"><span class="label right">6</span></div>
-					<div id="action-7" class="bar-tile"><span class="label right">7</span></div>
-					<div id="action-8" class="bar-tile"><span class="label right">8</span></div>
-					<div id="action-9" class="bar-tile"><span class="label right">9</span></div>
-					<div id="action-0" class="bar-tile"><span class="label right">0</span></div>
+					<div id="action-1" class="bar-tile"><span class="label right touchscreen-hide">1</span></div>
+					<div id="action-2" class="bar-tile"><span class="label right touchscreen-hide">2</span></div>
+					<div id="action-3" class="bar-tile"><span class="label right touchscreen-hide">3</span></div>
+					<div id="action-4" class="bar-tile"><span class="label right touchscreen-hide">4</span></div>
+					<div id="action-5" class="bar-tile"><span class="label right touchscreen-hide">5</span></div>
+					<div id="action-6" class="bar-tile"><span class="label right touchscreen-hide">6</span></div>
+					<div id="action-7" class="bar-tile"><span class="label right touchscreen-hide">7</span></div>
+					<div id="action-8" class="bar-tile"><span class="label right touchscreen-hide">8</span></div>
+					<div id="action-9" class="bar-tile"><span class="label right touchscreen-hide">9</span></div>
+					<div id="action-0" class="bar-tile"><span class="label right touchscreen-hide">0</span></div>
 				</div>
-				<touch-joystick id="touch-input-move" class="touch-joystick touchscreen-show"></touch-joystick>
-				<svg id="center-pointer" viewBox="-20 -20 40 40">
-					<line stroke="white" stroke-width="2" x1="0" x2="0" y1="-20" y2="20"></line>
-					<line stroke="white" stroke-width="2" x1="-20" x2="20" y1="0" y2="0"></line>
-				</svg>
+				<div id="gameplay-move-ui">
+					<touch-joystick id="touch-input-move" class="touch-joystick touchscreen-show"></touch-joystick>
+					<svg id="center-pointer" viewBox="-20 -20 40 40">
+						<line stroke="white" stroke-width="2" x1="0" x2="0" y1="-20" y2="20"></line>
+						<line stroke="white" stroke-width="2" x1="-20" x2="20" y1="0" y2="0"></line>
+					</svg>
+				</div>
 			</div>
 
 			<inventory-page id="inventory-page" class="panel"></inventory-page>
@@ -190,8 +192,8 @@
 			</travel-page>
 
 			<div id="menu-bar">
-				<div id="menu-travel-btn" class="bar-tile" style="background-color: white; background-image: url(datas/icons/location_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label">T</span></div>
-				<div id="menu-inventory-btn" class="bar-tile" style="background-color: white; background-image: url(datas/icons/inventory_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label">I</span></div>
+				<div id="menu-travel-btn" class="bar-tile" style="background-color: white; background-image: url(datas/icons/location_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label touchscreen-hide">T</span></div>
+				<div id="menu-inventory-btn" class="bar-tile" style="background-color: white; background-image: url(datas/icons/inventory_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label touchscreen-hide">I</span></div>
 			</div>
 
 			<div id="dialog-container" style="display: none">

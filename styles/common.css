@@ -52,15 +52,16 @@ color-picker button.selected {
 /* Inventory */
 
 inventory-page.panel {
+    --inventory-page-width: min(90svh, calc(100vw - 80px - 20px));
     position: fixed;
-    top: calc((100vh - min(90svh, 90vw) - 20px) * 0.5);
-    left: calc((100vw - min(90svh, 90vw) - 20px) * 0.5);
+    top: calc((100svh - min(90svh, 90vw)) * 0.5 - 30px);
+    left: calc(50vw - var(--inventory-page-width) * 0.5 - 10px + 30px);
     padding-top: 30px;
-    width: min(90svh, 90vw);
+    width: var(--inventory-page-width);
     height: min(90svh, 90vw);
     font-family: Roboto;
     color: white;
-    z-index: 6;
+    z-index: 3;
 }
 
 inventory-page .inventory-page-title {
@@ -164,7 +165,7 @@ inventory-page .line .equip-button {
     width: 100vw;
     height: 100svh;
     opacity: 0;
-    z-index: 5;
+    z-index: 2;
 }
 
 
@@ -180,7 +181,7 @@ travel-page.panel {
     height: fit-content;
     font-family: Roboto;
     color: white;
-    z-index: 6;
+    z-index: 3;
     text-align: center;
 }
 
@@ -237,5 +238,5 @@ travel-page button {
     width: 100vw;
     height: 100svh;
     opacity: 0;
-    z-index: 5;
+    z-index: 2;
 }
