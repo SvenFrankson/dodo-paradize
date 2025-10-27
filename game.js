@@ -987,7 +987,7 @@ class Game {
         this.terrainManager = new TerrainManager(this.terrain);
         this.npcManager = new NPCManager(this);
         this.npcManager.initialize();
-        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 2.5, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 3, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.playerBrain = this.playerDodo.brain;
@@ -1576,6 +1576,7 @@ class NetworkManager {
                 body: dataString,
             });
             let responseText = await response.text();
+            console.log(responseText);
             if (responseText) {
                 let response = JSON.parse(responseText);
                 if (response) {
@@ -2057,10 +2058,10 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 let camPivot = new BABYLON.Vector3(this.player.position.x, this.pivotHeight + this.playerPosY, this.player.position.z);
                 camPivot.addInPlace(this.dialogOffset);
                 let ray = new BABYLON.Ray(camPivot, camDir.scale(-1), this.pivotRecoil);
-                let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.3);
+                let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.2);
                 let pick = this.game.scene.pickWithRay(ray, (mesh => { return mesh instanceof ConstructionMesh; }));
                 if (pick && pick.hit) {
-                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + Math.max(2, pick.distance) * (1 - fRecoilSmooth);
+                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + pick.distance * (1 - fRecoilSmooth);
                 }
                 else {
                     this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + this.pivotRecoil * (1 - fRecoilSmooth);
@@ -6545,15 +6546,11 @@ class Dodo extends Creature {
             }
         }
         // panik
-        if (this.game.gameMode === GameMode.Playing && this.position.y < -5) {
-            let y = this.game.terrain.worldPosToTerrainAltitude(this.position);
-            if (y != null) {
-                this.position.y = y;
+        if (this.isPlayerControlled) {
+            if (this.game.gameMode === GameMode.Playing && this.position.y < 0) {
+                let groundAltitude = this.game.terrain.worldPosToTerrainAltitude(this.position);
+                this.position.y = Math.max(this.position.y, groundAltitude);
             }
-            else {
-                this.position.y = 5;
-            }
-            this.gravityVelocity = 0;
         }
         let f = 0.5;
         let halfFeetDistance = BABYLON.Vector3.Distance(this.feet[0].position, this.feet[1].position) * 0.5;
@@ -6784,10 +6781,11 @@ class Dodo extends Creature {
         this.currentConstructions[1][1] = this.game.terrainManager.getConstruction(iConstruction, jConstruction);
     }
     updateChunckDIDJRange() {
-        this._chunckRange.di0 = 0;
-        this._chunckRange.di1 = 0;
-        this._chunckRange.dj0 = 0;
-        this._chunckRange.dj1 = 0;
+        this._chunckRange.di0 = -1;
+        this._chunckRange.di1 = 1;
+        this._chunckRange.dj0 = -1;
+        this._chunckRange.dj1 = 1;
+        /*
         let center = this.currentChuncks[1][1];
         if (center) {
             let dx = Math.abs(this.position.x - center.position.x);
@@ -6797,6 +6795,7 @@ class Dodo extends Creature {
             if (dx > Chunck.SIZE_m * 0.5) {
                 this._chunckRange.di1++;
             }
+
             let dz = Math.abs(this.position.z - center.position.z);
             if (dz < Chunck.SIZE_m * 0.5) {
                 this._chunckRange.dj0--;
@@ -6805,6 +6804,7 @@ class Dodo extends Creature {
                 this._chunckRange.dj1++;
             }
         }
+        */
     }
     needUpdateCurrentChunck() {
         let center = this.currentChuncks[1][1];
@@ -8005,6 +8005,7 @@ class NPCDialog {
     constructor(dodo, dialogLines = []) {
         this.dodo = dodo;
         this.dialogLines = dialogLines;
+        this.lineDelay = 1000;
         this.dialogTimeout = 0;
     }
     get game() {
@@ -8054,12 +8055,12 @@ class NPCDialog {
                             };
                             responsesElements[n] = responseElement;
                         }
-                    }, 1000);
+                    }, this.lineDelay);
                 }
                 else {
                     setTimeout(() => {
                         this.writeLine(this.getLine(dialogLine.nextIndex));
-                    }, 1000);
+                    }, this.lineDelay);
                 }
             }
             else if (dialogLine instanceof NPCDialogCheckLine) {

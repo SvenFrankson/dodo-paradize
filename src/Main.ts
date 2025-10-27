@@ -463,7 +463,7 @@ class Game {
         this.npcManager = new NPCManager(this);
         this.npcManager.initialize();
 
-        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 2.5, stepDuration: 0.25 });
+        this.playerDodo = new Dodo("", GenerateRandomDodoName(), this, { speed: 3, stepDuration: 0.25 });
         this.playerDodo.brain = new Brain(this.playerDodo, BrainMode.Player);
         this.playerDodo.brain.initialize();
         this.playerBrain = this.playerDodo.brain;
