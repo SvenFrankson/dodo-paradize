@@ -58,6 +58,8 @@ class NPCDialogCheckLine extends NPCDialogLine {
 
 class NPCDialog {
 
+    public lineDelay: number = 1000;
+
     public get game(): Game {
         return this.dodo.game;
     }
@@ -114,12 +116,12 @@ class NPCDialog {
 
                             responsesElements[n] = responseElement;
                         }
-                    }, 1000);
+                    }, this.lineDelay);
                 }
                 else {
                     setTimeout(() => {
                         this.writeLine(this.getLine(dialogLine.nextIndex));
-                    }, 1000);
+                    }, this.lineDelay);
                 }
             }
             else if (dialogLine instanceof NPCDialogCheckLine) {
