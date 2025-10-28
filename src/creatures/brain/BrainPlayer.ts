@@ -205,7 +205,7 @@ class BrainPlayer extends SubBrain {
             if (this.currentAction) {
                 if (event.button === 0) {
                     if (this.currentAction.onPointerDown) {
-                        this.currentAction.onPointerDown();
+                        this.currentAction.onPointerDown(event);
                     }
                 }
                 else if (event.button === 2) {
@@ -217,7 +217,7 @@ class BrainPlayer extends SubBrain {
             else {
                 if (event.button === 0) {
                     if (this.defaultAction.onPointerDown) {
-                        this.defaultAction.onPointerDown();
+                        this.defaultAction.onPointerDown(event);
                     }
                 }
                 else if (event.button === 2) {

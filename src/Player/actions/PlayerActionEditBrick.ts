@@ -23,10 +23,8 @@ class PlayerActionEditBrick {
             }
         }
 
-        editBrickAction.onUpdate = () => {
-            if (player.playMode === PlayMode.Playing) {
-                let x: number;
-                let y: number;
+        let aimAtPointer = (x?: number, y?: number) => {
+            if (isNaN(x) || isNaN(y)) {
                 if (player.gamepadInControl || inputManager.isPointerLocked) {
                     x = player.game.canvas.width * 0.5;
                     y = player.game.canvas.height * 0.5;
@@ -35,45 +33,69 @@ class PlayerActionEditBrick {
                     x = player.scene.pointerX * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                     y = player.scene.pointerY * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                 }
-                let hit = player.game.scene.pick(
-                    x,
-                    y,
-                    (mesh) => {
-                        return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
-                    }
-                )
+            }
+            let hit = player.game.scene.pick(
+                x,
+                y,
+                (mesh) => {
+                    return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
+                }
+            )
 
-                if (hit.hit && hit.pickedPoint) {
-                    if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
-                        if (hit.pickedMesh instanceof ConstructionMesh) {
-                            let construction = hit.pickedMesh.construction;
-                            if (construction) {
-                                let brick = construction.getBrickForFaceId(hit.faceId);
-                                if (brick) {
-                                    setAimedObject(brick);
-                                }
-                                return;
-                            }
-                        }
-                        else if (hit.pickedMesh instanceof TextBrickMesh) {
-                            let brick = hit.pickedMesh.brick;
+            if (hit.hit && hit.pickedPoint) {
+                if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
+                    if (hit.pickedMesh instanceof ConstructionMesh) {
+                        let construction = hit.pickedMesh.construction;
+                        if (construction) {
+                            let brick = construction.getBrickForFaceId(hit.faceId);
                             if (brick) {
                                 setAimedObject(brick);
                             }
                             return;
                         }
                     }
+                    else if (hit.pickedMesh instanceof TextBrickMesh) {
+                        let brick = hit.pickedMesh.brick;
+                        if (brick) {
+                            setAimedObject(brick);
+                        }
+                        return;
+                    }
                 }
             }
             setAimedObject(undefined);
         }
 
-        editBrickAction.onPointerDown = async () => {
+        editBrickAction.onUpdate = () => {
             if (IsTouchScreen) {
-                editBrickAction.onUpdate();
-                if (aimedObject != undefined) {
-                    await editBrickAction.onPointerUp();
-                    player.game.playerBrainPlayer.lockControl = true;
+                return;
+            }
+            if (player.playMode === PlayMode.Playing) {
+                return aimAtPointer();
+            }
+            setAimedObject(undefined);
+        }
+
+        editBrickAction.onPointerDown = async (ev?: PointerEvent) => {
+            if (IsTouchScreen) {
+                if (aimedObject === undefined) {
+                    
+                }
+                else {
+                    let prevAim = aimedObject;
+                    if (ev) {
+                        aimAtPointer(ev.clientX * PerformanceWatcher.DEVICE_PIXEL_RATIO, ev.clientY * PerformanceWatcher.DEVICE_PIXEL_RATIO);
+                    }
+                    else {
+                        aimAtPointer();
+                    }
+                    if (aimedObject === prevAim) {
+                        await editBrickAction.onPointerUp();
+                        player.game.playerBrainPlayer.lockControl = true;
+                    }
+                    else {
+                        setAimedObject(undefined);
+                    }
                 }
             }
         }
@@ -84,6 +106,13 @@ class PlayerActionEditBrick {
                 return;
             }
             if (player.playMode === PlayMode.Playing) {
+                if (IsTouchScreen) {
+                    let prevAim = aimedObject;
+                    aimAtPointer();
+                    if (prevAim != aimedObject) {
+                        return;
+                    }
+                }
                 if (aimedObject instanceof Brick) {
                     let construction = aimedObject.construction;
                     if (construction && construction.isPlayerAllowedToEdit()) {

@@ -178,6 +178,7 @@ class Brick extends BABYLON.TransformNode {
     constructor(arg1: any, public colorIndex: number, construction: Construction) {
         super("brick");
         this.index = Brick.BrickIdToIndex(arg1);
+        this.name = Brick.BrickIdToName(arg1);
         if (construction) {
             this.construction = construction;
             this.construction.bricks.push(this);

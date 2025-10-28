@@ -36,7 +36,7 @@ class PlayerAction {
     public item: PlayerInventoryItem;
 
     public onUpdate: () => void;
-    public onPointerDown: () => void;
+    public onPointerDown: (ev?: PointerEvent) => void;
     public onRightPointerDown: () => void;
     public onPointerUp: (duration?: number, onScreenDistance?: number) => void;
     public onRightPointerUp: (duration?: number, onScreenDistance?: number) => void;

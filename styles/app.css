@@ -283,6 +283,7 @@ body.vertical #dodo-color-picker {
 
 .screen-loger-line {
   font-family: monospace;
+  pointer-events: none;
 }
 
 #dialog-container {
