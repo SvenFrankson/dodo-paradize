@@ -62,7 +62,10 @@ class Brick extends BABYLON.TransformNode {
             return brickID;
         }
         else {
-            return BRICK_LIST[brickID].name;
+            if (brickID >= 0 && brickID < BRICK_LIST.length) {
+                return BRICK_LIST[brickID].name;
+            }
+            return undefined;
         }
     }
 
@@ -285,10 +288,12 @@ class Brick extends BABYLON.TransformNode {
         let r = parseInt(data.substring(11, 12), 16);
 
         brick = BrickFactory.NewBrick(id, colorIndex, construction);
-        brick.posI = posI;
-        brick.posJ = posJ;
-        brick.posK = posK;
-        brick.r = r;
+        if (brick) {
+            brick.posI = posI;
+            brick.posJ = posJ;
+            brick.posK = posK;
+            brick.r = r;
+        }
 
         return brick;
     }
