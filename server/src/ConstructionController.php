@@ -125,7 +125,7 @@ class ConstructionController {
         global $nopassword;
         global $database;
         
-        $sql = "SELECT i, j FROM dodo_constructions WHERE (last_edit < DATE_SUB(NOW(), INTERVAL 60 MINUTE)) AND reserved=0 ORDER BY radial_dist_sqr ASC LIMIT 10";
+        $sql = "SELECT i, j FROM dodo_constructions WHERE (last_edit < DATE_SUB(NOW(), INTERVAL 60 MINUTE)) AND reserved=0 ORDER BY last_edit ASC, radial_dist_sqr ASC LIMIT 10";
         $conn = mysqli_connect($servername, $username, $nopassword, $database);
 
         $response['status_code_header'] = 'HTTP/1.1 200 OK';
