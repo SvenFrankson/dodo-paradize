@@ -5,6 +5,9 @@ var ADD_BRICK_ANIMATION_DURATION = 1000;
 class PlayerActionTemplate {
 
     public static async CreateBrickAction(player: BrainPlayer, brickId: number | string, colorIndex?: number, r: number = 0, thenEditBrick?: boolean): Promise<PlayerAction> {
+        let deleteDraggedBrickBtn = document.querySelector("#delete-dragged-brick") as HTMLDivElement;
+        let rotateSelectedBrickBtn = document.querySelector("#rotate-selected-brick") as HTMLDivElement;
+
         let brickIndex = Brick.BrickIdToIndex(brickId);
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
         brickAction.backgroundColor = "#000000";
@@ -54,11 +57,33 @@ class PlayerActionTemplate {
             if (IsTouchScreen) {
                 brickAction.onUpdate();
                 player.game.playerBrainPlayer.lockControl = true;
+                deleteDraggedBrickBtn.style.display = "block";
+                rotateSelectedBrickBtn.style.display = "none";
             }
         }
 
-        brickAction.onPointerUp = () => {
+        brickAction.onPointerUp = (ev?: PointerEvent) => {
             player.game.playerBrainPlayer.lockControl = false;
+            if (IsTouchScreen) {
+                let deleteDraggedBrickBtnRect = deleteDraggedBrickBtn.getBoundingClientRect();
+                if (ev) {
+                    if (ev.clientX > deleteDraggedBrickBtnRect.left && ev.clientX < deleteDraggedBrickBtnRect.right) {
+                        if (ev.clientY > deleteDraggedBrickBtnRect.top && ev.clientY < deleteDraggedBrickBtnRect.bottom) {
+                            deleteDraggedBrickBtn.style.display = "none";
+                            rotateSelectedBrickBtn.style.display = "block";
+                            if (thenEditBrick) {                
+                                player.currentAction = player.playerActionManager.linkedActions[1];
+                            }
+                            else {
+                                player.playerActionManager.unEquipAction();
+                            }
+                            return;
+                        }
+                    }
+                }
+                deleteDraggedBrickBtn.style.display = "none";
+                rotateSelectedBrickBtn.style.display = "block";
+            }
             if (player.playMode === PlayMode.Playing) {
                 let x: number;
                 let y: number;
@@ -104,7 +129,20 @@ class PlayerActionTemplate {
             r = (r + 1) % 4;
         }
 
+        rotateSelectedBrickBtn.onclick = (ev: PointerEvent) => {
+            ev.preventDefault();
+        }
+
         brickAction.onEquip = () => {
+            if (IsTouchScreen) {
+                if (!thenEditBrick) {
+                    rotateSelectedBrickBtn.style.display = "block";
+                    rotateSelectedBrickBtn.onclick = (ev: PointerEvent) => {
+                        rotateBrick();
+                        ev.preventDefault();
+                    }
+                }
+            }
             brickIndex = Brick.BrickIdToIndex(brickId);
             if (!previewMesh || previewMesh.isDisposed()) {
                 previewMesh = new BABYLON.Mesh("brick-preview-mesh");
@@ -122,6 +160,9 @@ class PlayerActionTemplate {
         }
 
         brickAction.onUnequip = () => {
+            if (IsTouchScreen) {
+                rotateSelectedBrickBtn.style.display = "none";
+            }
             if (previewMesh) {
                 previewMesh.dispose();
             }

@@ -1,6 +1,9 @@
 class PlayerActionEditBrick {
 
     public static Create(player: BrainPlayer): PlayerAction {
+        let deleteDraggedBrickBtn = document.querySelector("#delete-dragged-brick") as HTMLDivElement;
+        let rotateSelectedBrickBtn = document.querySelector("#rotate-selected-brick") as HTMLDivElement;
+        
         let inputManager = player.game.inputManager;
         let actionRange: number = 6;
         let actionRangeSquared: number = actionRange * actionRange;
@@ -78,6 +81,7 @@ class PlayerActionEditBrick {
 
         editBrickAction.onPointerDown = async (ev?: PointerEvent) => {
             if (IsTouchScreen) {
+                rotateSelectedBrickBtn.style.display = "none";
                 if (aimedObject === undefined) {
                     
                 }
@@ -90,6 +94,9 @@ class PlayerActionEditBrick {
                         aimAtPointer();
                     }
                     if (aimedObject === prevAim) {
+                        if (IsTouchScreen && aimedObject) {
+                            deleteDraggedBrickBtn.style.display = "block";
+                        }
                         await editBrickAction.onPointerUp();
                         player.game.playerBrainPlayer.lockControl = true;
                     }
@@ -110,6 +117,9 @@ class PlayerActionEditBrick {
                     let prevAim = aimedObject;
                     aimAtPointer();
                     if (prevAim != aimedObject) {
+                        if (IsTouchScreen && aimedObject) {
+                            rotateSelectedBrickBtn.style.display = "block";
+                        }
                         return;
                     }
                 }
@@ -155,6 +165,20 @@ class PlayerActionEditBrick {
             if (fluke > 3) {
                 fluke = 0;
                 player.playerActionManager.unEquipAction();
+            }
+        }
+
+        editBrickAction.onEquip = () => {
+            rotateSelectedBrickBtn.onclick = (ev: PointerEvent) => {
+                if (aimedObject instanceof Brick) {
+                    let construction = aimedObject.construction;
+                    if (construction && construction.isPlayerAllowedToEdit()) {
+                        aimedObject.r = (aimedObject.r + 1) % 4;
+                        construction.updateMesh();
+                        return;
+                    }
+                }
+                ev.preventDefault();
             }
         }
 

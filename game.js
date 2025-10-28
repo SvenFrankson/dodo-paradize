@@ -4023,6 +4023,8 @@ class TravelView extends HTMLElement {
 customElements.define("travel-page", TravelView);
 class PlayerActionEditBrick {
     static Create(player) {
+        let deleteDraggedBrickBtn = document.querySelector("#delete-dragged-brick");
+        let rotateSelectedBrickBtn = document.querySelector("#rotate-selected-brick");
         let inputManager = player.game.inputManager;
         let actionRange = 6;
         let actionRangeSquared = actionRange * actionRange;
@@ -4090,6 +4092,7 @@ class PlayerActionEditBrick {
         };
         editBrickAction.onPointerDown = async (ev) => {
             if (IsTouchScreen) {
+                rotateSelectedBrickBtn.style.display = "none";
                 if (aimedObject === undefined) {
                 }
                 else {
@@ -4101,6 +4104,9 @@ class PlayerActionEditBrick {
                         aimAtPointer();
                     }
                     if (aimedObject === prevAim) {
+                        if (IsTouchScreen && aimedObject) {
+                            deleteDraggedBrickBtn.style.display = "block";
+                        }
                         await editBrickAction.onPointerUp();
                         player.game.playerBrainPlayer.lockControl = true;
                     }
@@ -4120,6 +4126,9 @@ class PlayerActionEditBrick {
                     let prevAim = aimedObject;
                     aimAtPointer();
                     if (prevAim != aimedObject) {
+                        if (IsTouchScreen && aimedObject) {
+                            rotateSelectedBrickBtn.style.display = "block";
+                        }
                         return;
                     }
                 }
@@ -4165,6 +4174,19 @@ class PlayerActionEditBrick {
                 fluke = 0;
                 player.playerActionManager.unEquipAction();
             }
+        };
+        editBrickAction.onEquip = () => {
+            rotateSelectedBrickBtn.onclick = (ev) => {
+                if (aimedObject instanceof Brick) {
+                    let construction = aimedObject.construction;
+                    if (construction && construction.isPlayerAllowedToEdit()) {
+                        aimedObject.r = (aimedObject.r + 1) % 4;
+                        construction.updateMesh();
+                        return;
+                    }
+                }
+                ev.preventDefault();
+            };
         };
         editBrickAction.onUnequip = () => {
             setAimedObject(undefined);
@@ -4253,6 +4275,8 @@ var ACTIVE_DEBUG_PLAYER_ACTION = true;
 var ADD_BRICK_ANIMATION_DURATION = 1000;
 class PlayerActionTemplate {
     static async CreateBrickAction(player, brickId, colorIndex, r = 0, thenEditBrick) {
+        let deleteDraggedBrickBtn = document.querySelector("#delete-dragged-brick");
+        let rotateSelectedBrickBtn = document.querySelector("#rotate-selected-brick");
         let brickIndex = Brick.BrickIdToIndex(brickId);
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
         brickAction.backgroundColor = "#000000";
@@ -4295,10 +4319,32 @@ class PlayerActionTemplate {
             if (IsTouchScreen) {
                 brickAction.onUpdate();
                 player.game.playerBrainPlayer.lockControl = true;
+                deleteDraggedBrickBtn.style.display = "block";
+                rotateSelectedBrickBtn.style.display = "none";
             }
         };
-        brickAction.onPointerUp = () => {
+        brickAction.onPointerUp = (ev) => {
             player.game.playerBrainPlayer.lockControl = false;
+            if (IsTouchScreen) {
+                let deleteDraggedBrickBtnRect = deleteDraggedBrickBtn.getBoundingClientRect();
+                if (ev) {
+                    if (ev.clientX > deleteDraggedBrickBtnRect.left && ev.clientX < deleteDraggedBrickBtnRect.right) {
+                        if (ev.clientY > deleteDraggedBrickBtnRect.top && ev.clientY < deleteDraggedBrickBtnRect.bottom) {
+                            deleteDraggedBrickBtn.style.display = "none";
+                            rotateSelectedBrickBtn.style.display = "block";
+                            if (thenEditBrick) {
+                                player.currentAction = player.playerActionManager.linkedActions[1];
+                            }
+                            else {
+                                player.playerActionManager.unEquipAction();
+                            }
+                            return;
+                        }
+                    }
+                }
+                deleteDraggedBrickBtn.style.display = "none";
+                rotateSelectedBrickBtn.style.display = "block";
+            }
             if (player.playMode === PlayMode.Playing) {
                 let x;
                 let y;
@@ -4337,7 +4383,19 @@ class PlayerActionTemplate {
         let rotateBrick = () => {
             r = (r + 1) % 4;
         };
+        rotateSelectedBrickBtn.onclick = (ev) => {
+            ev.preventDefault();
+        };
         brickAction.onEquip = () => {
+            if (IsTouchScreen) {
+                if (!thenEditBrick) {
+                    rotateSelectedBrickBtn.style.display = "block";
+                    rotateSelectedBrickBtn.onclick = (ev) => {
+                        rotateBrick();
+                        ev.preventDefault();
+                    };
+                }
+            }
             brickIndex = Brick.BrickIdToIndex(brickId);
             if (!previewMesh || previewMesh.isDisposed()) {
                 previewMesh = new BABYLON.Mesh("brick-preview-mesh");
@@ -4353,6 +4411,9 @@ class PlayerActionTemplate {
             player.game.inputManager.addMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
         };
         brickAction.onUnequip = () => {
+            if (IsTouchScreen) {
+                rotateSelectedBrickBtn.style.display = "none";
+            }
             if (previewMesh) {
                 previewMesh.dispose();
             }
@@ -7227,7 +7288,7 @@ class BrainPlayer extends SubBrain {
                 if (this.currentAction) {
                     if (event.button === 0) {
                         if (this.currentAction.onPointerUp) {
-                            this.currentAction.onPointerUp(duration, onScreenDistance);
+                            this.currentAction.onPointerUp(event, duration, onScreenDistance);
                         }
                     }
                     else if (event.button === 2) {
@@ -7239,7 +7300,7 @@ class BrainPlayer extends SubBrain {
                 else {
                     if (event.button === 0) {
                         if (this.defaultAction.onPointerUp) {
-                            this.defaultAction.onPointerUp(duration, onScreenDistance);
+                            this.defaultAction.onPointerUp(event, duration, onScreenDistance);
                         }
                     }
                     else if (event.button === 2) {

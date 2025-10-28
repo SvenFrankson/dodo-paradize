@@ -235,13 +235,16 @@ body.vertical #dodo-color-picker {
     z-index: 4;
 }
 
-.bar-tile {
-    position: relative;
+.tile {
     width: 40px;
     height: 40px;
-    margin: 10px;
     border: 2px solid black;
     border-radius: 5px;
+}
+
+.bar-tile {
+    position: relative;
+    margin: 10px;
 }
 
 .bar-tile .label {
@@ -269,6 +272,31 @@ body.vertical #dodo-color-picker {
 .bar-tile.equiped {
     border: 2px solid rgb(255, 255, 255);
     outline: 2px solid rgb(255, 255, 255);
+}
+
+#delete-dragged-brick {
+    position: absolute;
+    top: 10px;
+    left: 70px;
+    width: 60px;
+    height: 60px;
+    font-size: 40px;
+    font-family: Roboto;
+    font-weight: 900;
+    text-align: center;
+    background-color: red;
+    pointer-events: none;
+}
+
+#rotate-selected-brick {
+    position: absolute;
+    top: 10px;
+    left: 70px;
+    width: 60px;
+    height: 60px;
+    font-size: 40px;
+    text-align: center;
+    background-color: white;
 }
 
 #screen-loger-container {

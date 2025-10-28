@@ -159,17 +159,20 @@
 		<div id="ingame-ui" style="display: none">
 			<div id="gameplay-ui">
 				<div id="action-bar">
-					<div id="action-1" class="bar-tile"><span class="label right touchscreen-hide">1</span></div>
-					<div id="action-2" class="bar-tile"><span class="label right touchscreen-hide">2</span></div>
-					<div id="action-3" class="bar-tile"><span class="label right touchscreen-hide">3</span></div>
-					<div id="action-4" class="bar-tile"><span class="label right touchscreen-hide">4</span></div>
-					<div id="action-5" class="bar-tile"><span class="label right touchscreen-hide">5</span></div>
-					<div id="action-6" class="bar-tile"><span class="label right touchscreen-hide">6</span></div>
-					<div id="action-7" class="bar-tile"><span class="label right touchscreen-hide">7</span></div>
-					<div id="action-8" class="bar-tile"><span class="label right touchscreen-hide">8</span></div>
-					<div id="action-9" class="bar-tile"><span class="label right touchscreen-hide">9</span></div>
-					<div id="action-0" class="bar-tile"><span class="label right touchscreen-hide">0</span></div>
+					<div id="action-1" class="tile bar-tile"><span class="label right touchscreen-hide">1</span></div>
+					<div id="action-2" class="tile bar-tile"><span class="label right touchscreen-hide">2</span></div>
+					<div id="action-3" class="tile bar-tile"><span class="label right touchscreen-hide">3</span></div>
+					<div id="action-4" class="tile bar-tile"><span class="label right touchscreen-hide">4</span></div>
+					<div id="action-5" class="tile bar-tile"><span class="label right touchscreen-hide">5</span></div>
+					<div id="action-6" class="tile bar-tile"><span class="label right touchscreen-hide">6</span></div>
+					<div id="action-7" class="tile bar-tile"><span class="label right touchscreen-hide">7</span></div>
+					<div id="action-8" class="tile bar-tile"><span class="label right touchscreen-hide">8</span></div>
+					<div id="action-9" class="tile bar-tile"><span class="label right touchscreen-hide">9</span></div>
+					<div id="action-0" class="tile bar-tile"><span class="label right touchscreen-hide">0</span></div>
+					<div id="delete-dragged-brick" class="tile touchscreen-show" style="display: none;">X</div>
+					<div id="rotate-selected-brick" class="tile touchscreen-show" style="display: none;">↻</div>
 				</div>
+				
 				<div id="gameplay-move-ui">
 					<touch-joystick id="touch-input-move" class="touch-joystick touchscreen-show"></touch-joystick>
 					<svg id="center-pointer" viewBox="-20 -20 40 40">
@@ -192,8 +195,8 @@
 			</travel-page>
 
 			<div id="menu-bar">
-				<div id="menu-travel-btn" class="bar-tile" style="background-color: white; background-image: url(datas/icons/location_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label touchscreen-hide">T</span></div>
-				<div id="menu-inventory-btn" class="bar-tile" style="background-color: white; background-image: url(datas/icons/inventory_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label touchscreen-hide">I</span></div>
+				<div id="menu-travel-btn" class="tile bar-tile" style="background-color: white; background-image: url(datas/icons/location_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label touchscreen-hide">T</span></div>
+				<div id="menu-inventory-btn" class="tile bar-tile" style="background-color: white; background-image: url(datas/icons/inventory_icon.svg); background-size: 70%; background-repeat: no-repeat; background-position: center;"><span class="label touchscreen-hide">I</span></div>
 			</div>
 
 			<div id="dialog-container" style="display: none">

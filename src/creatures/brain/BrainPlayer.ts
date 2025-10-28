@@ -247,7 +247,7 @@ class BrainPlayer extends SubBrain {
             if (this.currentAction) {
                 if (event.button === 0) {
                     if (this.currentAction.onPointerUp) {
-                        this.currentAction.onPointerUp(duration, onScreenDistance);
+                        this.currentAction.onPointerUp(event, duration, onScreenDistance);
                     }
                 }
                 else if (event.button === 2) {
@@ -259,7 +259,7 @@ class BrainPlayer extends SubBrain {
             else {
                 if (event.button === 0) {
                     if (this.defaultAction.onPointerUp) {
-                        this.defaultAction.onPointerUp(duration, onScreenDistance);
+                        this.defaultAction.onPointerUp(event, duration, onScreenDistance);
                     }
                 }
                 else if (event.button === 2) {
