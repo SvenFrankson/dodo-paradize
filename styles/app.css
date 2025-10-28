@@ -284,7 +284,10 @@ body.vertical #dodo-color-picker {
     font-family: Roboto;
     font-weight: 900;
     text-align: center;
-    background-color: red;
+    background-color: #ff0000D0;
+    background-image: url("../datas/icons/delete_icon.svg");
+    background-size: contain;
+    border-color: white;
     pointer-events: none;
 }
 
@@ -296,7 +299,10 @@ body.vertical #dodo-color-picker {
     height: 60px;
     font-size: 40px;
     text-align: center;
-    background-color: white;
+    background-color: #000000D0;
+    background-image: url("../datas/icons/rotate_icon.svg");
+    background-size: contain;
+    border-color: white;
 }
 
 #screen-loger-container {

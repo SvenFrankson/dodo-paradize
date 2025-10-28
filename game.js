@@ -2092,6 +2092,7 @@ class ScreenLoger {
         return ScreenLoger._container;
     }
     static Log(s) {
+        return;
         let line = document.createElement("div");
         line.classList.add("screen-loger-line");
         line.innerText = s;
