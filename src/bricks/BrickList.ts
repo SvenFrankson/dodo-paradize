@@ -122,5 +122,9 @@ var BRICK_LIST = [
     { name: "stairs_6x1", stackable: false, isPublic: true },
     { name: "stairs_8x1", stackable: false, isPublic: true },
     { name: "stairs_10x1", stackable: false, isPublic: true },
-    { name: "stairs_16x1", stackable: false, isPublic: true }
+    { name: "stairs_16x1", stackable: false, isPublic: true },
+
+    
+    { name: "text_8_TIARATUM", stackable: true, isPublic: false },
+    { name: "text_6_GAMES", stackable: true, isPublic: false },
 ]

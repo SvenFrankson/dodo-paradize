@@ -11,11 +11,13 @@ class BrickFactory {
     public static NewBrick(brickId: number | string, colorIndex: number, construction: Construction): Brick;
     public static NewBrick(arg1: any, colorIndex: number, construction: Construction): Brick {
         let name = Brick.BrickIdToName(arg1);
-        if (name.startsWith("text_")) {
-            return new TextBrick(arg1, colorIndex, construction);
-        }
-        else {
-            return new Brick(arg1, colorIndex, construction);
+        if (name) {
+            if (name.startsWith("text_")) {
+                return new TextBrick(arg1, colorIndex, construction);
+            }
+            else {
+                return new Brick(arg1, colorIndex, construction);
+            }
         }
     }
 }
