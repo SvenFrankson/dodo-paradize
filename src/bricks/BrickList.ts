@@ -68,20 +68,20 @@ var BRICK_LIST = [
     { name: "window-frame_2x2", stackable: false, isPublic: true },
     { name: "window-frame_2x3", stackable: false, isPublic: true },
     { name: "window-frame_2x4", stackable: false, isPublic: true },
-    { name: "window-frame_2x5", stackable: false, isPublic: true },
+    { name: "window-frame_2x6", stackable: false, isPublic: true },
     { name: "window-frame_3x2", stackable: false, isPublic: true },
     { name: "window-frame_3x3", stackable: false, isPublic: true },
     { name: "window-frame_3x4", stackable: false, isPublic: true },
-    { name: "window-frame_3x5", stackable: false, isPublic: true },
+    { name: "window-frame_3x6", stackable: false, isPublic: true },
     { name: "window-frame_4x2", stackable: false, isPublic: true },
     { name: "window-frame_4x3", stackable: false, isPublic: true },
     { name: "window-frame_4x4", stackable: false, isPublic: true },
-    { name: "window-frame_4x5", stackable: false, isPublic: true },
+    { name: "window-frame_4x6", stackable: false, isPublic: true },
 
     { name: "window-frame-corner-curved_3x2", stackable: false, isPublic: true },
     { name: "window-frame-corner-curved_3x3", stackable: false, isPublic: true },
     { name: "window-frame-corner-curved_3x4", stackable: false, isPublic: true },
-    { name: "window-frame-corner-curved_3x5", stackable: false, isPublic: true },
+    { name: "window-frame-corner-curved_3x6", stackable: false, isPublic: true },
 
     { name: "plate-quarter_1x1", stackable: false, isPublic: true },
     { name: "plate-quarter_2x2", stackable: false, isPublic: true },
@@ -114,4 +114,13 @@ var BRICK_LIST = [
     { name: "text_10_BRICKS & BLOCKS", stackable: true, isPublic: false },
     { name: "text_10_PAINT & PIGMENTS", stackable: true , isPublic: false},
     { name: "text_8_PLAYGROUND", stackable: true, isPublic: false },
+
+    { name: "stairs_1x1", stackable: false, isPublic: true },
+    { name: "stairs_2x1", stackable: false, isPublic: true },
+    { name: "stairs_3x1", stackable: false, isPublic: true },
+    { name: "stairs_4x1", stackable: false, isPublic: true },
+    { name: "stairs_6x1", stackable: false, isPublic: true },
+    { name: "stairs_8x1", stackable: false, isPublic: true },
+    { name: "stairs_10x1", stackable: false, isPublic: true },
+    { name: "stairs_16x1", stackable: false, isPublic: true }
 ]

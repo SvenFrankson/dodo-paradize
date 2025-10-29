@@ -35,11 +35,11 @@
      showgrid="false"
      units="px"
      inkscape:pagecheckerboard="true"
-     inkscape:window-width="2560"
-     inkscape:window-height="1377"
-     inkscape:window-x="1912"
-     inkscape:window-y="-8"
-     inkscape:window-maximized="1" />
+     inkscape:window-width="1540"
+     inkscape:window-height="1198"
+     inkscape:window-x="2685"
+     inkscape:window-y="208"
+     inkscape:window-maximized="0" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -58,7 +58,7 @@
      id="layer1">
     <path
        sodipodi:type="star"
-       style="fill:#000000;stroke:#fefefe;stroke-width:1.05833333;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:34.0158;paint-order:markers fill stroke"
+       style="fill:#000000;stroke:#fefefe;stroke-width:1.058;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:34.0158;paint-order:markers fill stroke"
        id="path833"
        sodipodi:sides="3"
        sodipodi:cx="16.933333"

@@ -274,6 +274,9 @@ class Construction extends BABYLON.Mesh {
 
         let border2 = BABYLON.MeshBuilder.CreateLineSystem("border2", { lines: lines, colors: colors });
         border2.parent = this.limits;
+        if (this.reserved === 1) {
+            border2.position.y += BRICK_H;
+        }
     }
 
     public hideLimits(): void {

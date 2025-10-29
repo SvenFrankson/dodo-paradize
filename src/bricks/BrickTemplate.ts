@@ -57,7 +57,7 @@ class BrickTemplate {
         else if (this.name.startsWith("wall_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
             let w = parseInt(this.name.split("_")[1].split("x")[1]);
-            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 15, w, lod);
+            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 18, w, lod);
         }
         else if (this.name.startsWith("plate_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
@@ -100,6 +100,10 @@ class BrickTemplate {
         else if (this.name.startsWith("brick-round_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
             this.vertexData = await BrickVertexDataGenerator.GetBrickRoundVertexData(l, lod);
+        }
+        else if (this.name.startsWith("stairs_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            this.vertexData = await BrickVertexDataGenerator.GetStairsVertexData(l, lod);
         }
         else if (this.name.startsWith("brick-corner-round_1x1")) {
             this.vertexData = (await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/brick-corner-round_1x1.babylon"))[0];
