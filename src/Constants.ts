@@ -4,3 +4,5 @@ var MAX_STACK: number = 6;
 
 var ONE_cm_SQUARED = 0.01 * 0.01;
 var ONE_mm_SQUARED = 0.01 * 0.01;
+
+var NO_OUTLINE_LAYERMASK = 0x10000000;

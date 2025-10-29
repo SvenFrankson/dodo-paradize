@@ -45,8 +45,8 @@ class Terrain {
 
         this.waterMaterial = new BABYLON.StandardMaterial("water-material");
         this.waterMaterial.specularColor.copyFromFloats(0.4, 0.4, 0.4);
-        this.waterMaterial.alpha = 0.5;
-        this.waterMaterial.diffuseColor.copyFromFloats(0.1, 0.3, 0.9);
+        this.waterMaterial.alpha = 0.8;
+        this.waterMaterial.diffuseColor.copyFromFloats(0.1, 0.65, 0.9);
     }
 
     private _tmpMaps: Nabu.TerrainMap[][];

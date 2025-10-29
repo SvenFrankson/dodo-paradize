@@ -57,4 +57,8 @@ void main() {
    */
 
    outColor = vec4(color * sunLightFactor, 1.);
+   
+   float r = outColor.x * 256.;
+   r = round(r / 2.) * 2. + 1.;
+   outColor.r = r / 256.;
 }

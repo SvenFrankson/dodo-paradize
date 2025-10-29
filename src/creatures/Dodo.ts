@@ -235,7 +235,7 @@ class Dodo extends Creature {
         dodo.meshes.push(mesh);
         return mesh;
     }
-    public eyeMaterial: BABYLON.StandardMaterial;
+    public eyeMaterial: ToonMaterial;
     public nameTag: BABYLON.Mesh;
     public closenessRank: number = 0;
 
@@ -349,6 +349,7 @@ class Dodo extends Creature {
             width: 1,
             height: 0.25
         });
+        this.nameTag.layerMask = NO_OUTLINE_LAYERMASK;
 
         this.setName(this.name);
 
@@ -509,7 +510,7 @@ class Dodo extends Creature {
 
     private _instantiated: boolean = false;
     public async instantiate(): Promise<void> {
-        this.material = this.game.defaultToonMaterial;
+        this.material = this.game.defaultToonNoOutlineMaterial;
 
         this.body.material = this.material;
         this.head.material = this.material;
@@ -518,9 +519,12 @@ class Dodo extends Creature {
         if (this.eyeMaterial) {
             this.eyeMaterial.dispose(true, true);
         }
-
-        this.eyeMaterial = new BABYLON.StandardMaterial("eye-material");
-        this.eyeMaterial.specularColor.copyFromFloats(0, 0, 0);
+        
+        this.eyeMaterial = new ToonMaterial("name-tag-material", this._scene);
+        this.eyeMaterial.setNoColorOutline(true);
+        this.eyeMaterial.setDiffuseSharpness(-1);
+        this.eyeMaterial.setDiffuseCount(2);
+        this.eyeMaterial.setAutoLight(1);
 
         let eyeTexture = new BABYLON.DynamicTexture("eye-texture", 256);
         let context = eyeTexture.getContext();
@@ -554,8 +558,7 @@ class Dodo extends Creature {
 
         eyeTexture.update();
 
-        this.eyeMaterial.diffuseTexture = eyeTexture;
-        this.eyeMaterial.emissiveColor.copyFromFloats(1, 1, 1);
+        this.eyeMaterial.setDiffuseTexture(eyeTexture);
         this.eyes[0].material = this.eyeMaterial;
         this.eyes[1].material = this.eyeMaterial;
 
@@ -716,7 +719,7 @@ class Dodo extends Creature {
         while (t - t0 < duration) {
             await this.animateWait(0.04);
             await this.animateWait(0.08);
-            this.body.material = this.game.defaultToonMaterial;
+            this.body.material = this.game.defaultToonNoOutlineMaterial;
             await this.animateWait(0.04);
         }
     }
@@ -1136,9 +1139,15 @@ class Dodo extends Creature {
             let cam = this.game.camera;
             let dir = this.nameTag.position.subtract(cam.position);
             let dist = dir.length();
-            this.nameTag.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
-            let size = Nabu.MinMax(dist / 20, 0, 1) * 2 + 1;
-            this.nameTag.scaling.copyFromFloats(size, size, size);
+            if (dist > 15) {
+                this.nameTag.isVisible = false;
+            }
+            else {
+                this.nameTag.isVisible = true;
+                this.nameTag.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
+                let size = Nabu.MinMax(dist / 15, 0, 1) * 2 + 1;
+                this.nameTag.scaling.copyFromFloats(size, size, size);
+            }
         }
 
         if (this.updateLoopQuality === DodoUpdateLoopQuality.Max) {

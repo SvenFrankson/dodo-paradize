@@ -21,9 +21,10 @@ class TextBrickMesh extends BABYLON.Mesh {
     }
 
     public updateMaterial(): void {
-        let material = new BABYLON.StandardMaterial("name-tag-material");
-        material.emissiveColor.copyFromFloats(0.2, 0.2, 0.2);
-        material.specularColor.copyFromFloats(0, 0, 0);
+        let material = new ToonMaterial("name-tag-material", this._scene);
+        material.setNoColorOutline(true);
+        material.setDiffuseSharpness(-1);
+        material.setDiffuseCount(2);
         
         let h = 64;
         let w = this.brick.w * h / (3 * BRICK_H) * BRICK_S;
@@ -41,7 +42,7 @@ class TextBrickMesh extends BABYLON.Mesh {
         context.fillText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
         
         texture.update();
-        material.diffuseTexture = texture;
+        material.setDiffuseTexture(texture);
 
         this.material = material;
     }
@@ -273,6 +274,7 @@ class Construction extends BABYLON.Mesh {
         //}
 
         let border2 = BABYLON.MeshBuilder.CreateLineSystem("border2", { lines: lines, colors: colors });
+        border2.layerMask = NO_OUTLINE_LAYERMASK;
         border2.parent = this.limits;
         if (this.reserved === 1) {
             border2.position.y += BRICK_H;

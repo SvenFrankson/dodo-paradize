@@ -43,6 +43,7 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
         this._blackTexture.wrapV = 1;
         
         this.updateUseVertexColor();
+        this.updateNoColorOutline();
         this.updateUseLightFromPOV();
         this.updateAutoLight();
         this.updateDiffuseSharpness();
@@ -93,6 +94,18 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
     }
     public updateUseVertexColor(): void {
         this.setInt("useVertexColor", this._useVertexColor ? 1 : 0);
+    }
+
+    private _noColorOutline: boolean = false;
+    public get noColorOutline(): boolean {
+        return this._noColorOutline;
+    }
+    public setNoColorOutline(b: boolean) {
+        this._noColorOutline = b;
+        this.updateNoColorOutline();
+    }
+    public updateNoColorOutline(): void {
+        this.setInt("noColorOutline", this._noColorOutline ? 1 : 0);
     }
 
     private _useLightFromPOV: boolean = false;

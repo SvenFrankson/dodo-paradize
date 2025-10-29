@@ -501,6 +501,7 @@ class BrickVertexDataGenerator {
     }
 
     public static AddMarginInPlace(vertexData: BABYLON.VertexData, margin: number = 0.001, cx: number = 0, cy: number = BRICK_H * 0.5, cz: number = 0): void {
+        return;
         let positions = vertexData.positions;
         for (let i = 0; i < positions.length / 3; i++) {
             let x = positions[3 * i];

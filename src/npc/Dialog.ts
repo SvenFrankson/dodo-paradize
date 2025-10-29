@@ -142,6 +142,60 @@ class NPCDialog {
     }
 
     public start(): void {
+        let dir = this.game.playerDodo.position.subtract(this.dodo.position).normalize();
+        let center = this.dodo.position.add(dir.scale(1.25));
+        center.y += 0.5;
+
+        let hits = [];
+        for (let a = 0; a < 32; a++) {
+            let rayDir = this.game.playerDodo.forward.scale(- 1);
+            Mummu.RotateInPlace(rayDir, this.game.playerDodo.right, Math.PI / 8);
+            let alpha = a / 32 * 2 * Math.PI;
+            Mummu.RotateInPlace(rayDir, BABYLON.Axis.Y, alpha);
+            let ray = new BABYLON.Ray(center, rayDir, 4);
+            let pick = this.game.scene.pickWithRay(ray, (mesh => { return mesh instanceof ConstructionMesh; }));
+            if (pick && pick.hit) {
+                hits[a] = 0;
+            }
+            else {
+                hits[a] = 1;
+            }
+        }
+
+        for (let loop = 0; loop < 32; loop++) {
+            for (let n = 0; n < 32; n++) {
+                let v = hits[n];
+                if (v > 0) {
+                    let prev = hits[(n - 1 + 32) % 32];
+                    let next = hits[(n + 1) % 32];
+                    if (prev > 0 && next > 0) {
+                        hits[n] = Math.max(v, Math.min(prev + 1, next + 1));
+                    }
+                }
+            }
+        }
+
+        for (let a = 0; a < 32; a++) {
+            let alpha = a / 32 * 2 * Math.PI;
+            if (hits[a] > 0) {
+                hits[a] += 3 * Math.abs(Math.sin(alpha));
+            }
+        }
+        
+        let bestN = 8;
+        let bestV = hits[8];
+        for (let n = 0; n < 32; n++) {
+            if (hits[n] > bestV) {
+                bestN = n;
+                bestV = hits[n];
+            }
+        }
+
+        this.game.camera.bestDialogRotation = bestN / 32 * 2 * Math.PI;
+        if (this.game.camera.bestDialogRotation > Math.PI) {
+            this.game.camera.bestDialogRotation -= 2 * Math.PI;
+        }
+
         this.game.playerBrain.inDialog = this;
         this.container = document.querySelector("#dialog-container");
         this.container.style.display = "block";

@@ -46,8 +46,7 @@ class OutlinePostProcess {
 			void main(void) 
 			{
 				vec4 d = texture2D(depthSampler, vUV);
-				float depth = d.r * (1000.0 - 0.1) + 0.1;
-				float depthFactor = d.r;
+				float depthFactor = min(d.r * 5., 1.);
 				
 				float nD[9];
 				make_kernel_depth( nD, depthSampler, vUV );
@@ -62,13 +61,14 @@ class OutlinePostProcess {
 				vec4 sobel = sqrt((sobel_edge_h * sobel_edge_h) + (sobel_edge_v * sobel_edge_v));
 				
 				gl_FragColor = n[4];
-				if (max(sobel.r, max(sobel.g, sobel.b)) > 20. * depthFactor) {
-					gl_FragColor = n[4] * 0.9;
-					gl_FragColor.a = 1.0;
+				int r = int(round(gl_FragColor.r * 256.));
+				if (r % 2 == 1) {
+					if (max(sobel.r, max(sobel.g, sobel.b)) > 1. + 0.25 * depthFactor) {
+						gl_FragColor = vec4(0., 0., 0., 1.) * (1. - depthFactor) + n[4] * depthFactor;
+					}
 				}
-				if (sobel_depth > 0.2 * depthFactor) {
-					//gl_FragColor = vec4(0.);
-					//gl_FragColor.a = 1.0;
+				if (sobel_depth > 0.0005 + 0.05 * depthFactor) {
+					gl_FragColor = vec4(0., 0., 0., 1.) * (1. - depthFactor) + n[4] * depthFactor;
 				}
 			}
         `;
@@ -81,6 +81,7 @@ class OutlinePostProcess {
 			effect.setFloat("width", engine.getRenderWidth());
 			effect.setFloat("height", engine.getRenderHeight());
 		};
+    	new BABYLON.FxaaPostProcess("fxaa", 1, camera, undefined, engine, false);
 		return postProcess;
     }
 }

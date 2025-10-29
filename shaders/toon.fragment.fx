@@ -18,6 +18,7 @@ uniform vec3 specular;
 uniform float specularCount;
 uniform float specularPower;
 uniform int useFlatSpecular;
+uniform int noColorOutline;
 
 in vec3 vPositionW;
 in vec3 vNormalW;
@@ -68,4 +69,14 @@ void main() {
 	lightFactor = max(lightFactor, autoLight);
 
 	outColor = vec4(color * lightFactor + specular * specularValue, alpha + specularValue);
+	if (noColorOutline == 1) {
+		float r = outColor.x * 256.;
+		r = round(r / 2.) * 2.;
+		outColor.r = r / 256.;
+	}
+	else {
+		float r = outColor.x * 256.;
+		r = round(r / 2.) * 2. + 1.;
+		outColor.r = r / 256.;
+	}
 }

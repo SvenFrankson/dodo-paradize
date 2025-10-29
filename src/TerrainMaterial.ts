@@ -23,6 +23,10 @@ class TerrainMaterial extends BABYLON.ShaderMaterial {
         this.setColor3("grassColor", BABYLON.Color3.FromHexString("#7c8d4c"));
         this.setColor3("dirtColor", BABYLON.Color3.FromHexString("#725428"));
         this.setColor3("sandColor", BABYLON.Color3.FromHexString("#f0f0b5"));
+
+        this.setColor3("grassColor", BABYLON.Color3.FromHexString("#5ab552"));
+        this.setColor3("dirtColor", BABYLON.Color3.FromHexString("#6e4c30"));
+        this.setColor3("sandColor", BABYLON.Color3.FromHexString("#e8d282"));
     }
 
     public getLightInvDir(): BABYLON.Vector3 {

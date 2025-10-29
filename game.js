@@ -308,6 +308,7 @@ var BRICKS_PER_CONSTRUCTION = 32;
 var MAX_STACK = 6;
 var ONE_cm_SQUARED = 0.01 * 0.01;
 var ONE_mm_SQUARED = 0.01 * 0.01;
+var NO_OUTLINE_LAYERMASK = 0x10000000;
 class DevMode {
     constructor(game) {
         this.game = game;
@@ -916,7 +917,6 @@ class Game {
         skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
         this.skybox.material = skyboxMaterial;
         this.camera = new PlayerCamera(this);
-        //OutlinePostProcess.AddOutlinePostProcess(this.camera);
         if (window.localStorage.getItem("camera-position")) {
             let positionItem = JSON.parse(window.localStorage.getItem("camera-position"));
             let position = new BABYLON.Vector3(positionItem.x, positionItem.y, positionItem.z);
@@ -998,8 +998,14 @@ class Game {
         });
         this.defaultToonMaterial = new ToonMaterial("default-toon-material", this.scene);
         this.defaultToonMaterial.setUseVertexColor(true);
+        this.defaultToonMaterial.setNoColorOutline(false);
         this.defaultToonMaterial.setDiffuseSharpness(-1);
         this.defaultToonMaterial.setDiffuseCount(2);
+        this.defaultToonNoOutlineMaterial = new ToonMaterial("default-toon-material", this.scene);
+        this.defaultToonNoOutlineMaterial.setUseVertexColor(true);
+        this.defaultToonNoOutlineMaterial.setNoColorOutline(true);
+        this.defaultToonNoOutlineMaterial.setDiffuseSharpness(-1);
+        this.defaultToonNoOutlineMaterial.setDiffuseCount(2);
         this.defaultHighlightMaterial = new BABYLON.StandardMaterial("default-highlight-material", this.scene);
         this.defaultHighlightMaterial.emissiveColor.copyFromFloats(1, 1, 1);
         this.defaultHighlightMaterial.specularColor.copyFromFloats(0, 0, 0);
@@ -1891,8 +1897,7 @@ class OutlinePostProcess {
 			void main(void) 
 			{
 				vec4 d = texture2D(depthSampler, vUV);
-				float depth = d.r * (1000.0 - 0.1) + 0.1;
-				float depthFactor = d.r;
+				float depthFactor = min(d.r * 5., 1.);
 				
 				float nD[9];
 				make_kernel_depth( nD, depthSampler, vUV );
@@ -1907,13 +1912,14 @@ class OutlinePostProcess {
 				vec4 sobel = sqrt((sobel_edge_h * sobel_edge_h) + (sobel_edge_v * sobel_edge_v));
 				
 				gl_FragColor = n[4];
-				if (max(sobel.r, max(sobel.g, sobel.b)) > 20. * depthFactor) {
-					gl_FragColor = n[4] * 0.9;
-					gl_FragColor.a = 1.0;
+				int r = int(round(gl_FragColor.r * 256.));
+				if (r % 2 == 1) {
+					if (max(sobel.r, max(sobel.g, sobel.b)) > 1. + 0.25 * depthFactor) {
+						gl_FragColor = vec4(0., 0., 0., 1.) * (1. - depthFactor) + n[4] * depthFactor;
+					}
 				}
-				if (sobel_depth > 0.2 * depthFactor) {
-					//gl_FragColor = vec4(0.);
-					//gl_FragColor.a = 1.0;
+				if (sobel_depth > 0.0005 + 0.05 * depthFactor) {
+					gl_FragColor = vec4(0., 0., 0., 1.) * (1. - depthFactor) + n[4] * depthFactor;
 				}
 			}
         `;
@@ -1924,6 +1930,7 @@ class OutlinePostProcess {
             effect.setFloat("width", engine.getRenderWidth());
             effect.setFloat("height", engine.getRenderHeight());
         };
+        new BABYLON.FxaaPostProcess("fxaa", 1, camera, undefined, engine, false);
         return postProcess;
     }
 }
@@ -2039,6 +2046,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
     constructor(game) {
         super("player-camera", BABYLON.Vector3.Zero());
         this.game = game;
+        this.useOutline = true;
         this._verticalAngle = 0;
         this.pivotHeight = 1.7;
         this.pivotHeightHome = 0.5;
@@ -2047,8 +2055,44 @@ class PlayerCamera extends BABYLON.FreeCamera {
         this.playerPosY = 0;
         this.dialogOffset = BABYLON.Vector3.Zero();
         this.dialogRotation = 0;
+        this.bestDialogRotation = Math.PI * 0.5;
         this.minZ = 0.2;
         this.maxZ = 2000;
+        if (this.useOutline) {
+            const rtt = new BABYLON.RenderTargetTexture('render target', { width: this.game.engine.getRenderWidth(), height: this.game.engine.getRenderHeight() }, this.game.scene);
+            rtt.samples = 1;
+            this.outputRenderTarget = rtt;
+            this.noOutlineCamera = new BABYLON.FreeCamera("no-outline-camera", BABYLON.Vector3.Zero(), this.game.scene);
+            this.noOutlineCamera.minZ = 0.2;
+            this.noOutlineCamera.maxZ = 2000;
+            this.noOutlineCamera.layerMask = NO_OUTLINE_LAYERMASK;
+            this.noOutlineCamera.parent = this;
+            let postProcess = OutlinePostProcess.AddOutlinePostProcess(this);
+            postProcess.onSizeChangedObservable.add(() => {
+                if (!postProcess.inputTexture.depthStencilTexture) {
+                    postProcess.inputTexture.createDepthStencilTexture(0, true, false, 4);
+                    postProcess.inputTexture._shareDepth(rtt.renderTarget);
+                }
+            });
+            const pp = new BABYLON.PassPostProcess("pass", 1, this.noOutlineCamera);
+            pp.inputTexture = rtt.renderTarget;
+            pp.autoClear = false;
+            this.game.engine.onResizeObservable.add(() => {
+                //console.log("w " + this.game.engine.getRenderWidth());
+                //console.log("h " + this.game.engine.getRenderHeight());
+                //postProcess.getEffect().setFloat("width", this.game.engine.getRenderWidth());
+                //postProcess.getEffect().setFloat("height", this.game.engine.getRenderHeight());
+                rtt.resize({ width: this.game.engine.getRenderWidth(), height: this.game.engine.getRenderHeight() });
+                postProcess.inputTexture.createDepthStencilTexture(0, true, false, 4);
+                postProcess.inputTexture._shareDepth(rtt.renderTarget);
+                this.outputRenderTarget = rtt;
+                pp.inputTexture = rtt.renderTarget;
+            });
+            this.game.scene.activeCameras = [this, this.noOutlineCamera];
+        }
+        else {
+            this.layerMask |= NO_OUTLINE_LAYERMASK;
+        }
     }
     get verticalAngle() {
         return this._verticalAngle;
@@ -2086,7 +2130,8 @@ class PlayerCamera extends BABYLON.FreeCamera {
                     dialogOffset.y -= this.pivotHeight;
                     dialogOffset.y += 0.5;
                     BABYLON.Vector3.LerpToRef(this.dialogOffset, dialogOffset, 1 - fDialogTransition, this.dialogOffset);
-                    this.dialogRotation = this.dialogRotation * fDialogTransition + Math.PI * 0.5 * (1 - fDialogTransition);
+                    this.dialogRotation = this.dialogRotation * fDialogTransition + this.bestDialogRotation * (1 - fDialogTransition);
+                    this.verticalAngle = this.verticalAngle * fDialogTransition + Math.PI / 8 * (1 - fDialogTransition);
                 }
                 else {
                     this.dialogOffset.scaleInPlace(fDialogTransition);
@@ -2100,7 +2145,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 let camPivot = new BABYLON.Vector3(this.player.position.x, this.pivotHeight + this.playerPosY, this.player.position.z);
                 camPivot.addInPlace(this.dialogOffset);
                 let ray = new BABYLON.Ray(camPivot, camDir.scale(-1), this.pivotRecoil);
-                let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.2);
+                let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, this.game.playerBrain.inDialog ? 0.5 : 0.1);
                 let pick = this.game.scene.pickWithRay(ray, (mesh => { return mesh instanceof ConstructionMesh; }));
                 if (pick && pick.hit) {
                     this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + pick.distance * (1 - fRecoilSmooth);
@@ -2257,8 +2302,8 @@ class Terrain {
         this.material = new TerrainMaterial("terrain", this.game.scene);
         this.waterMaterial = new BABYLON.StandardMaterial("water-material");
         this.waterMaterial.specularColor.copyFromFloats(0.4, 0.4, 0.4);
-        this.waterMaterial.alpha = 0.5;
-        this.waterMaterial.diffuseColor.copyFromFloats(0.1, 0.3, 0.9);
+        this.waterMaterial.alpha = 0.8;
+        this.waterMaterial.diffuseColor.copyFromFloats(0.1, 0.65, 0.9);
     }
     getChunck(i, j) {
         return this.chuncks.array.find(chunck => {
@@ -2604,6 +2649,9 @@ class TerrainMaterial extends BABYLON.ShaderMaterial {
         this.setColor3("grassColor", BABYLON.Color3.FromHexString("#7c8d4c"));
         this.setColor3("dirtColor", BABYLON.Color3.FromHexString("#725428"));
         this.setColor3("sandColor", BABYLON.Color3.FromHexString("#f0f0b5"));
+        this.setColor3("grassColor", BABYLON.Color3.FromHexString("#5ab552"));
+        this.setColor3("dirtColor", BABYLON.Color3.FromHexString("#6e4c30"));
+        this.setColor3("sandColor", BABYLON.Color3.FromHexString("#e8d282"));
     }
     getLightInvDir() {
         return this._lightInvDirW;
@@ -2655,6 +2703,7 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
             }
         };
         this._useVertexColor = false;
+        this._noColorOutline = false;
         this._useLightFromPOV = false;
         this._autoLight = 0;
         this._diffuseSharpness = 0;
@@ -2672,6 +2721,7 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
         this._blackTexture.wrapU = 1;
         this._blackTexture.wrapV = 1;
         this.updateUseVertexColor();
+        this.updateNoColorOutline();
         this.updateUseLightFromPOV();
         this.updateAutoLight();
         this.updateDiffuseSharpness();
@@ -2703,6 +2753,16 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
     }
     updateUseVertexColor() {
         this.setInt("useVertexColor", this._useVertexColor ? 1 : 0);
+    }
+    get noColorOutline() {
+        return this._noColorOutline;
+    }
+    setNoColorOutline(b) {
+        this._noColorOutline = b;
+        this.updateNoColorOutline();
+    }
+    updateNoColorOutline() {
+        this.setInt("noColorOutline", this._noColorOutline ? 1 : 0);
     }
     get useLightFromPOV() {
         return this._useLightFromPOV;
@@ -5586,6 +5646,7 @@ class BrickVertexDataGenerator {
         return cutBoxRawData;
     }
     static AddMarginInPlace(vertexData, margin = 0.001, cx = 0, cy = BRICK_H * 0.5, cz = 0) {
+        return;
         let positions = vertexData.positions;
         for (let i = 0; i < positions.length / 3; i++) {
             let x = positions[3 * i];
@@ -5627,9 +5688,10 @@ class TextBrickMesh extends BABYLON.Mesh {
         this.brick = brick;
     }
     updateMaterial() {
-        let material = new BABYLON.StandardMaterial("name-tag-material");
-        material.emissiveColor.copyFromFloats(0.2, 0.2, 0.2);
-        material.specularColor.copyFromFloats(0, 0, 0);
+        let material = new ToonMaterial("name-tag-material", this._scene);
+        material.setNoColorOutline(true);
+        material.setDiffuseSharpness(-1);
+        material.setDiffuseCount(2);
         let h = 64;
         let w = this.brick.w * h / (3 * BRICK_H) * BRICK_S;
         let texture = new BABYLON.DynamicTexture("name-tag-texture", { width: w, height: h }, this.brick.construction.game.scene);
@@ -5644,7 +5706,7 @@ class TextBrickMesh extends BABYLON.Mesh {
         //context.strokeText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
         context.fillText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
         texture.update();
-        material.diffuseTexture = texture;
+        material.setDiffuseTexture(texture);
         this.material = material;
     }
 }
@@ -5840,6 +5902,7 @@ class Construction extends BABYLON.Mesh {
         //    ])
         //}
         let border2 = BABYLON.MeshBuilder.CreateLineSystem("border2", { lines: lines, colors: colors });
+        border2.layerMask = NO_OUTLINE_LAYERMASK;
         border2.parent = this.limits;
         if (this.reserved === 1) {
             border2.position.y += BRICK_H;
@@ -6306,6 +6369,7 @@ class Dodo extends Creature {
             width: 1,
             height: 0.25
         });
+        this.nameTag.layerMask = NO_OUTLINE_LAYERMASK;
         this.setName(this.name);
         /*
         this.topEyelids = [
@@ -6466,15 +6530,18 @@ class Dodo extends Creature {
         }
     }
     async instantiate() {
-        this.material = this.game.defaultToonMaterial;
+        this.material = this.game.defaultToonNoOutlineMaterial;
         this.body.material = this.material;
         this.head.material = this.material;
         this.jaw.material = this.material;
         if (this.eyeMaterial) {
             this.eyeMaterial.dispose(true, true);
         }
-        this.eyeMaterial = new BABYLON.StandardMaterial("eye-material");
-        this.eyeMaterial.specularColor.copyFromFloats(0, 0, 0);
+        this.eyeMaterial = new ToonMaterial("name-tag-material", this._scene);
+        this.eyeMaterial.setNoColorOutline(true);
+        this.eyeMaterial.setDiffuseSharpness(-1);
+        this.eyeMaterial.setDiffuseCount(2);
+        this.eyeMaterial.setAutoLight(1);
         let eyeTexture = new BABYLON.DynamicTexture("eye-texture", 256);
         let context = eyeTexture.getContext();
         context.fillStyle = "white";
@@ -6500,8 +6567,7 @@ class Dodo extends Creature {
         context.closePath();
         context.fill();
         eyeTexture.update();
-        this.eyeMaterial.diffuseTexture = eyeTexture;
-        this.eyeMaterial.emissiveColor.copyFromFloats(1, 1, 1);
+        this.eyeMaterial.setDiffuseTexture(eyeTexture);
         this.eyes[0].material = this.eyeMaterial;
         this.eyes[1].material = this.eyeMaterial;
         this.tailFeathers[0].material = this.material;
@@ -6629,7 +6695,7 @@ class Dodo extends Creature {
         while (t - t0 < duration) {
             await this.animateWait(0.04);
             await this.animateWait(0.08);
-            this.body.material = this.game.defaultToonMaterial;
+            this.body.material = this.game.defaultToonNoOutlineMaterial;
             await this.animateWait(0.04);
         }
     }
@@ -6989,9 +7055,15 @@ class Dodo extends Creature {
             let cam = this.game.camera;
             let dir = this.nameTag.position.subtract(cam.position);
             let dist = dir.length();
-            this.nameTag.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
-            let size = Nabu.MinMax(dist / 20, 0, 1) * 2 + 1;
-            this.nameTag.scaling.copyFromFloats(size, size, size);
+            if (dist > 15) {
+                this.nameTag.isVisible = false;
+            }
+            else {
+                this.nameTag.isVisible = true;
+                this.nameTag.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
+                let size = Nabu.MinMax(dist / 15, 0, 1) * 2 + 1;
+                this.nameTag.scaling.copyFromFloats(size, size, size);
+            }
         }
         if (this.updateLoopQuality === DodoUpdateLoopQuality.Max) {
             if (this.needUpdateCurrentConstruction()) {
@@ -8365,6 +8437,54 @@ class NPCDialog {
         }
     }
     start() {
+        let dir = this.game.playerDodo.position.subtract(this.dodo.position).normalize();
+        let center = this.dodo.position.add(dir.scale(1.25));
+        center.y += 0.5;
+        let hits = [];
+        for (let a = 0; a < 32; a++) {
+            let rayDir = this.game.playerDodo.forward.scale(-1);
+            Mummu.RotateInPlace(rayDir, this.game.playerDodo.right, Math.PI / 8);
+            let alpha = a / 32 * 2 * Math.PI;
+            Mummu.RotateInPlace(rayDir, BABYLON.Axis.Y, alpha);
+            let ray = new BABYLON.Ray(center, rayDir, 4);
+            let pick = this.game.scene.pickWithRay(ray, (mesh => { return mesh instanceof ConstructionMesh; }));
+            if (pick && pick.hit) {
+                hits[a] = 0;
+            }
+            else {
+                hits[a] = 1;
+            }
+        }
+        for (let loop = 0; loop < 32; loop++) {
+            for (let n = 0; n < 32; n++) {
+                let v = hits[n];
+                if (v > 0) {
+                    let prev = hits[(n - 1 + 32) % 32];
+                    let next = hits[(n + 1) % 32];
+                    if (prev > 0 && next > 0) {
+                        hits[n] = Math.max(v, Math.min(prev + 1, next + 1));
+                    }
+                }
+            }
+        }
+        for (let a = 0; a < 32; a++) {
+            let alpha = a / 32 * 2 * Math.PI;
+            if (hits[a] > 0) {
+                hits[a] += 3 * Math.abs(Math.sin(alpha));
+            }
+        }
+        let bestN = 8;
+        let bestV = hits[8];
+        for (let n = 0; n < 32; n++) {
+            if (hits[n] > bestV) {
+                bestN = n;
+                bestV = hits[n];
+            }
+        }
+        this.game.camera.bestDialogRotation = bestN / 32 * 2 * Math.PI;
+        if (this.game.camera.bestDialogRotation > Math.PI) {
+            this.game.camera.bestDialogRotation -= 2 * Math.PI;
+        }
         this.game.playerBrain.inDialog = this;
         this.container = document.querySelector("#dialog-container");
         this.container.style.display = "block";

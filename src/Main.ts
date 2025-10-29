@@ -236,6 +236,7 @@ class Game {
     public gameLoaded: boolean = false;
 
     public defaultToonMaterial: ToonMaterial;
+    public defaultToonNoOutlineMaterial: ToonMaterial;
     public defaultHighlightMaterial: BABYLON.StandardMaterial;
     public configuration: GameConfiguration;
     public networkManager: NetworkManager;
@@ -335,7 +336,6 @@ class Game {
         this.skybox.material = skyboxMaterial;
 
         this.camera = new PlayerCamera(this);
-        //OutlinePostProcess.AddOutlinePostProcess(this.camera);
 
         if (window.localStorage.getItem("camera-position")) {
             let positionItem = JSON.parse(window.localStorage.getItem("camera-position"));
@@ -438,8 +438,15 @@ class Game {
 
         this.defaultToonMaterial = new ToonMaterial("default-toon-material", this.scene);
         this.defaultToonMaterial.setUseVertexColor(true);
+        this.defaultToonMaterial.setNoColorOutline(false);
         this.defaultToonMaterial.setDiffuseSharpness(-1);
         this.defaultToonMaterial.setDiffuseCount(2);
+
+        this.defaultToonNoOutlineMaterial = new ToonMaterial("default-toon-material", this.scene);
+        this.defaultToonNoOutlineMaterial.setUseVertexColor(true);
+        this.defaultToonNoOutlineMaterial.setNoColorOutline(true);
+        this.defaultToonNoOutlineMaterial.setDiffuseSharpness(-1);
+        this.defaultToonNoOutlineMaterial.setDiffuseCount(2);
 
         this.defaultHighlightMaterial = new BABYLON.StandardMaterial("default-highlight-material", this.scene);
         this.defaultHighlightMaterial.emissiveColor.copyFromFloats(1, 1, 1);
