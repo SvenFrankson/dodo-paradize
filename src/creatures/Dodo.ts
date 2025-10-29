@@ -798,33 +798,41 @@ class Dodo extends Creature {
                         bestIntersection = ray.intersectsMesh(this.game.homeMenuPlate);
                     }
 
-                    if (!bestIntersection) {
-                        for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
-                            for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
-                                let construction = this.getCurrentConstruction(di, dj);
-                                if (construction) {
-                                    if (construction.mesh) {
-                                        let intersection = ray.intersectsMesh(construction.mesh);
-                                        if (intersection.hit) {
-                                            if (!bestIntersection || bestIntersection.distance > intersection.distance) {
-                                                bestIntersection = intersection;
+                    for (let n = 0; n < 2 && !bestIntersection; n++) {
+                        origin = new BABYLON.Vector3(xFactor * spread * (1 - n), 0, 0);
+                        BABYLON.Vector3.TransformCoordinatesToRef(origin, this.getWorldMatrix(), origin);
+                        origin.y += this.bodyHeight;
+                        origin.addInPlace(this.forward.scale(animatedSpeedForward * 0.4)).addInPlace(this.right.scale(animatedSpeedRight * 0.4));
+                        ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), 1);
+
+                        if (!bestIntersection) {
+                            for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
+                                for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
+                                    let construction = this.getCurrentConstruction(di, dj);
+                                    if (construction) {
+                                        if (construction.mesh) {
+                                            let intersection = ray.intersectsMesh(construction.mesh);
+                                            if (intersection.hit) {
+                                                if (!bestIntersection || bestIntersection.distance > intersection.distance) {
+                                                    bestIntersection = intersection;
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    if (!bestIntersection) {
-                        for (let di = this._chunckRange.di0; di <= this._chunckRange.di1; di++) {
-                            for (let dj = this._chunckRange.dj0; dj <= this._chunckRange.dj1; dj++) {
-                                let chunck = this.getCurrentChunck(di, dj);
-                                if (chunck) {
-                                    let intersection = ray.intersectsMesh(chunck);
-                                    if (intersection.hit) {
-                                        if (!bestIntersection || bestIntersection.distance > intersection.distance) {
-                                            bestIntersection = intersection;
+                        if (!bestIntersection) {
+                            for (let di = this._chunckRange.di0; di <= this._chunckRange.di1; di++) {
+                                for (let dj = this._chunckRange.dj0; dj <= this._chunckRange.dj1; dj++) {
+                                    let chunck = this.getCurrentChunck(di, dj);
+                                    if (chunck) {
+                                        let intersection = ray.intersectsMesh(chunck);
+                                        if (intersection.hit) {
+                                            if (!bestIntersection || bestIntersection.distance > intersection.distance) {
+                                                bestIntersection = intersection;
+                                            }
                                         }
                                     }
                                 }
@@ -875,7 +883,7 @@ class Dodo extends Creature {
             this._jumpTimer = 0;
             this.jumping = true;
             this.isGrounded = false;
-            this.gravityVelocity = -10;
+            this.gravityVelocity = -5;
             setTimeout(() => {
                 this.jumping = false;
             }, 800);
@@ -883,8 +891,6 @@ class Dodo extends Creature {
     }
     private _jumpingFootTargets: BABYLON.Vector3[] = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
 
-    public currentUp: BABYLON.Vector3 = BABYLON.Vector3.Up();
-    public currentForward: BABYLON.Vector3 = BABYLON.Vector3.Forward();
     private _lastR: number = 0;
     private _lastPos: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public gravityVelocity: number = 0;
@@ -936,7 +942,7 @@ class Dodo extends Creature {
                 if (this.currentChuncks[1][1]) {
                     if (this.currentConstructions[1][1] && this.currentConstructions[1][1].isMeshUpdated) {
                         this.position.y -= this.gravityVelocity * dt;
-                        this.gravityVelocity += 10 * dt;
+                        this.gravityVelocity += 5 * dt;
                     }
                 }
             }
@@ -985,7 +991,6 @@ class Dodo extends Creature {
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
 
-        BABYLON.Vector3.LerpToRef(this.currentUp, BABYLON.Vector3.Up(), 1 - Nabu.Easing.smoothNSec(1 / dt, 0.2), this.currentUp);
         if (this.updateLoopQuality === DodoUpdateLoopQuality.Max && !this.brain.inDialog) {
             this.updateConstructionDIDJRange();
             for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
@@ -999,11 +1004,6 @@ class Dodo extends Creature {
                                 let delta = col.normal.scale(col.depth);
                                 this.position.addInPlace(delta);
 
-                                if (col.normal.y > 0) {
-                                    BABYLON.Vector3.LerpToRef(this.currentUp, col.normal, 1 - Nabu.Easing.smoothNSec(1 / dt, 0.1), this.currentUp);
-                                    this.gravityVelocity *= 0.5;
-                                }
-
                                 if (col.normal.y < -0.5) {
                                     this.gravityVelocity = Math.min(this.gravityVelocity, 0);
                                 }
@@ -1012,11 +1012,6 @@ class Dodo extends Creature {
                     }
                 }
             }
-        }
-        this.currentUp.normalize();
-        BABYLON.Vector3.CrossToRef(this.right, this.currentUp, this.currentForward);
-        if (this.isPlayerControlled) {
-            console.log(this.currentForward.y.toFixed(3));
         }
 
         let right = this.feet[0].position.subtract(this.feet[1].position);
