@@ -560,6 +560,16 @@ class Game {
 
             let action = PlayerActionEditBrick.Create(playerBrain);
             playerBrain.playerActionManager.linkAction(action, 1, true);
+
+            if (this.devMode.activated) {
+                for (let colorIndex = 0; colorIndex < DodoColors.length; colorIndex++) {
+                    this.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(DodoColors[colorIndex].name, InventoryCategory.Paint, this));
+                }
+                for (let brickIndex = 0; brickIndex < BRICK_LIST.length; brickIndex++) {
+                    let brickTemplate = BRICK_LIST[brickIndex];
+                    this.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this));
+                }
+            }
             
             this.npcManager.instantiate();
         }

@@ -1068,6 +1068,15 @@ class Game {
             let playerBrain = this.playerDodo.brain.subBrains[BrainMode.Player];
             let action = PlayerActionEditBrick.Create(playerBrain);
             playerBrain.playerActionManager.linkAction(action, 1, true);
+            if (this.devMode.activated) {
+                for (let colorIndex = 0; colorIndex < DodoColors.length; colorIndex++) {
+                    this.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(DodoColors[colorIndex].name, InventoryCategory.Paint, this));
+                }
+                for (let brickIndex = 0; brickIndex < BRICK_LIST.length; brickIndex++) {
+                    let brickTemplate = BRICK_LIST[brickIndex];
+                    this.playerBrainPlayer.inventory.addItem(new PlayerInventoryItem(BRICK_LIST[brickIndex].name, InventoryCategory.Brick, this));
+                }
+            }
             this.npcManager.instantiate();
         }
     }
@@ -4531,11 +4540,13 @@ class PlayerActionTemplate {
 class BrickFactory {
     static NewBrick(arg1, colorIndex, construction) {
         let name = Brick.BrickIdToName(arg1);
-        if (name.startsWith("text_")) {
-            return new TextBrick(arg1, colorIndex, construction);
-        }
-        else {
-            return new Brick(arg1, colorIndex, construction);
+        if (name) {
+            if (name.startsWith("text_")) {
+                return new TextBrick(arg1, colorIndex, construction);
+            }
+            else {
+                return new Brick(arg1, colorIndex, construction);
+            }
         }
     }
 }
@@ -4844,19 +4855,19 @@ var BRICK_LIST = [
     { name: "window-frame_2x2", stackable: false, isPublic: true },
     { name: "window-frame_2x3", stackable: false, isPublic: true },
     { name: "window-frame_2x4", stackable: false, isPublic: true },
-    { name: "window-frame_2x5", stackable: false, isPublic: true },
+    { name: "window-frame_2x6", stackable: false, isPublic: true },
     { name: "window-frame_3x2", stackable: false, isPublic: true },
     { name: "window-frame_3x3", stackable: false, isPublic: true },
     { name: "window-frame_3x4", stackable: false, isPublic: true },
-    { name: "window-frame_3x5", stackable: false, isPublic: true },
+    { name: "window-frame_3x6", stackable: false, isPublic: true },
     { name: "window-frame_4x2", stackable: false, isPublic: true },
     { name: "window-frame_4x3", stackable: false, isPublic: true },
     { name: "window-frame_4x4", stackable: false, isPublic: true },
-    { name: "window-frame_4x5", stackable: false, isPublic: true },
+    { name: "window-frame_4x6", stackable: false, isPublic: true },
     { name: "window-frame-corner-curved_3x2", stackable: false, isPublic: true },
     { name: "window-frame-corner-curved_3x3", stackable: false, isPublic: true },
     { name: "window-frame-corner-curved_3x4", stackable: false, isPublic: true },
-    { name: "window-frame-corner-curved_3x5", stackable: false, isPublic: true },
+    { name: "window-frame-corner-curved_3x6", stackable: false, isPublic: true },
     { name: "plate-quarter_1x1", stackable: false, isPublic: true },
     { name: "plate-quarter_2x2", stackable: false, isPublic: true },
     { name: "plate-quarter_3x3", stackable: false, isPublic: true },
@@ -4885,6 +4896,16 @@ var BRICK_LIST = [
     { name: "text_10_BRICKS & BLOCKS", stackable: true, isPublic: false },
     { name: "text_10_PAINT & PIGMENTS", stackable: true, isPublic: false },
     { name: "text_8_PLAYGROUND", stackable: true, isPublic: false },
+    { name: "stairs_1x1", stackable: false, isPublic: true },
+    { name: "stairs_2x1", stackable: false, isPublic: true },
+    { name: "stairs_3x1", stackable: false, isPublic: true },
+    { name: "stairs_4x1", stackable: false, isPublic: true },
+    { name: "stairs_6x1", stackable: false, isPublic: true },
+    { name: "stairs_8x1", stackable: false, isPublic: true },
+    { name: "stairs_10x1", stackable: false, isPublic: true },
+    { name: "stairs_16x1", stackable: false, isPublic: true },
+    { name: "text_8_TIARATUM", stackable: true, isPublic: false },
+    { name: "text_6_GAMES", stackable: true, isPublic: false },
 ];
 class BrickTemplateManager {
     constructor(vertexDataLoader) {
@@ -4936,7 +4957,7 @@ class BrickTemplate {
         else if (this.name.startsWith("wall_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
             let w = parseInt(this.name.split("_")[1].split("x")[1]);
-            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 15, w, lod);
+            this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(l, 18, w, lod);
         }
         else if (this.name.startsWith("plate_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
@@ -4979,6 +5000,10 @@ class BrickTemplate {
         else if (this.name.startsWith("brick-round_")) {
             let l = parseInt(this.name.split("_")[1].split("x")[0]);
             this.vertexData = await BrickVertexDataGenerator.GetBrickRoundVertexData(l, lod);
+        }
+        else if (this.name.startsWith("stairs_")) {
+            let l = parseInt(this.name.split("_")[1].split("x")[0]);
+            this.vertexData = await BrickVertexDataGenerator.GetStairsVertexData(l, lod);
         }
         else if (this.name.startsWith("brick-corner-round_1x1")) {
             this.vertexData = (await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/brick-corner-round_1x1.babylon"))[0];
@@ -5410,6 +5435,46 @@ class BrickVertexDataGenerator {
         BrickVertexDataGenerator.AddMarginInPlace(cutBoxRawData);
         return cutBoxRawData;
     }
+    static async GetStairsVertexData(length, lod = 1) {
+        let datas = await BrickTemplateManager.Instance.vertexDataLoader.get("./datas/meshes/stairs_1x1.babylon");
+        let cutBoxRawData = Mummu.CloneVertexData(datas[0]);
+        let dz = (length - 1) * BRICK_S;
+        let positions = cutBoxRawData.positions;
+        let normals = cutBoxRawData.normals;
+        let uvs = cutBoxRawData.uvs;
+        for (let i = 0; i < positions.length / 3; i++) {
+            let nx = normals[3 * i];
+            let ny = normals[3 * i + 1];
+            let nz = normals[3 * i + 2];
+            let x = positions[3 * i];
+            let y = positions[3 * i + 1];
+            let z = positions[3 * i + 2];
+            if (z > 0) {
+                z += dz;
+            }
+            if (ny < -0.9) {
+                uvs[2 * i] = z;
+                uvs[2 * i + 1] = x;
+            }
+            else if (nx < -0.9) {
+                uvs[2 * i] = z;
+                uvs[2 * i + 1] = y;
+            }
+            else if (nz < -0.9 || nz > 0.9) {
+            }
+            else {
+                if (z > 0) {
+                    uvs[2 * i] += dz;
+                }
+            }
+            positions[3 * i + 2] = z;
+        }
+        cutBoxRawData.positions = positions;
+        cutBoxRawData.uvs = uvs;
+        cutBoxRawData.colors = undefined;
+        BrickVertexDataGenerator.AddMarginInPlace(cutBoxRawData);
+        return cutBoxRawData;
+    }
     static AddMarginInPlace(vertexData, margin = 0.001, cx = 0, cy = BRICK_H * 0.5, cz = 0) {
         let positions = vertexData.positions;
         for (let i = 0; i < positions.length / 3; i++) {
@@ -5666,6 +5731,9 @@ class Construction extends BABYLON.Mesh {
         //}
         let border2 = BABYLON.MeshBuilder.CreateLineSystem("border2", { lines: lines, colors: colors });
         border2.parent = this.limits;
+        if (this.reserved === 1) {
+            border2.position.y += BRICK_H;
+        }
     }
     hideLimits() {
         if (this.limits) {
@@ -6043,7 +6111,10 @@ class Dodo extends Creature {
         this.footIndex = 0;
         this._jumpTimer = 0;
         this._jumpingFootTargets = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
+        this.currentUp = BABYLON.Vector3.Up();
+        this.currentForward = BABYLON.Vector3.Forward();
         this._lastR = 0;
+        this._lastPos = BABYLON.Vector3.Zero();
         this.gravityVelocity = 0;
         this._constructionRange = { di0: 0, di1: 0, dj0: 0, dj1: 0 };
         this._chunckRange = { di0: 0, di1: 0, dj0: 0, dj1: 0 };
@@ -6592,7 +6663,7 @@ class Dodo extends Creature {
             this._jumpTimer = 0;
             this.jumping = true;
             this.isGrounded = false;
-            this.gravityVelocity = -5;
+            this.gravityVelocity = -10;
             setTimeout(() => {
                 this.jumping = false;
             }, 800);
@@ -6623,8 +6694,9 @@ class Dodo extends Creature {
         this.animatedRSpeed = dR / dt;
         if (this.isGrounded) {
             if (this.isPlayerControlled) {
-                this.position.y = Math.min(this.feet[0].position.y, this.feet[1].position.y);
+                this.position.y = 0.99 * this.position.y + 0.01 * Math.min(this.feet[0].position.y, this.feet[1].position.y);
             }
+            this.preventStretch();
             this.gravityVelocity = 0;
             this._jumpTimer = 0;
         }
@@ -6640,7 +6712,7 @@ class Dodo extends Creature {
                 if (this.currentChuncks[1][1]) {
                     if (this.currentConstructions[1][1] && this.currentConstructions[1][1].isMeshUpdated) {
                         this.position.y -= this.gravityVelocity * dt;
-                        this.gravityVelocity += 5 * dt;
+                        this.gravityVelocity += 10 * dt;
                     }
                 }
             }
@@ -6681,6 +6753,7 @@ class Dodo extends Creature {
         //} 
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
+        BABYLON.Vector3.LerpToRef(this.currentUp, BABYLON.Vector3.Up(), 1 - Nabu.Easing.smoothNSec(1 / dt, 0.2), this.currentUp);
         if (this.updateLoopQuality === DodoUpdateLoopQuality.Max && !this.brain.inDialog) {
             this.updateConstructionDIDJRange();
             for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
@@ -6690,14 +6763,14 @@ class Dodo extends Creature {
                         if (construction.mesh) {
                             let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, construction.mesh, true);
                             if (col.hit) {
-                                let delta = col.normal.scale(col.depth * 1.2);
+                                //Mummu.DrawDebugHit(col.point, col.normal, 60, BABYLON.Color3.Red());
+                                let delta = col.normal.scale(col.depth);
                                 this.position.addInPlace(delta);
-                                let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
-                                this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
-                                if (col.normal.y > 0.5) {
+                                if (col.normal.y > 0) {
+                                    BABYLON.Vector3.LerpToRef(this.currentUp, col.normal, 1 - Nabu.Easing.smoothNSec(1 / dt, 0.1), this.currentUp);
                                     this.gravityVelocity *= 0.5;
                                 }
-                                else if (col.normal.y < -0.5) {
+                                if (col.normal.y < -0.5) {
                                     this.gravityVelocity = Math.min(this.gravityVelocity, 0);
                                 }
                             }
@@ -6705,6 +6778,11 @@ class Dodo extends Creature {
                     }
                 }
             }
+        }
+        this.currentUp.normalize();
+        BABYLON.Vector3.CrossToRef(this.right, this.currentUp, this.currentForward);
+        if (this.isPlayerControlled) {
+            console.log(this.currentForward.y.toFixed(3));
         }
         let right = this.feet[0].position.subtract(this.feet[1].position);
         right.normalize();
@@ -6818,6 +6896,21 @@ class Dodo extends Creature {
             if (this.needUpdateCurrentChunck()) {
                 this.updateCurrentChunck();
             }
+        }
+        let visibleSpeed = this.position.subtract(this._lastPos).scaleInPlace(1 / dt);
+        if (visibleSpeed.length() > this.speed) {
+            visibleSpeed.normalize().scaleInPlace(this.speed);
+        }
+        let fAnimatedSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.05);
+        BABYLON.Vector3.LerpToRef(this.animatedSpeed, visibleSpeed, 1 - fAnimatedSpeed, this.animatedSpeed);
+        this._lastPos.copyFrom(this.position);
+    }
+    preventStretch() {
+        let stretch = this.dodoCollider.absolutePosition.subtract(this.body.position);
+        let l = stretch.length();
+        if (l > 2 * BRICK_S) {
+            let offset = stretch.normalize().scaleInPlace(l - 2 * BRICK_S).scaleInPlace(-1);
+            this.position.addInPlace(offset);
         }
     }
     updateConstructionDIDJRange() {
@@ -7478,17 +7571,11 @@ class BrainPlayer extends SubBrain {
             if (inputForce > 1) {
                 moveInput.normalize();
             }
-            let dir = this.dodo.right.scale(moveInput.x * 0.75).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.75)));
+            let dir = this.dodo.right.scale(moveInput.x * 0.75).add(this.dodo.currentForward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.75)));
             if (dir.lengthSquared() > 0) {
                 if (!this.lockControl) {
-                    let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.2);
-                    BABYLON.Vector3.LerpToRef(this.dodo.animatedSpeed, dir.scale(this.dodo.speed), 1 - fSpeed, this.dodo.animatedSpeed);
-                    this.dodo.position.addInPlace(dir.scale(this.dodo.animatedSpeed.length() * dt));
+                    this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
                 }
-            }
-            else {
-                let fSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.1);
-                this.dodo.animatedSpeed.scaleInPlace(fSpeed);
             }
             if (this.currentAction) {
                 this.currentAction.onUpdate();

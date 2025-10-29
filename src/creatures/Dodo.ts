@@ -875,7 +875,7 @@ class Dodo extends Creature {
             this._jumpTimer = 0;
             this.jumping = true;
             this.isGrounded = false;
-            this.gravityVelocity = -5;
+            this.gravityVelocity = -10;
             setTimeout(() => {
                 this.jumping = false;
             }, 800);
@@ -883,7 +883,10 @@ class Dodo extends Creature {
     }
     private _jumpingFootTargets: BABYLON.Vector3[] = [BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero()];
 
+    public currentUp: BABYLON.Vector3 = BABYLON.Vector3.Up();
+    public currentForward: BABYLON.Vector3 = BABYLON.Vector3.Forward();
     private _lastR: number = 0;
+    private _lastPos: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public gravityVelocity: number = 0;
     public update(dt: number) {
         if (this.brain) {
@@ -914,8 +917,9 @@ class Dodo extends Creature {
 
         if (this.isGrounded) {
             if (this.isPlayerControlled) {
-                this.position.y = Math.min(this.feet[0].position.y, this.feet[1].position.y);
+                this.position.y = 0.99 * this.position.y + 0.01 * Math.min(this.feet[0].position.y, this.feet[1].position.y);
             }
+            this.preventStretch();
             this.gravityVelocity = 0;
             this._jumpTimer = 0;
         }
@@ -932,7 +936,7 @@ class Dodo extends Creature {
                 if (this.currentChuncks[1][1]) {
                     if (this.currentConstructions[1][1] && this.currentConstructions[1][1].isMeshUpdated) {
                         this.position.y -= this.gravityVelocity * dt;
-                        this.gravityVelocity += 5 * dt;
+                        this.gravityVelocity += 10 * dt;
                     }
                 }
             }
@@ -981,6 +985,7 @@ class Dodo extends Creature {
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
 
+        BABYLON.Vector3.LerpToRef(this.currentUp, BABYLON.Vector3.Up(), 1 - Nabu.Easing.smoothNSec(1 / dt, 0.2), this.currentUp);
         if (this.updateLoopQuality === DodoUpdateLoopQuality.Max && !this.brain.inDialog) {
             this.updateConstructionDIDJRange();
             for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
@@ -990,15 +995,16 @@ class Dodo extends Creature {
                         if (construction.mesh) {
                             let col = Mummu.SphereMeshIntersection(this.dodoCollider.absolutePosition, BRICK_S, construction.mesh, true);
                             if (col.hit) {
-                                let delta = col.normal.scale(col.depth * 1.2);
+                                //Mummu.DrawDebugHit(col.point, col.normal, 60, BABYLON.Color3.Red());
+                                let delta = col.normal.scale(col.depth);
                                 this.position.addInPlace(delta);
 
-                                let speedComp = BABYLON.Vector3.Dot(this.animatedSpeed, col.normal);
-                                this.animatedSpeed.subtractInPlace(col.normal.scale(speedComp));
-                                if (col.normal.y > 0.5) {
+                                if (col.normal.y > 0) {
+                                    BABYLON.Vector3.LerpToRef(this.currentUp, col.normal, 1 - Nabu.Easing.smoothNSec(1 / dt, 0.1), this.currentUp);
                                     this.gravityVelocity *= 0.5;
                                 }
-                                else if (col.normal.y < -0.5) {
+
+                                if (col.normal.y < -0.5) {
                                     this.gravityVelocity = Math.min(this.gravityVelocity, 0);
                                 }
                             }
@@ -1007,7 +1013,11 @@ class Dodo extends Creature {
                 }
             }
         }
-        
+        this.currentUp.normalize();
+        BABYLON.Vector3.CrossToRef(this.right, this.currentUp, this.currentForward);
+        if (this.isPlayerControlled) {
+            console.log(this.currentForward.y.toFixed(3));
+        }
 
         let right = this.feet[0].position.subtract(this.feet[1].position);
         right.normalize();
@@ -1145,6 +1155,23 @@ class Dodo extends Creature {
             if (this.needUpdateCurrentChunck()) {
                 this.updateCurrentChunck();
             }
+        }
+
+        let visibleSpeed = this.position.subtract(this._lastPos).scaleInPlace(1 / dt);
+        if (visibleSpeed.length() > this.speed) {
+            visibleSpeed.normalize().scaleInPlace(this.speed);
+        }
+        let fAnimatedSpeed = Nabu.Easing.smoothNSec(1 / dt, 0.05);
+        BABYLON.Vector3.LerpToRef(this.animatedSpeed, visibleSpeed, 1 - fAnimatedSpeed, this.animatedSpeed);
+        this._lastPos.copyFrom(this.position);
+    }
+
+    public preventStretch(): void {
+        let stretch = this.dodoCollider.absolutePosition.subtract(this.body.position);
+        let l = stretch.length();
+        if (l > 2 * BRICK_S) {
+            let offset = stretch.normalize().scaleInPlace(l - 2 * BRICK_S).scaleInPlace(-1);
+            this.position.addInPlace(offset);
         }
     }
 
