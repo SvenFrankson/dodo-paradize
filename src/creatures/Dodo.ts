@@ -950,7 +950,7 @@ class Dodo extends Creature {
 
         // panik
         if (this.isPlayerControlled) {
-            if (this.game.gameMode === GameMode.Playing && this.position.y < 0) {
+            if (this.game.gameMode === GameMode.Playing) {
                 let groundAltitude = this.game.terrain.worldPosToTerrainAltitude(this.position);
                 this.position.y = Math.max(this.position.y, groundAltitude);
             }

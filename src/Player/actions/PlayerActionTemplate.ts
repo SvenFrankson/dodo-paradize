@@ -9,6 +9,35 @@ class PlayerActionTemplate {
         let rotateSelectedBrickBtn = document.querySelector("#rotate-selected-brick") as HTMLDivElement;
 
         let brickIndex = Brick.BrickIdToIndex(brickId);
+        let offsetIJ: BABYLON.Vector2 = BABYLON.Vector2.Zero();
+        let getRotatedOffsetI = () => {
+            if (r === 0) {
+                return offsetIJ.x;
+            }
+            if (r === 1) {
+                return - offsetIJ.y;
+            }
+            if (r === 2) {
+                return - offsetIJ.x;
+            }
+            if (r === 3) {
+                return offsetIJ.y;
+            }
+        } 
+        let getRotatedOffsetJ = () => {
+            if (r === 0) {
+                return offsetIJ.y;
+            }
+            if (r === 1) {
+                return offsetIJ.x;
+            }
+            if (r === 2) {
+                return - offsetIJ.y;
+            }
+            if (r === 3) {
+                return - offsetIJ.x;
+            }
+        } 
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
         brickAction.backgroundColor = "#000000";
         let previewMesh: BABYLON.Mesh;
@@ -38,9 +67,9 @@ class PlayerActionTemplate {
                 if (hit && hit.pickedPoint) {
                     let n =  hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
                     let pos = hit.pickedPoint.add(n);
-                    pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
+                    pos.x = BRICK_S * (Math.round(pos.x / BRICK_S) - getRotatedOffsetI());
                     pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                    pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
+                    pos.z = BRICK_S * (Math.round(pos.z / BRICK_S) - getRotatedOffsetJ());
                     previewMesh.position.copyFrom(pos);
                     previewMesh.rotation.y = Math.PI * 0.5 * r;
                     previewMesh.isVisible = true;
@@ -109,8 +138,8 @@ class PlayerActionTemplate {
                     if (construction && construction.isPlayerAllowedToEdit()) {
                         let brick = BrickFactory.NewBrick(brickIndex, isFinite(colorIndex) ? colorIndex : DodoColorDefaultIndex, construction);
                         let pos = hit.pickedPoint.add(n).subtractInPlace(construction.position);
-                        brick.posI = Math.round(pos.x / BRICK_S);
-                        brick.posJ = Math.round(pos.z / BRICK_S);
+                        brick.posI = Math.round(pos.x / BRICK_S) - getRotatedOffsetI();
+                        brick.posJ = Math.round(pos.z / BRICK_S) - getRotatedOffsetJ();
                         brick.posK = Math.floor(pos.y / BRICK_H);
                         brick.r = r;
                         
@@ -129,6 +158,14 @@ class PlayerActionTemplate {
             r = (r + 1) % 4;
         }
 
+        let incOffset = () => {
+            offsetIJ.y++;
+        }
+
+        let decOffset = () => {
+            offsetIJ.y--;
+        }
+
         rotateSelectedBrickBtn.onclick = (ev: PointerEvent) => {
             ev.preventDefault();
         }
@@ -143,6 +180,7 @@ class PlayerActionTemplate {
                     }
                 }
             }
+            offsetIJ.copyFromFloats(0, 0);
             brickIndex = Brick.BrickIdToIndex(brickId);
             if (!previewMesh || previewMesh.isDisposed()) {
                 previewMesh = new BABYLON.Mesh("brick-preview-mesh");
@@ -157,6 +195,8 @@ class PlayerActionTemplate {
             });
 
             player.game.inputManager.addMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
+            player.game.inputManager.addMappedKeyDownListener(KeyInput.OFFSET_INC_SELECTED, incOffset);
+            player.game.inputManager.addMappedKeyDownListener(KeyInput.OFFSET_DEC_SELECTED, decOffset);
         }
 
         brickAction.onUnequip = () => {
@@ -168,24 +208,36 @@ class PlayerActionTemplate {
             }
             
             player.game.inputManager.removeMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
+            player.game.inputManager.removeMappedKeyDownListener(KeyInput.OFFSET_INC_SELECTED, incOffset);
+            player.game.inputManager.removeMappedKeyDownListener(KeyInput.OFFSET_DEC_SELECTED, decOffset);
         }
 
         brickAction.onWheel = (e: WheelEvent) => {
             if (e.deltaY > 0) {
-                brickIndex = (brickIndex + BRICK_LIST.length - 1) % BRICK_LIST.length;
-                BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
-                    if (previewMesh && !previewMesh.isDisposed()) {
-                        template.vertexData.applyToMesh(previewMesh);
-                    }
-                });
+                if (player.game.inputManager.isKeyInputDown(KeyInput.CONTROL)) {
+                    //offsetIJ.x += 1;
+                }
+                else {
+                    brickIndex = (brickIndex + BRICK_LIST.length - 1) % BRICK_LIST.length;
+                    BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
+                        if (previewMesh && !previewMesh.isDisposed()) {
+                            template.vertexData.applyToMesh(previewMesh);
+                        }
+                    });
+                }
             }
             else if (e.deltaY < 0) {
-                brickIndex = (brickIndex + 1) % BRICK_LIST.length;
-                BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
-                    if (previewMesh && !previewMesh.isDisposed()) {
-                        template.vertexData.applyToMesh(previewMesh);
-                    }
-                });
+                if (player.game.inputManager.isKeyInputDown(KeyInput.CONTROL)) {
+                    //offsetIJ.x -= 1;
+                }
+                else {
+                    brickIndex = (brickIndex + 1) % BRICK_LIST.length;
+                    BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
+                        if (previewMesh && !previewMesh.isDisposed()) {
+                            template.vertexData.applyToMesh(previewMesh);
+                        }
+                    });
+                }
             }
         }
         

@@ -147,6 +147,28 @@ a:active {
     padding: 5px 10px 5px 10px;
 }
 
+#password-label {
+    position: fixed;
+    bottom: 240px;
+    left: calc(50vw - 100px);
+    font-size: 16px;
+    font-weight: 300;
+    font-family: Roboto;
+}
+
+#password-value {
+    position: fixed;
+    bottom: 200px;
+    left: calc(50vw - 110px);
+    width: 200px;
+    font-size: 20px;
+    font-weight: 900;
+    border-radius: 5px;
+    border: 2px solid black;
+    font-family: Roboto;
+    padding: 5px 10px 5px 10px;
+}
+
 #start {
     position: fixed;
     bottom: 50px;

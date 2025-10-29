@@ -20,6 +20,8 @@ enum KeyInput {
     INVENTORY_EQUIP_ITEM,
     TRAVEL,
     NEXT_SHAPE,
+    OFFSET_INC_SELECTED,
+    OFFSET_DEC_SELECTED,
     ROTATE_SELECTED,
     DELETE_SELECTED,
     MOVE_FORWARD,
@@ -29,7 +31,7 @@ enum KeyInput {
     JUMP,
     MAIN_MENU,
     WORKBENCH,
-
+    CONTROL,
 }
 
 class GameConfiguration extends Nabu.Configuration {
@@ -81,6 +83,8 @@ class GameConfiguration extends Nabu.Configuration {
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "INVENTORY_EQUIP_ITEM", KeyInput.INVENTORY_EQUIP_ITEM, "GamepadBtn0"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "TRAVEL", KeyInput.TRAVEL, "KeyT"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "NEXT_SHAPE", KeyInput.NEXT_SHAPE, "KeyZ"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "OFFSET_INC_SELECTED", KeyInput.OFFSET_INC_SELECTED, "KeyQ"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "OFFSET_DEC_SELECTED", KeyInput.OFFSET_DEC_SELECTED, "KeyE"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ROTATE_SELECTED", KeyInput.ROTATE_SELECTED, "KeyR"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "DELETE_SELECTED", KeyInput.DELETE_SELECTED, "KeyX"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_FORWARD", KeyInput.MOVE_FORWARD, "KeyW"),
@@ -88,6 +92,7 @@ class GameConfiguration extends Nabu.Configuration {
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_BACK", KeyInput.MOVE_BACK, "KeyS"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_RIGHT", KeyInput.MOVE_RIGHT, "KeyD"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "JUMP", KeyInput.JUMP, "Space"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "CONTROL", KeyInput.CONTROL, "ControlLeft"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_0", KeyInput.ACTION_SLOT_0, "Digit0"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_1", KeyInput.ACTION_SLOT_1, "Digit1"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_2", KeyInput.ACTION_SLOT_2, "Digit2"),

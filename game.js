@@ -314,7 +314,13 @@ class DevMode {
         this.activated = false;
     }
     getPassword() {
-        return "Crillion";
+        return document.querySelector("#password-value").value;
+    }
+    activate() {
+        this.activated = true;
+    }
+    deactivate() {
+        this.activated = false;
     }
     initialize() {
         if (location.host.startsWith("127.0.0.1")) {
@@ -345,15 +351,18 @@ var KeyInput;
     KeyInput[KeyInput["INVENTORY_EQUIP_ITEM"] = 17] = "INVENTORY_EQUIP_ITEM";
     KeyInput[KeyInput["TRAVEL"] = 18] = "TRAVEL";
     KeyInput[KeyInput["NEXT_SHAPE"] = 19] = "NEXT_SHAPE";
-    KeyInput[KeyInput["ROTATE_SELECTED"] = 20] = "ROTATE_SELECTED";
-    KeyInput[KeyInput["DELETE_SELECTED"] = 21] = "DELETE_SELECTED";
-    KeyInput[KeyInput["MOVE_FORWARD"] = 22] = "MOVE_FORWARD";
-    KeyInput[KeyInput["MOVE_LEFT"] = 23] = "MOVE_LEFT";
-    KeyInput[KeyInput["MOVE_BACK"] = 24] = "MOVE_BACK";
-    KeyInput[KeyInput["MOVE_RIGHT"] = 25] = "MOVE_RIGHT";
-    KeyInput[KeyInput["JUMP"] = 26] = "JUMP";
-    KeyInput[KeyInput["MAIN_MENU"] = 27] = "MAIN_MENU";
-    KeyInput[KeyInput["WORKBENCH"] = 28] = "WORKBENCH";
+    KeyInput[KeyInput["OFFSET_INC_SELECTED"] = 20] = "OFFSET_INC_SELECTED";
+    KeyInput[KeyInput["OFFSET_DEC_SELECTED"] = 21] = "OFFSET_DEC_SELECTED";
+    KeyInput[KeyInput["ROTATE_SELECTED"] = 22] = "ROTATE_SELECTED";
+    KeyInput[KeyInput["DELETE_SELECTED"] = 23] = "DELETE_SELECTED";
+    KeyInput[KeyInput["MOVE_FORWARD"] = 24] = "MOVE_FORWARD";
+    KeyInput[KeyInput["MOVE_LEFT"] = 25] = "MOVE_LEFT";
+    KeyInput[KeyInput["MOVE_BACK"] = 26] = "MOVE_BACK";
+    KeyInput[KeyInput["MOVE_RIGHT"] = 27] = "MOVE_RIGHT";
+    KeyInput[KeyInput["JUMP"] = 28] = "JUMP";
+    KeyInput[KeyInput["MAIN_MENU"] = 29] = "MAIN_MENU";
+    KeyInput[KeyInput["WORKBENCH"] = 30] = "WORKBENCH";
+    KeyInput[KeyInput["CONTROL"] = 31] = "CONTROL";
 })(KeyInput || (KeyInput = {}));
 class GameConfiguration extends Nabu.Configuration {
     constructor(configName, game) {
@@ -391,6 +400,8 @@ class GameConfiguration extends Nabu.Configuration {
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "INVENTORY_EQUIP_ITEM", KeyInput.INVENTORY_EQUIP_ITEM, "GamepadBtn0"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "TRAVEL", KeyInput.TRAVEL, "KeyT"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "NEXT_SHAPE", KeyInput.NEXT_SHAPE, "KeyZ"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "OFFSET_INC_SELECTED", KeyInput.OFFSET_INC_SELECTED, "KeyQ"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "OFFSET_DEC_SELECTED", KeyInput.OFFSET_DEC_SELECTED, "KeyE"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ROTATE_SELECTED", KeyInput.ROTATE_SELECTED, "KeyR"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "DELETE_SELECTED", KeyInput.DELETE_SELECTED, "KeyX"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_FORWARD", KeyInput.MOVE_FORWARD, "KeyW"),
@@ -398,6 +409,7 @@ class GameConfiguration extends Nabu.Configuration {
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_BACK", KeyInput.MOVE_BACK, "KeyS"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "MOVE_RIGHT", KeyInput.MOVE_RIGHT, "KeyD"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "JUMP", KeyInput.JUMP, "Space"),
+            Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "CONTROL", KeyInput.CONTROL, "ControlLeft"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_0", KeyInput.ACTION_SLOT_0, "Digit0"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_1", KeyInput.ACTION_SLOT_1, "Digit1"),
             Nabu.ConfigurationElement.SimpleInput(this.game.inputManager, "ACTION_SLOT_2", KeyInput.ACTION_SLOT_2, "Digit2"),
@@ -565,6 +577,14 @@ class HomeMenuPlate extends BABYLON.Mesh {
     }
     initialize() {
         this.nameInput.value = this.playerDodo.name;
+        if (this.nameInput.value === "TIARATUM GAMES") {
+            document.querySelector("#password-input-container").style.display = "block";
+            this.game.devMode.activate();
+        }
+        else {
+            document.querySelector("#password-input-container").style.display = "none";
+            this.game.devMode.deactivate();
+        }
         this.customizeHeadLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color1));
         this.customizeEyesLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.EyeColor));
         this.customizeBeakLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color2));
@@ -574,6 +594,14 @@ class HomeMenuPlate extends BABYLON.Mesh {
         this.nameInput.oninput = (ev) => {
             this.nameInput.value = this.nameInput.value.toLocaleUpperCase();
             this.playerDodo.name = this.nameInput.value;
+            if (this.nameInput.value === "TIARATUM GAMES") {
+                document.querySelector("#password-input-container").style.display = "block";
+                this.game.devMode.activate();
+            }
+            else {
+                document.querySelector("#password-input-container").style.display = "none";
+                this.game.devMode.deactivate();
+            }
             SavePlayerToLocalStorage(this.game);
         };
         this.customizeHeadLine.onValueChanged = (v) => {
@@ -4288,6 +4316,35 @@ class PlayerActionTemplate {
         let deleteDraggedBrickBtn = document.querySelector("#delete-dragged-brick");
         let rotateSelectedBrickBtn = document.querySelector("#rotate-selected-brick");
         let brickIndex = Brick.BrickIdToIndex(brickId);
+        let offsetIJ = BABYLON.Vector2.Zero();
+        let getRotatedOffsetI = () => {
+            if (r === 0) {
+                return offsetIJ.x;
+            }
+            if (r === 1) {
+                return -offsetIJ.y;
+            }
+            if (r === 2) {
+                return -offsetIJ.x;
+            }
+            if (r === 3) {
+                return offsetIJ.y;
+            }
+        };
+        let getRotatedOffsetJ = () => {
+            if (r === 0) {
+                return offsetIJ.y;
+            }
+            if (r === 1) {
+                return offsetIJ.x;
+            }
+            if (r === 2) {
+                return -offsetIJ.y;
+            }
+            if (r === 3) {
+                return -offsetIJ.x;
+            }
+        };
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
         brickAction.backgroundColor = "#000000";
         let previewMesh;
@@ -4312,9 +4369,9 @@ class PlayerActionTemplate {
                 if (hit && hit.pickedPoint) {
                     let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
                     let pos = hit.pickedPoint.add(n);
-                    pos.x = BRICK_S * Math.round(pos.x / BRICK_S);
+                    pos.x = BRICK_S * (Math.round(pos.x / BRICK_S) - getRotatedOffsetI());
                     pos.y = BRICK_H * Math.floor(pos.y / BRICK_H);
-                    pos.z = BRICK_S * Math.round(pos.z / BRICK_S);
+                    pos.z = BRICK_S * (Math.round(pos.z / BRICK_S) - getRotatedOffsetJ());
                     previewMesh.position.copyFrom(pos);
                     previewMesh.rotation.y = Math.PI * 0.5 * r;
                     previewMesh.isVisible = true;
@@ -4376,8 +4433,8 @@ class PlayerActionTemplate {
                     if (construction && construction.isPlayerAllowedToEdit()) {
                         let brick = BrickFactory.NewBrick(brickIndex, isFinite(colorIndex) ? colorIndex : DodoColorDefaultIndex, construction);
                         let pos = hit.pickedPoint.add(n).subtractInPlace(construction.position);
-                        brick.posI = Math.round(pos.x / BRICK_S);
-                        brick.posJ = Math.round(pos.z / BRICK_S);
+                        brick.posI = Math.round(pos.x / BRICK_S) - getRotatedOffsetI();
+                        brick.posJ = Math.round(pos.z / BRICK_S) - getRotatedOffsetJ();
                         brick.posK = Math.floor(pos.y / BRICK_H);
                         brick.r = r;
                         construction.updateMesh();
@@ -4393,6 +4450,12 @@ class PlayerActionTemplate {
         let rotateBrick = () => {
             r = (r + 1) % 4;
         };
+        let incOffset = () => {
+            offsetIJ.y++;
+        };
+        let decOffset = () => {
+            offsetIJ.y--;
+        };
         rotateSelectedBrickBtn.onclick = (ev) => {
             ev.preventDefault();
         };
@@ -4406,6 +4469,7 @@ class PlayerActionTemplate {
                     };
                 }
             }
+            offsetIJ.copyFromFloats(0, 0);
             brickIndex = Brick.BrickIdToIndex(brickId);
             if (!previewMesh || previewMesh.isDisposed()) {
                 previewMesh = new BABYLON.Mesh("brick-preview-mesh");
@@ -4419,6 +4483,8 @@ class PlayerActionTemplate {
                 template.vertexData.applyToMesh(previewMesh);
             });
             player.game.inputManager.addMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
+            player.game.inputManager.addMappedKeyDownListener(KeyInput.OFFSET_INC_SELECTED, incOffset);
+            player.game.inputManager.addMappedKeyDownListener(KeyInput.OFFSET_DEC_SELECTED, decOffset);
         };
         brickAction.onUnequip = () => {
             if (IsTouchScreen) {
@@ -4428,23 +4494,35 @@ class PlayerActionTemplate {
                 previewMesh.dispose();
             }
             player.game.inputManager.removeMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
+            player.game.inputManager.removeMappedKeyDownListener(KeyInput.OFFSET_INC_SELECTED, incOffset);
+            player.game.inputManager.removeMappedKeyDownListener(KeyInput.OFFSET_DEC_SELECTED, decOffset);
         };
         brickAction.onWheel = (e) => {
             if (e.deltaY > 0) {
-                brickIndex = (brickIndex + BRICK_LIST.length - 1) % BRICK_LIST.length;
-                BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
-                    if (previewMesh && !previewMesh.isDisposed()) {
-                        template.vertexData.applyToMesh(previewMesh);
-                    }
-                });
+                if (player.game.inputManager.isKeyInputDown(KeyInput.CONTROL)) {
+                    //offsetIJ.x += 1;
+                }
+                else {
+                    brickIndex = (brickIndex + BRICK_LIST.length - 1) % BRICK_LIST.length;
+                    BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
+                        if (previewMesh && !previewMesh.isDisposed()) {
+                            template.vertexData.applyToMesh(previewMesh);
+                        }
+                    });
+                }
             }
             else if (e.deltaY < 0) {
-                brickIndex = (brickIndex + 1) % BRICK_LIST.length;
-                BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
-                    if (previewMesh && !previewMesh.isDisposed()) {
-                        template.vertexData.applyToMesh(previewMesh);
-                    }
-                });
+                if (player.game.inputManager.isKeyInputDown(KeyInput.CONTROL)) {
+                    //offsetIJ.x -= 1;
+                }
+                else {
+                    brickIndex = (brickIndex + 1) % BRICK_LIST.length;
+                    BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
+                        if (previewMesh && !previewMesh.isDisposed()) {
+                            template.vertexData.applyToMesh(previewMesh);
+                        }
+                    });
+                }
             }
         };
         return brickAction;
@@ -6724,7 +6802,7 @@ class Dodo extends Creature {
         }
         // panik
         if (this.isPlayerControlled) {
-            if (this.game.gameMode === GameMode.Playing && this.position.y < 0) {
+            if (this.game.gameMode === GameMode.Playing) {
                 let groundAltitude = this.game.terrain.worldPosToTerrainAltitude(this.position);
                 this.position.y = Math.max(this.position.y, groundAltitude);
             }

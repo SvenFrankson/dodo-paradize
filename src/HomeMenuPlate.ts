@@ -183,6 +183,15 @@ class HomeMenuPlate extends BABYLON.Mesh {
 
     public initialize(): void {
         this.nameInput.value = this.playerDodo.name;
+        if (this.nameInput.value === "TIARATUM GAMES") {
+            (document.querySelector("#password-input-container") as HTMLDivElement).style.display = "block";
+            this.game.devMode.activate();
+        }
+        else {
+            (document.querySelector("#password-input-container") as HTMLDivElement).style.display = "none";
+            this.game.devMode.deactivate();
+        }
+
         this.customizeHeadLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color1));
         this.customizeEyesLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.EyeColor));
         this.customizeBeakLine.setValue(this.playerDodo.getStyleValue(StyleValueTypes.Color2));
@@ -193,6 +202,14 @@ class HomeMenuPlate extends BABYLON.Mesh {
         this.nameInput.oninput = (ev) => {
             this.nameInput.value = this.nameInput.value.toLocaleUpperCase();
             this.playerDodo.name = this.nameInput.value;
+            if (this.nameInput.value === "TIARATUM GAMES") {
+                (document.querySelector("#password-input-container") as HTMLDivElement).style.display = "block";
+            this.game.devMode.activate();
+            }
+            else {
+                (document.querySelector("#password-input-container") as HTMLDivElement).style.display = "none";
+                this.game.devMode.deactivate();
+            }
             SavePlayerToLocalStorage(this.game);
         }
 

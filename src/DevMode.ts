@@ -3,11 +3,19 @@ class DevMode {
     public activated: boolean = false;
 
     public getPassword(): string {
-        return "Crillion";
+        return (document.querySelector("#password-value") as HTMLInputElement).value;
     }
 
     constructor(public game: Game) {
 
+    }
+
+    public activate(): void {
+        this.activated = true;
+    }
+
+    public deactivate(): void {
+        this.activated = false;
     }
 
     public initialize(): void {
