@@ -11,10 +11,11 @@ class ScreenLoger {
     }
 
     public static Log(s: string): void {
-        return;
-        let line = document.createElement("div");
-        line.classList.add("screen-loger-line");
-        line.innerText = s;
-        ScreenLoger.container.appendChild(line);
+        if (Game.Instance && Game.Instance.devMode && Game.Instance.devMode.activated) {
+            let line = document.createElement("div");
+            line.classList.add("screen-loger-line");
+            line.innerText = s;
+            ScreenLoger.container.appendChild(line);
+        }
     }
 }

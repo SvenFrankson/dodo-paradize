@@ -30,6 +30,9 @@ class BrickTemplateManager {
 
 class BrickTemplate {
     public vertexData: BABYLON.VertexData;
+    public offsetMin: BABYLON.Vector2 = BABYLON.Vector2.Zero();
+    public offsetMax: BABYLON.Vector2 = BABYLON.Vector2.Zero();
+
     public get name(): string {
         return BRICK_LIST[this.index].name;
     }
@@ -124,5 +127,31 @@ class BrickTemplate {
         else {
             this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(1, 1, 1);
         }
+
+        this.updateOffset();
+    }
+
+    public updateOffset(): void {
+        let xMin = 0;
+        let xMax = 0;
+        let zMin = 0;
+        let zMax = 0;
+
+        if (this.vertexData) {
+            for (let i = 0; i < this.vertexData.positions.length / 3; i++) {
+                let x = this.vertexData.positions[3 * i];
+                let z = this.vertexData.positions[3 * i + 2];
+
+                xMin = Math.min(x, xMin);
+                xMax = Math.max(x, xMax);
+                zMin = Math.min(z, zMin);
+                zMax = Math.max(z, zMax);
+            }
+        }
+
+        this.offsetMin.x = Math.ceil(xMin / BRICK_S);
+        this.offsetMin.y = Math.ceil(zMin / BRICK_S);
+        this.offsetMax.x = Math.floor(xMax / BRICK_S);
+        this.offsetMax.y = Math.floor(zMax / BRICK_S);
     }
 }

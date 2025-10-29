@@ -2047,7 +2047,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
         this.playerPosY = 0;
         this.dialogOffset = BABYLON.Vector3.Zero();
         this.dialogRotation = 0;
-        this.minZ = 0.1;
+        this.minZ = 0.2;
         this.maxZ = 2000;
     }
     get verticalAngle() {
@@ -2129,11 +2129,12 @@ class ScreenLoger {
         return ScreenLoger._container;
     }
     static Log(s) {
-        return;
-        let line = document.createElement("div");
-        line.classList.add("screen-loger-line");
-        line.innerText = s;
-        ScreenLoger.container.appendChild(line);
+        if (Game.Instance && Game.Instance.devMode && Game.Instance.devMode.activated) {
+            let line = document.createElement("div");
+            line.classList.add("screen-loger-line");
+            line.innerText = s;
+            ScreenLoger.container.appendChild(line);
+        }
     }
 }
 class MySound {
@@ -4281,22 +4282,16 @@ class PlayerActionEmptyHand {
             if (onScreenDistance > 4) {
                 return;
             }
-            ScreenLoger.Log("PlayerActionEmptyHand.onPointerUp. aimedObject = " + (aimedObject != undefined));
             if (player.playMode === PlayMode.Playing) {
                 if (aimedObject instanceof DodoInteractCollider) {
                     if (aimedObject.dodo.brain.npcDialog) {
-                        ScreenLoger.Log("Alpha");
-                        let canvas = aimedObject.dodo.game.canvas;
                         player.game.inputManager.safeExitPointerLock();
-                        ScreenLoger.Log("Bravo");
                         player.game.inputManager.temporaryNoPointerLock = true;
-                        ScreenLoger.Log("Charly");
                         aimedObject.dodo.brain.npcDialog.onNextStop = () => {
                             player.game.inputManager.temporaryNoPointerLock = false;
                             player.game.inputManager.safeRequestPointerLock();
                         };
                         aimedObject.dodo.brain.npcDialog.start();
-                        ScreenLoger.Log("Delta");
                     }
                 }
             }
@@ -4317,18 +4312,20 @@ class PlayerActionTemplate {
         let rotateSelectedBrickBtn = document.querySelector("#rotate-selected-brick");
         let brickIndex = Brick.BrickIdToIndex(brickId);
         let offsetIJ = BABYLON.Vector2.Zero();
+        let offsetMin = BABYLON.Vector2.Zero();
+        let offsetMax = BABYLON.Vector2.Zero();
         let getRotatedOffsetI = () => {
             if (r === 0) {
                 return offsetIJ.x;
             }
             if (r === 1) {
-                return -offsetIJ.y;
+                return offsetIJ.y;
             }
             if (r === 2) {
                 return -offsetIJ.x;
             }
             if (r === 3) {
-                return offsetIJ.y;
+                return -offsetIJ.y;
             }
         };
         let getRotatedOffsetJ = () => {
@@ -4336,13 +4333,13 @@ class PlayerActionTemplate {
                 return offsetIJ.y;
             }
             if (r === 1) {
-                return offsetIJ.x;
+                return -offsetIJ.x;
             }
             if (r === 2) {
                 return -offsetIJ.y;
             }
             if (r === 3) {
-                return -offsetIJ.x;
+                return offsetIJ.x;
             }
         };
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
@@ -4451,10 +4448,16 @@ class PlayerActionTemplate {
             r = (r + 1) % 4;
         };
         let incOffset = () => {
+            offsetIJ.x++;
             offsetIJ.y++;
+            offsetIJ.x = Nabu.MinMax(offsetIJ.x, offsetMin.x, offsetMax.x);
+            offsetIJ.y = Nabu.MinMax(offsetIJ.y, offsetMin.y, offsetMax.y);
         };
         let decOffset = () => {
+            offsetIJ.x--;
             offsetIJ.y--;
+            offsetIJ.x = Nabu.MinMax(offsetIJ.x, offsetMin.x, offsetMax.x);
+            offsetIJ.y = Nabu.MinMax(offsetIJ.y, offsetMin.y, offsetMax.y);
         };
         rotateSelectedBrickBtn.onclick = (ev) => {
             ev.preventDefault();
@@ -4481,6 +4484,8 @@ class PlayerActionTemplate {
             previewMesh.rotation.y = Math.PI * 0.5;
             BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
                 template.vertexData.applyToMesh(previewMesh);
+                offsetMin = template.offsetMin;
+                offsetMax = template.offsetMax;
             });
             player.game.inputManager.addMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
             player.game.inputManager.addMappedKeyDownListener(KeyInput.OFFSET_INC_SELECTED, incOffset);
@@ -4507,6 +4512,8 @@ class PlayerActionTemplate {
                     BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
                         if (previewMesh && !previewMesh.isDisposed()) {
                             template.vertexData.applyToMesh(previewMesh);
+                            offsetMin = template.offsetMin;
+                            offsetMax = template.offsetMax;
                         }
                     });
                 }
@@ -4520,6 +4527,8 @@ class PlayerActionTemplate {
                     BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
                         if (previewMesh && !previewMesh.isDisposed()) {
                             template.vertexData.applyToMesh(previewMesh);
+                            offsetMin = template.offsetMin;
+                            offsetMax = template.offsetMax;
                         }
                     });
                 }
@@ -5012,6 +5021,8 @@ class BrickTemplate {
     constructor(index, brickTemplateManager) {
         this.index = index;
         this.brickTemplateManager = brickTemplateManager;
+        this.offsetMin = BABYLON.Vector2.Zero();
+        this.offsetMax = BABYLON.Vector2.Zero();
     }
     get name() {
         return BRICK_LIST[this.index].name;
@@ -5102,6 +5113,27 @@ class BrickTemplate {
         else {
             this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(1, 1, 1);
         }
+        this.updateOffset();
+    }
+    updateOffset() {
+        let xMin = 0;
+        let xMax = 0;
+        let zMin = 0;
+        let zMax = 0;
+        if (this.vertexData) {
+            for (let i = 0; i < this.vertexData.positions.length / 3; i++) {
+                let x = this.vertexData.positions[3 * i];
+                let z = this.vertexData.positions[3 * i + 2];
+                xMin = Math.min(x, xMin);
+                xMax = Math.max(x, xMax);
+                zMin = Math.min(z, zMin);
+                zMax = Math.max(z, zMax);
+            }
+        }
+        this.offsetMin.x = Math.ceil(xMin / BRICK_S);
+        this.offsetMin.y = Math.ceil(zMin / BRICK_S);
+        this.offsetMax.x = Math.floor(xMax / BRICK_S);
+        this.offsetMax.y = Math.floor(zMax / BRICK_S);
     }
 }
 var UV_S = 0.75;

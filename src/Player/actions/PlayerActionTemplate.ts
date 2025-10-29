@@ -10,18 +10,20 @@ class PlayerActionTemplate {
 
         let brickIndex = Brick.BrickIdToIndex(brickId);
         let offsetIJ: BABYLON.Vector2 = BABYLON.Vector2.Zero();
+        let offsetMin: BABYLON.Vector2 = BABYLON.Vector2.Zero();
+        let offsetMax: BABYLON.Vector2 = BABYLON.Vector2.Zero();
         let getRotatedOffsetI = () => {
             if (r === 0) {
                 return offsetIJ.x;
             }
             if (r === 1) {
-                return - offsetIJ.y;
+                return offsetIJ.y;
             }
             if (r === 2) {
                 return - offsetIJ.x;
             }
             if (r === 3) {
-                return offsetIJ.y;
+                return - offsetIJ.y;
             }
         } 
         let getRotatedOffsetJ = () => {
@@ -29,13 +31,13 @@ class PlayerActionTemplate {
                 return offsetIJ.y;
             }
             if (r === 1) {
-                return offsetIJ.x;
+                return - offsetIJ.x;
             }
             if (r === 2) {
                 return - offsetIJ.y;
             }
             if (r === 3) {
-                return - offsetIJ.x;
+                return offsetIJ.x;
             }
         } 
         let brickAction = new PlayerAction(Brick.BrickIdToName(brickId), player);
@@ -159,11 +161,17 @@ class PlayerActionTemplate {
         }
 
         let incOffset = () => {
+            offsetIJ.x++;
             offsetIJ.y++;
+            offsetIJ.x = Nabu.MinMax(offsetIJ.x, offsetMin.x, offsetMax.x);
+            offsetIJ.y = Nabu.MinMax(offsetIJ.y, offsetMin.y, offsetMax.y);
         }
 
         let decOffset = () => {
+            offsetIJ.x--;
             offsetIJ.y--;
+            offsetIJ.x = Nabu.MinMax(offsetIJ.x, offsetMin.x, offsetMax.x);
+            offsetIJ.y = Nabu.MinMax(offsetIJ.y, offsetMin.y, offsetMax.y);
         }
 
         rotateSelectedBrickBtn.onclick = (ev: PointerEvent) => {
@@ -192,6 +200,8 @@ class PlayerActionTemplate {
             previewMesh.rotation.y = Math.PI * 0.5;
             BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
                 template.vertexData.applyToMesh(previewMesh);
+                offsetMin = template.offsetMin;
+                offsetMax = template.offsetMax;
             });
 
             player.game.inputManager.addMappedKeyDownListener(KeyInput.ROTATE_SELECTED, rotateBrick);
@@ -222,6 +232,8 @@ class PlayerActionTemplate {
                     BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
                         if (previewMesh && !previewMesh.isDisposed()) {
                             template.vertexData.applyToMesh(previewMesh);
+                            offsetMin = template.offsetMin;
+                            offsetMax = template.offsetMax;
                         }
                     });
                 }
@@ -235,6 +247,8 @@ class PlayerActionTemplate {
                     BrickTemplateManager.Instance.getTemplate(brickIndex).then(template => {
                         if (previewMesh && !previewMesh.isDisposed()) {
                             template.vertexData.applyToMesh(previewMesh);
+                            offsetMin = template.offsetMin;
+                            offsetMax = template.offsetMax;
                         }
                     });
                 }
