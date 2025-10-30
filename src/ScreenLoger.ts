@@ -11,7 +11,7 @@ class ScreenLoger {
     }
 
     public static Log(s: string): void {
-        if (Game.Instance && Game.Instance.devMode && Game.Instance.devMode.activated) {
+        if (Game.Instance && Game.Instance.devMode && Game.Instance.devMode.activated || true) {
             let line = document.createElement("div");
             line.classList.add("screen-loger-line");
             line.innerText = s;

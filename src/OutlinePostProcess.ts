@@ -61,14 +61,16 @@ class OutlinePostProcess {
 				vec4 sobel = sqrt((sobel_edge_h * sobel_edge_h) + (sobel_edge_v * sobel_edge_v));
 				
 				gl_FragColor = n[4];
-				int r = int(round(gl_FragColor.r * 256.));
-				if (r % 2 == 1) {
-					if (max(sobel.r, max(sobel.g, sobel.b)) > 1. + 0.25 * depthFactor) {
-						gl_FragColor = vec4(0., 0., 0., 1.) * (1. - depthFactor) + n[4] * depthFactor;
-					}
-				}
 				if (sobel_depth > 0.0005 + 0.05 * depthFactor) {
 					gl_FragColor = vec4(0., 0., 0., 1.) * (1. - depthFactor) + n[4] * depthFactor;
+				}
+				else {
+					int r = int(round(gl_FragColor.r * 256.));
+					if (r % 2 == 1) {
+						if (max(sobel.r, max(sobel.g, sobel.b)) > 1. + 0.25 * depthFactor) {
+							gl_FragColor = vec4(0., 0., 0., 1.) * (1. - depthFactor) + n[4] * depthFactor;
+						}
+					}
 				}
 			}
         `;
@@ -81,7 +83,7 @@ class OutlinePostProcess {
 			effect.setFloat("width", engine.getRenderWidth());
 			effect.setFloat("height", engine.getRenderHeight());
 		};
-    	new BABYLON.FxaaPostProcess("fxaa", 1, camera, undefined, engine, false);
+    	new BABYLON.FxaaPostProcess("fxaa", 1, camera);
 		return postProcess;
     }
 }

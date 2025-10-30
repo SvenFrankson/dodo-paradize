@@ -994,7 +994,7 @@ class Dodo extends Creature {
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
 
-        if (this.updateLoopQuality === DodoUpdateLoopQuality.Max && !this.brain.inDialog) {
+        if (this.updateLoopQuality === DodoUpdateLoopQuality.Max && !this.brain.inDialog && this.isPlayerControlled) {
             this.updateConstructionDIDJRange();
             for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
                 for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {

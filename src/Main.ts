@@ -117,6 +117,9 @@ function firstPlayerInteraction(): void {
         document.body.classList.add("mobile");
     }
     PlayerHasInteracted = true;
+
+    Game.Instance.camera.useOutline = IsMobile === 0;
+    Game.Instance.camera.initOutline();
 }
 
 let onFirstPlayerInteractionTouch = (ev: Event) => {
@@ -335,7 +338,7 @@ class Game {
         skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
         this.skybox.material = skyboxMaterial;
 
-        this.camera = new PlayerCamera(this);
+        this.camera = new PlayerCamera(this, this.engine.webGLVersion === 2);
 
         if (window.localStorage.getItem("camera-position")) {
             let positionItem = JSON.parse(window.localStorage.getItem("camera-position"));

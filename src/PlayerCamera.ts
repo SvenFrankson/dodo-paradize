@@ -1,6 +1,5 @@
 class PlayerCamera extends BABYLON.FreeCamera {
 
-    public useOutline: boolean = true;
     public noOutlineCamera: BABYLON.FreeCamera;
 
     public player: Dodo;
@@ -19,52 +18,62 @@ class PlayerCamera extends BABYLON.FreeCamera {
     public dialogOffset: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public dialogRotation: number = 0;
 
-    constructor(public game: Game) {
+    constructor(public game: Game, public useOutline: boolean = true) {
         super("player-camera", BABYLON.Vector3.Zero());
         this.minZ = 0.2;
         this.maxZ = 2000;
+    }
 
+    public initOutline(): void {
         if (this.useOutline) {
-            const rtt = new BABYLON.RenderTargetTexture('render target', { width: this.game.engine.getRenderWidth(), height: this.game.engine.getRenderHeight() }, this.game.scene);
-            rtt.samples = 1;
-            this.outputRenderTarget = rtt;
-    
-            this.noOutlineCamera = new BABYLON.FreeCamera(
-                "no-outline-camera",
-                BABYLON.Vector3.Zero(),
-                this.game.scene
-            );
+            try {
+                const rtt = new BABYLON.RenderTargetTexture('render target', { width: this.game.engine.getRenderWidth(), height: this.game.engine.getRenderHeight() }, this.game.scene);
+                rtt.samples = 1;
+                this.outputRenderTarget = rtt;
+        
+                this.noOutlineCamera = new BABYLON.FreeCamera(
+                    "no-outline-camera",
+                    BABYLON.Vector3.Zero(),
+                    this.game.scene
+                );
 
-            this.noOutlineCamera.minZ = 0.2;
-            this.noOutlineCamera.maxZ = 2000;
-            this.noOutlineCamera.layerMask = NO_OUTLINE_LAYERMASK;
-            this.noOutlineCamera.parent = this;
-    
-            let postProcess = OutlinePostProcess.AddOutlinePostProcess(this);
-            postProcess.onSizeChangedObservable.add(() => {
-                if (!postProcess.inputTexture.depthStencilTexture) {
+                this.noOutlineCamera.minZ = 0.2;
+                this.noOutlineCamera.maxZ = 2000;
+                this.noOutlineCamera.layerMask = NO_OUTLINE_LAYERMASK;
+                this.noOutlineCamera.parent = this;
+        
+                let postProcess = OutlinePostProcess.AddOutlinePostProcess(this);
+                //let postProcess = new BABYLON.PassPostProcess("pass-test", 1, this);
+                postProcess.onSizeChangedObservable.add(() => {
+                    if (!postProcess.inputTexture.depthStencilTexture) {
+                        postProcess.inputTexture.createDepthStencilTexture(0, true, false, 4);
+                        postProcess.inputTexture._shareDepth(rtt.renderTarget);
+                    }
+                });
+                
+                const pp = new BABYLON.PassPostProcess("pass", 1, this.noOutlineCamera);
+                pp.inputTexture = rtt.renderTarget;
+                pp.autoClear = false;
+
+                this.game.engine.onResizeObservable.add(() => {
+                    //console.log("w " + this.game.engine.getRenderWidth());
+                    //console.log("h " + this.game.engine.getRenderHeight());
+                    //postProcess.getEffect().setFloat("width", this.game.engine.getRenderWidth());
+                    //postProcess.getEffect().setFloat("height", this.game.engine.getRenderHeight());
+                    rtt.resize({ width: this.game.engine.getRenderWidth(), height: this.game.engine.getRenderHeight() });
                     postProcess.inputTexture.createDepthStencilTexture(0, true, false, 4);
                     postProcess.inputTexture._shareDepth(rtt.renderTarget);
-                }
-            });
-            
-            const pp = new BABYLON.PassPostProcess("pass", 1, this.noOutlineCamera);
-            pp.inputTexture = rtt.renderTarget;
-            pp.autoClear = false;
+                    this.outputRenderTarget = rtt;
+                    pp.inputTexture = rtt.renderTarget;
+                });
 
-            this.game.engine.onResizeObservable.add(() => {
-                //console.log("w " + this.game.engine.getRenderWidth());
-                //console.log("h " + this.game.engine.getRenderHeight());
-                //postProcess.getEffect().setFloat("width", this.game.engine.getRenderWidth());
-                //postProcess.getEffect().setFloat("height", this.game.engine.getRenderHeight());
-                rtt.resize({ width: this.game.engine.getRenderWidth(), height: this.game.engine.getRenderHeight() });
-                postProcess.inputTexture.createDepthStencilTexture(0, true, false, 4);
-                postProcess.inputTexture._shareDepth(rtt.renderTarget);
-                this.outputRenderTarget = rtt;
-                pp.inputTexture = rtt.renderTarget;
-            });
-
-            this.game.scene.activeCameras = [this, this.noOutlineCamera];
+                this.game.scene.activeCameras = [this, this.noOutlineCamera];
+            }
+            catch (e) {
+                ScreenLoger.Log("PlayerCamera outlineError");
+                ScreenLoger.Log(e);
+                console.error(e);
+            }
         }
         else {
             this.layerMask |= NO_OUTLINE_LAYERMASK;

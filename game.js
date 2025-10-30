@@ -739,6 +739,8 @@ function firstPlayerInteraction() {
         document.body.classList.add("mobile");
     }
     PlayerHasInteracted = true;
+    Game.Instance.camera.useOutline = IsMobile === 0;
+    Game.Instance.camera.initOutline();
 }
 let onFirstPlayerInteractionTouch = (ev) => {
     if (!Game.Instance.gameLoaded) {
@@ -916,7 +918,7 @@ class Game {
         skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
         skyboxMaterial.emissiveColor = BABYLON.Color3.FromHexString("#5c8b93").scaleInPlace(0.7);
         this.skybox.material = skyboxMaterial;
-        this.camera = new PlayerCamera(this);
+        this.camera = new PlayerCamera(this, this.engine.webGLVersion === 2);
         if (window.localStorage.getItem("camera-position")) {
             let positionItem = JSON.parse(window.localStorage.getItem("camera-position"));
             let position = new BABYLON.Vector3(positionItem.x, positionItem.y, positionItem.z);
@@ -1912,14 +1914,16 @@ class OutlinePostProcess {
 				vec4 sobel = sqrt((sobel_edge_h * sobel_edge_h) + (sobel_edge_v * sobel_edge_v));
 				
 				gl_FragColor = n[4];
-				int r = int(round(gl_FragColor.r * 256.));
-				if (r % 2 == 1) {
-					if (max(sobel.r, max(sobel.g, sobel.b)) > 1. + 0.25 * depthFactor) {
-						gl_FragColor = vec4(0., 0., 0., 1.) * (1. - depthFactor) + n[4] * depthFactor;
-					}
-				}
 				if (sobel_depth > 0.0005 + 0.05 * depthFactor) {
 					gl_FragColor = vec4(0., 0., 0., 1.) * (1. - depthFactor) + n[4] * depthFactor;
+				}
+				else {
+					int r = int(round(gl_FragColor.r * 256.));
+					if (r % 2 == 1) {
+						if (max(sobel.r, max(sobel.g, sobel.b)) > 1. + 0.25 * depthFactor) {
+							gl_FragColor = vec4(0., 0., 0., 1.) * (1. - depthFactor) + n[4] * depthFactor;
+						}
+					}
 				}
 			}
         `;
@@ -1930,7 +1934,7 @@ class OutlinePostProcess {
             effect.setFloat("width", engine.getRenderWidth());
             effect.setFloat("height", engine.getRenderHeight());
         };
-        new BABYLON.FxaaPostProcess("fxaa", 1, camera, undefined, engine, false);
+        new BABYLON.FxaaPostProcess("fxaa", 1, camera);
         return postProcess;
     }
 }
@@ -2043,10 +2047,10 @@ class PerformanceWatcher {
     }
 }
 class PlayerCamera extends BABYLON.FreeCamera {
-    constructor(game) {
+    constructor(game, useOutline = true) {
         super("player-camera", BABYLON.Vector3.Zero());
         this.game = game;
-        this.useOutline = true;
+        this.useOutline = useOutline;
         this._verticalAngle = 0;
         this.pivotHeight = 1.7;
         this.pivotHeightHome = 0.5;
@@ -2058,47 +2062,57 @@ class PlayerCamera extends BABYLON.FreeCamera {
         this.bestDialogRotation = Math.PI * 0.5;
         this.minZ = 0.2;
         this.maxZ = 2000;
-        if (this.useOutline) {
-            const rtt = new BABYLON.RenderTargetTexture('render target', { width: this.game.engine.getRenderWidth(), height: this.game.engine.getRenderHeight() }, this.game.scene);
-            rtt.samples = 1;
-            this.outputRenderTarget = rtt;
-            this.noOutlineCamera = new BABYLON.FreeCamera("no-outline-camera", BABYLON.Vector3.Zero(), this.game.scene);
-            this.noOutlineCamera.minZ = 0.2;
-            this.noOutlineCamera.maxZ = 2000;
-            this.noOutlineCamera.layerMask = NO_OUTLINE_LAYERMASK;
-            this.noOutlineCamera.parent = this;
-            let postProcess = OutlinePostProcess.AddOutlinePostProcess(this);
-            postProcess.onSizeChangedObservable.add(() => {
-                if (!postProcess.inputTexture.depthStencilTexture) {
-                    postProcess.inputTexture.createDepthStencilTexture(0, true, false, 4);
-                    postProcess.inputTexture._shareDepth(rtt.renderTarget);
-                }
-            });
-            const pp = new BABYLON.PassPostProcess("pass", 1, this.noOutlineCamera);
-            pp.inputTexture = rtt.renderTarget;
-            pp.autoClear = false;
-            this.game.engine.onResizeObservable.add(() => {
-                //console.log("w " + this.game.engine.getRenderWidth());
-                //console.log("h " + this.game.engine.getRenderHeight());
-                //postProcess.getEffect().setFloat("width", this.game.engine.getRenderWidth());
-                //postProcess.getEffect().setFloat("height", this.game.engine.getRenderHeight());
-                rtt.resize({ width: this.game.engine.getRenderWidth(), height: this.game.engine.getRenderHeight() });
-                postProcess.inputTexture.createDepthStencilTexture(0, true, false, 4);
-                postProcess.inputTexture._shareDepth(rtt.renderTarget);
-                this.outputRenderTarget = rtt;
-                pp.inputTexture = rtt.renderTarget;
-            });
-            this.game.scene.activeCameras = [this, this.noOutlineCamera];
-        }
-        else {
-            this.layerMask |= NO_OUTLINE_LAYERMASK;
-        }
     }
     get verticalAngle() {
         return this._verticalAngle;
     }
     set verticalAngle(v) {
         this._verticalAngle = Nabu.MinMax(v, -Math.PI / 2 * 0.99, Math.PI / 2 * 0.99);
+    }
+    initOutline() {
+        if (this.useOutline) {
+            try {
+                const rtt = new BABYLON.RenderTargetTexture('render target', { width: this.game.engine.getRenderWidth(), height: this.game.engine.getRenderHeight() }, this.game.scene);
+                rtt.samples = 1;
+                this.outputRenderTarget = rtt;
+                this.noOutlineCamera = new BABYLON.FreeCamera("no-outline-camera", BABYLON.Vector3.Zero(), this.game.scene);
+                this.noOutlineCamera.minZ = 0.2;
+                this.noOutlineCamera.maxZ = 2000;
+                this.noOutlineCamera.layerMask = NO_OUTLINE_LAYERMASK;
+                this.noOutlineCamera.parent = this;
+                let postProcess = OutlinePostProcess.AddOutlinePostProcess(this);
+                //let postProcess = new BABYLON.PassPostProcess("pass-test", 1, this);
+                postProcess.onSizeChangedObservable.add(() => {
+                    if (!postProcess.inputTexture.depthStencilTexture) {
+                        postProcess.inputTexture.createDepthStencilTexture(0, true, false, 4);
+                        postProcess.inputTexture._shareDepth(rtt.renderTarget);
+                    }
+                });
+                const pp = new BABYLON.PassPostProcess("pass", 1, this.noOutlineCamera);
+                pp.inputTexture = rtt.renderTarget;
+                pp.autoClear = false;
+                this.game.engine.onResizeObservable.add(() => {
+                    //console.log("w " + this.game.engine.getRenderWidth());
+                    //console.log("h " + this.game.engine.getRenderHeight());
+                    //postProcess.getEffect().setFloat("width", this.game.engine.getRenderWidth());
+                    //postProcess.getEffect().setFloat("height", this.game.engine.getRenderHeight());
+                    rtt.resize({ width: this.game.engine.getRenderWidth(), height: this.game.engine.getRenderHeight() });
+                    postProcess.inputTexture.createDepthStencilTexture(0, true, false, 4);
+                    postProcess.inputTexture._shareDepth(rtt.renderTarget);
+                    this.outputRenderTarget = rtt;
+                    pp.inputTexture = rtt.renderTarget;
+                });
+                this.game.scene.activeCameras = [this, this.noOutlineCamera];
+            }
+            catch (e) {
+                ScreenLoger.Log("PlayerCamera outlineError");
+                ScreenLoger.Log(e);
+                console.error(e);
+            }
+        }
+        else {
+            this.layerMask |= NO_OUTLINE_LAYERMASK;
+        }
     }
     onUpdate(dt) {
         if (this.player) {
@@ -2174,7 +2188,7 @@ class ScreenLoger {
         return ScreenLoger._container;
     }
     static Log(s) {
-        if (Game.Instance && Game.Instance.devMode && Game.Instance.devMode.activated) {
+        if (Game.Instance && Game.Instance.devMode && Game.Instance.devMode.activated || true) {
             let line = document.createElement("div");
             line.classList.add("screen-loger-line");
             line.innerText = s;
@@ -7035,7 +7049,7 @@ class Dodo extends Creature {
         //} 
         this.body.position.addInPlace(this.bodyVelocity.scale(dt));
         //this.body.position.copyFrom(this.bodyTargetPos);
-        if (this.updateLoopQuality === DodoUpdateLoopQuality.Max && !this.brain.inDialog) {
+        if (this.updateLoopQuality === DodoUpdateLoopQuality.Max && !this.brain.inDialog && this.isPlayerControlled) {
             this.updateConstructionDIDJRange();
             for (let di = this._constructionRange.di0; di <= this._constructionRange.di1; di++) {
                 for (let dj = this._constructionRange.dj0; dj <= this._constructionRange.dj1; dj++) {
@@ -8630,7 +8644,7 @@ class NPCManager {
         this.paintMerchant.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(-4.24, 0.94, 2.67);
         this.paintMerchant.brain.subBrains[BrainMode.Idle].positionRadius = 0.3;
         this.paintMerchant.brain.initialize();
-        this.welcomeDodo = new Dodo("welcome-dodo", "SVEN", this.game, { style: "1511280e0309", role: "New Player Orientation" });
+        this.welcomeDodo = new Dodo("welcome-dodo", "SASHI ABOSEDE", this.game, { style: "1511280e0309", role: "New Player Orientation" });
         this.welcomeDodo.brain = new Brain(this.welcomeDodo, BrainMode.Idle);
         this.welcomeDodo.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.85, 0, 14.31);
         this.welcomeDodo.brain.initialize();
@@ -8644,6 +8658,11 @@ class NPCManager {
         this.playgroundHost.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(1.62, 0.80, -4.80);
         this.playgroundHost.brain.subBrains[BrainMode.Idle].positionRadius = 0.3;
         this.playgroundHost.brain.initialize();
+        this.tiaratumGamesHost = new Dodo("playground-dodo", "SVEN", this.game, { style: "1c29091b0201", role: "Tiaratum Games" });
+        this.tiaratumGamesHost.brain = new Brain(this.tiaratumGamesHost, BrainMode.Idle);
+        this.tiaratumGamesHost.brain.subBrains[BrainMode.Idle].positionZero = new BABYLON.Vector3(-15.59, 2.68, 6.56);
+        this.tiaratumGamesHost.brain.subBrains[BrainMode.Idle].positionRadius = 0.1;
+        this.tiaratumGamesHost.brain.initialize();
     }
     async instantiate() {
         await this.landServant.instantiate();
@@ -8786,22 +8805,13 @@ class NPCManager {
             new NPCDialogTextLine(0, "Salut !"),
             new NPCDialogTextLine(1, "My name is " + this.welcomeDodo.name + ". Welcome to Dodopolis !"),
             new NPCDialogTextLine(2, "I'm glad to see you there, if you have a question about this place, I can try to answer it !"),
-            new NPCDialogTextLine(3, "What do you want to know ?", new NPCDialogResponse("What is Dodopolis ?", 10), new NPCDialogResponse("What can I do here ?", 20), new NPCDialogResponse("Where can I find Bricks and Paints ?", 30), new NPCDialogResponse("Where can I use Bricks and Paints ?", 40), new NPCDialogResponse("How does Dodopolis run ?", 100), new NPCDialogResponse("Who made Dodopolis ?", 110), new NPCDialogResponse("I saw a bug", 120), new NPCDialogResponse("Nothing...", 1000)),
+            new NPCDialogTextLine(3, "What do you want to know ?", new NPCDialogResponse("What is Dodopolis ?", 10), new NPCDialogResponse("What can I do here ?", 20), new NPCDialogResponse("Where can I find Bricks and Paints ?", 30), new NPCDialogResponse("Where can I use Bricks and Paints ?", 40), new NPCDialogResponse("Nothing...", 1000)),
             new NPCDialogTextLineNextIndex(10, "Dodopolis the city you are currently visiting ! A place for all Dodos to enjoy.", 11),
             new NPCDialogTextLine(11, "It is also a multiplayer construction game, made during the Revival Jam 2025, hosted by the Society of Play.", new NPCDialogResponse("Ok !", 3)),
             new NPCDialogTextLine(20, "You can enjoy other players construction, and borrow a piece of land to create your own things.", new NPCDialogResponse("Ok !", 3)),
             new NPCDialogTextLineNextIndex(30, "Look for the shops named 'Bricks & Blocks' and 'Paint & Pigments', then talk to the Dodos inside.", 31),
             new NPCDialogTextLine(31, "Open your inventory with [I] to equip your findings.", new NPCDialogResponse("Ok !", 3)),
             new NPCDialogTextLine(40, "You need to either be in the Playground Area, or borrow a piece of land to build by talking to the Urbanist, Bodicea Bipin.", new NPCDialogResponse("Ok !", 3)),
-            new NPCDialogTextLineNextIndex(100, "Dodopolis is writen in Typescript and runs in your browser.", 101),
-            new NPCDialogTextLineNextIndex(101, "BabylonJS is used for 3D rendering.", 102),
-            new NPCDialogTextLineNextIndex(102, "PeerJS connects the Dodos together.", 103),
-            new NPCDialogTextLine(103, "A simple PHP server and database hosts your constructions.", new NPCDialogResponse("Ok !", 3)),
-            new NPCDialogTextLineNextIndex(110, "Dodopolis is developped by me, Sven from Tiaratum Games.", 111),
-            new NPCDialogTextLineNextIndex(111, "It would not exist without the fantastic work of the BabylonJS developers.", 112),
-            new NPCDialogTextLineNextIndex(112, "P2P connections are possible thanks to the PeerJS developers.", 113),
-            new NPCDialogTextLine(113, "The Color palette is the Lospec 500 palette, made by the Lospec Community.", new NPCDialogResponse("Ok !", 3)),
-            new NPCDialogTextLine(120, "My bad ! You may visit www.tiaratum.com to contact me and tell me more about the issue you encountered. Thanks !", new NPCDialogResponse("Ok !", 3)),
             new NPCDialogTextLine(1000, "Thanks for hanging around, have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
         ]);
         await this.notKingDodo.instantiate();
@@ -8841,6 +8851,26 @@ class NPCManager {
             new NPCDialogTextLine(4, "Please know that this area is offline. None of what you do here can be seen by other Dodos."),
             new NPCDialogTextLine(5, "And it will not be saved anywhere."),
             new NPCDialogTextLine(6, "Have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
+        ]);
+        await this.tiaratumGamesHost.instantiate();
+        this.tiaratumGamesHost.unfold();
+        this.tiaratumGamesHost.setWorldPosition(this.tiaratumGamesHost.brain.subBrains[BrainMode.Idle].positionZero);
+        this.game.npcDodos.push(this.tiaratumGamesHost);
+        this.tiaratumGamesHost.brain.npcDialog = new NPCDialog(this.tiaratumGamesHost, [
+            new NPCDialogTextLine(0, "Salut !"),
+            new NPCDialogTextLine(1, "My name is " + this.tiaratumGamesHost.name + ", and I make video games."),
+            new NPCDialogTextLine(2, "If you have a question, I can try to answer it !"),
+            new NPCDialogTextLine(3, "What do you want to know ?", new NPCDialogResponse("How does Dodopolis run ?", 100), new NPCDialogResponse("Who made Dodopolis ?", 110), new NPCDialogResponse("I saw a bug", 120), new NPCDialogResponse("Nothing...", 1000)),
+            new NPCDialogTextLineNextIndex(100, "Dodopolis is writen in Typescript and runs in your browser.", 101),
+            new NPCDialogTextLineNextIndex(101, "BabylonJS is used for 3D rendering.", 102),
+            new NPCDialogTextLineNextIndex(102, "PeerJS connects the Dodos together.", 103),
+            new NPCDialogTextLine(103, "A PHP server and database hosts your constructions.", new NPCDialogResponse("Ok !", 3)),
+            new NPCDialogTextLineNextIndex(110, "Dodopolis is developped by me, Sven from Tiaratum Games.", 111),
+            new NPCDialogTextLineNextIndex(111, "It would not exist without the fantastic work of the BabylonJS developers.", 112),
+            new NPCDialogTextLineNextIndex(112, "P2P connections are possible thanks to the PeerJS developers.", 113),
+            new NPCDialogTextLine(113, "The Color palette is the Lospec 500 palette, made by the Lospec Community.", new NPCDialogResponse("Ok !", 3)),
+            new NPCDialogTextLine(120, "My bad ! You may visit www.tiaratum.com to contact me and tell me more about the issue you encountered. Thanks !", new NPCDialogResponse("Ok !", 3)),
+            new NPCDialogTextLine(1000, "Once you're done playing Dodopolis, don't forget to take a look at my other games ! Have a nice day !", new NPCDialogResponse("Thanks, bye !", -1))
         ]);
     }
 }
