@@ -124,7 +124,9 @@ var BRICK_LIST = [
     { name: "stairs_10x1", stackable: false, isPublic: true },
     { name: "stairs_16x1", stackable: false, isPublic: true },
 
-    
     { name: "text_8_TIARATUM", stackable: true, isPublic: false },
     { name: "text_6_GAMES", stackable: true, isPublic: false },
+
+    { name: "picture_marble-run-simulator", stackable: true, isPublic: false, src: "./datas/textures/marble-run-simulator.png" },
+    { name: "picture_carillion", stackable: true, isPublic: false, src: "./datas/textures/carillion.png" }
 ]

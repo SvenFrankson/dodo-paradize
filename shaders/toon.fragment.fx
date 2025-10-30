@@ -10,6 +10,7 @@ uniform float diffuseCount;
 uniform float diffuseSharpness;
 uniform vec3 diffuse;
 uniform sampler2D diffuseTexture;
+uniform int useDiffuseTexture;
 uniform sampler2D normalTexture;
 uniform vec3 lightInvDirW;
 uniform float alpha;
@@ -48,6 +49,9 @@ void main() {
 	vec3 color = diffuse * texture(diffuseTexture, vUv).rgb;
 	if (useVertexColor == 1) {
 		color *= vColor.rgb;
+	}
+	if (useDiffuseTexture == 1) {
+		
 	}
 
 	float factor = 2. * specularCount - 1.;

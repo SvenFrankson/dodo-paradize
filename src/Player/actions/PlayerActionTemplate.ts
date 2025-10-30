@@ -63,7 +63,7 @@ class PlayerActionTemplate {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
+                        return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh || mesh instanceof PictureBrickMesh;
                     }
                 )
                 if (hit && hit.pickedPoint) {
@@ -130,7 +130,7 @@ class PlayerActionTemplate {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
+                        return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh || mesh instanceof PictureBrickMesh;
                     }
                 )
                 if (hit && hit.pickedPoint) {
@@ -286,7 +286,7 @@ class PlayerActionTemplate {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh;
+                        return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh || mesh instanceof PictureBrickMesh;
                     }
                 )
                 if (hit && hit.pickedPoint) {
@@ -303,6 +303,18 @@ class PlayerActionTemplate {
                         }
                     }
                     if (hit.pickedMesh instanceof TextBrickMesh) {
+                        let aimedBrick = hit.pickedMesh.brick;
+                        let construction = aimedBrick.construction;
+                        if (construction.isPlayerAllowedToEdit()) {
+                            aimedBrick.colorIndex = paintIndex;
+                            //player.lastUsedPaintIndex = paintIndex;
+                            construction.updateMesh();
+                            
+                            construction.saveToLocalStorage();
+                            construction.saveToServer();
+                        }
+                    }
+                    if (hit.pickedMesh instanceof PictureBrickMesh) {
                         let aimedBrick = hit.pickedMesh.brick;
                         let construction = aimedBrick.construction;
                         if (construction.isPlayerAllowedToEdit()) {

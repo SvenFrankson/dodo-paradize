@@ -124,6 +124,9 @@ class BrickTemplate {
             let w = parseInt(this.name.split("_")[1]);
             this.vertexData = BrickVertexDataGenerator.GetTextBrickVertexData(w, 3);
         }
+        else if (this.name.startsWith("picture_")) {
+            this.vertexData = BrickVertexDataGenerator.GetTextBrickVertexData(4, 9);
+        }
         else {
             this.vertexData = BrickVertexDataGenerator.GetBoxVertexData(1, 1, 1);
         }

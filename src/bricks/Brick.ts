@@ -15,6 +15,9 @@ class BrickFactory {
             if (name.startsWith("text_")) {
                 return new TextBrick(arg1, colorIndex, construction);
             }
+            else if (name.startsWith("picture_")) {
+                return new PictureBrick(arg1, colorIndex, construction);
+            }
             else {
                 return new Brick(arg1, colorIndex, construction);
             }

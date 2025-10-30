@@ -179,9 +179,11 @@ class ToonMaterial extends BABYLON.ShaderMaterial {
     public updateDiffuseTexture(): void {
         if (this._diffuseTexture) {
             this.setTexture("diffuseTexture", this._diffuseTexture);
+            this.setInt("useDiffuseTexture", 1);
         }
         else {
             this.setTexture("diffuseTexture", this._whiteTexture);
+            this.setInt("useDiffuseTexture", 0);
         }
     }
 
