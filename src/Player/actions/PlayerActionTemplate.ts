@@ -332,19 +332,25 @@ class PlayerActionTemplate {
 
         paintAction.onEquip = async () => {
             brush = new BABYLON.Mesh("brush");
-            brush.parent = player.dodo;
-            brush.position.z = 0.8;
-            brush.position.x = 0.1;
-            brush.position.y = - 0.2;
+            brush.parent = player.dodo.head;
+            brush.position.x = 0;
+            brush.position.y = - 0.12;
+            brush.position.z = 0.4;
+            brush.rotation.y = Math.PI / 16;
+            brush.rotation.z = Math.PI * 0.5;
             tip = new BABYLON.Mesh("tip");
             tip.parent = brush;
-            let tipMaterial = new BABYLON.StandardMaterial("tip-material");
-            tipMaterial.diffuseColor = BABYLON.Color3.FromHexString(DodoColors[paintIndex].hex);
+            let tipMaterial = new ToonMaterial("tip-material", brush._scene);
+            tipMaterial.setDiffuse(DodoColors[paintIndex].color);
+            tipMaterial.setNoColorOutline(false);
+            tipMaterial.setDiffuseSharpness(-1);
+            tipMaterial.setDiffuseCount(2);
+            tipMaterial.setAutoLight(0.8);
             tip.material = tipMaterial;
-            //let vDatas = await player.game.vertexDataLoader.get("./datas/meshes/paintbrush.babylon");
+            let vDatas = await player.game.vertexDataLoader.get("./datas/meshes/paintbrush.babylon");
             if (brush && !brush.isDisposed()) {
-                //vDatas[0].applyToMesh(brush);
-                //vDatas[1].applyToMesh(tip);
+                vDatas[0].applyToMesh(brush);
+                vDatas[1].applyToMesh(tip);
             }
         }
 

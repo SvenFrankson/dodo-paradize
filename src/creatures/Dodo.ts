@@ -1088,7 +1088,7 @@ class Dodo extends Creature {
         if (this.targetLook) {
             forward.copyFrom(this.targetLook).subtractInPlace(this.head.position).normalize();
         }
-        this.head.rotationQuaternion = Mummu.QuaternionFromZYAxis(forward, this.up);
+        BABYLON.Quaternion.SlerpToRef(this.head.rotationQuaternion, Mummu.QuaternionFromZYAxis(forward, this.up), 1 - Nabu.Easing.smoothNSec(1 / dt, 0.5), this.head.rotationQuaternion);
 
         let db = this.head.absolutePosition.add(this.head.forward.scale(0.5)).subtract(this.bodyTargetPos);
         db.scaleInPlace(2);
