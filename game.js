@@ -1061,6 +1061,9 @@ class Game {
         //brick.position.copyFromFloats(0, TILE_H, 0);
         //brick.updateMesh();
         this.gameLoaded = true;
+        // Test ArcadeEngine
+        let arcadeEngine = new ArcadeEngine();
+        arcadeEngine.debugStart();
         this.setGameMode(GameMode.Home);
         I18Nizer.Translate(LOCALE);
         if (USE_POKI_SDK) {
@@ -4718,6 +4721,175 @@ class PlayerActionTemplate {
             }
         };
         return paintAction;
+    }
+}
+class Vec2 {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    static Zero() {
+        return new Vec2(0, 0);
+    }
+    clone() {
+        return new Vec2(this.x, this.y);
+    }
+    sqrLength() {
+        return this.x * this.x + this.y * this.y;
+    }
+    length() {
+        return Math.sqrt(this.sqrLength());
+    }
+    addInPlace(other) {
+        this.x += other.x;
+        this.y += other.y;
+        return this;
+    }
+    add(other) {
+        return this.clone().addInPlace(other);
+    }
+    subtractInPlace(other) {
+        this.x -= other.x;
+        this.y -= other.y;
+        return this;
+    }
+    subtract(other) {
+        return this.clone().subtractInPlace(other);
+    }
+    lerpInPlace(other, f) {
+        this.x = this.x * (1 - f) + other.x * f;
+        this.y = this.y * (1 - f) + other.y * f;
+        return this;
+    }
+    lerp(other, f) {
+        return this.clone().lerpInPlace(other, f);
+    }
+    roundInPlace() {
+        this.x = Math.round(this.x);
+        this.y = Math.round(this.y);
+        return this;
+    }
+    round() {
+        return this.clone().roundInPlace();
+    }
+    floorInPlace() {
+        this.x = Math.floor(this.x);
+        this.y = Math.floor(this.y);
+        return this;
+    }
+    floor() {
+        return this.clone().floorInPlace();
+    }
+    ceilInPlace() {
+        this.x = Math.ceil(this.x);
+        this.y = Math.ceil(this.y);
+        return this;
+    }
+    ceil() {
+        return this.clone().ceilInPlace();
+    }
+}
+class ArcadeEngine {
+    constructor() {
+        this.w = 160;
+        this.h = 144;
+        this.gameObjects = [];
+        this.resize();
+    }
+    resize() {
+        this.pixels = new Uint8Array(this.w * this.h);
+    }
+    drawPixel(x, y, c, position) {
+        if (position) {
+            x = Math.round(x + position.x);
+            y = Math.round(y + position.y);
+        }
+        if (x >= 0 && x < this.w && y >= 0 && y < this.h) {
+            this.pixels[x + y * this.w] = c;
+        }
+    }
+    drawLine(start, end, c, position) {
+        let diff = end.subtract(start);
+        let count = Math.max(Math.abs(diff.x), Math.abs(diff.y));
+        for (let i = 0; i <= count; i++) {
+            let f = i / count;
+            let p = start.lerp(end, f).roundInPlace();
+            this.drawPixel(p.x, p.y, c, position);
+        }
+    }
+    clear() {
+        this.pixels.fill(0);
+    }
+    debugStart() {
+        this._debugCanvas = document.createElement("canvas");
+        this._debugCanvas.width = this.w;
+        this._debugCanvas.height = this.h;
+        this._debugCanvas.style.width = (5 * this.w).toFixed(0) + "px";
+        this._debugCanvas.style.height = (5 * this.h).toFixed(0) + "px";
+        this._debugCanvas.style.position = "fixed";
+        this._debugCanvas.style.top = "10px";
+        this._debugCanvas.style.left = "10px";
+        this._debugCanvas.style.zIndex = "100000";
+        document.body.appendChild(this._debugCanvas);
+        new QixMap(this);
+        setInterval(() => { this.debugLoop(); }, 1000 / 24);
+    }
+    debugLoop() {
+        this.clear();
+        for (let i = 0; i < this.gameObjects.length; i++) {
+            this.gameObjects[i].draw();
+        }
+        let context = this._debugCanvas.getContext("2d");
+        context.fillStyle = "black";
+        context.fillRect(0, 0, this.w, this.h);
+        for (let i = 0; i < this.pixels.length; i++) {
+            let c = this.pixels[i];
+            if (c > 0) {
+                let x = i % this.w;
+                let y = Math.floor(i / this.w);
+                context.fillStyle = "#00FF00";
+                context.fillRect(x, y, 1, 1);
+            }
+        }
+    }
+}
+class GameObject {
+    constructor(name, engine) {
+        this.name = name;
+        this.engine = engine;
+        this.position = Vec2.Zero();
+        this.engine.gameObjects.push(this);
+    }
+    dispose() {
+        let index = this.engine.gameObjects.indexOf(this);
+        if (index != -1) {
+            this.engine.gameObjects.splice(index, 1);
+        }
+    }
+    draw() { }
+}
+class QixMap extends GameObject {
+    constructor(engine) {
+        super("qix-map", engine);
+        this.min = new Vec2(4, 4);
+        this.max = new Vec2(160 - 4, 144 - 4);
+        this.map = [];
+        this.initialize();
+    }
+    initialize() {
+        this.map = [
+            new Vec2(this.min.x, this.min.y),
+            new Vec2(this.max.x, this.min.y),
+            new Vec2(this.max.x, this.max.y),
+            new Vec2(this.min.x, this.max.y)
+        ];
+    }
+    draw() {
+        for (let i = 0; i < this.map.length; i++) {
+            let start = this.map[i];
+            let end = this.map[(i + 1) % this.map.length];
+            this.engine.drawLine(start, end, 1, this.position);
+        }
     }
 }
 class BrickFactory {
