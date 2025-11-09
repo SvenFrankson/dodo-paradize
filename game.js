@@ -4731,6 +4731,23 @@ class Vec2 {
     static Zero() {
         return new Vec2(0, 0);
     }
+    static get AxisUp() {
+        return this._AxisUp;
+    }
+    static get AxisDown() {
+        return this._AxisDown;
+    }
+    static get AxisRight() {
+        return this._AxisRight;
+    }
+    static get AxisLeft() {
+        return this._AxisLeft;
+    }
+    copyFrom(other) {
+        this.x = other.x;
+        this.y = other.y;
+        return this;
+    }
     clone() {
         return new Vec2(this.x, this.y);
     }
@@ -4739,6 +4756,23 @@ class Vec2 {
     }
     length() {
         return Math.sqrt(this.sqrLength());
+    }
+    normalizeInPlace() {
+        let l = this.length();
+        this.x = this.x / l;
+        this.y = this.y / l;
+        return this;
+    }
+    normalize() {
+        return this.clone().normalizeInPlace();
+    }
+    scaleInPlace(s) {
+        this.x = this.x * s;
+        this.y = this.y * s;
+        return this;
+    }
+    scale(s) {
+        return this.clone().scaleInPlace(s);
     }
     addInPlace(other) {
         this.x += other.x;
@@ -4788,12 +4822,46 @@ class Vec2 {
     ceil() {
         return this.clone().ceilInPlace();
     }
+    isOnRectSegment(s1, s2) {
+        if (this.x === s1.x && this.x === s2.x) {
+            let minY = Math.min(s1.y, s2.y);
+            let maxY = Math.max(s1.y, s2.y);
+            return this.y >= minY && this.y <= maxY;
+        }
+        if (this.y === s1.y && this.y === s2.y) {
+            let minX = Math.min(s1.x, s2.x);
+            let maxX = Math.max(s1.x, s2.x);
+            return this.x >= minX && this.x <= maxX;
+        }
+        return false;
+    }
+    equals(other) {
+        return this.x === other.x && this.y === other.y;
+    }
+}
+Vec2._AxisUp = new Vec2(0, -1);
+Vec2._AxisDown = new Vec2(0, 1);
+Vec2._AxisRight = new Vec2(1, 0);
+Vec2._AxisLeft = new Vec2(-1, 0);
+class ArcadeEngineInput {
+    constructor() {
+        this.A = false;
+        this.B = false;
+        this.Start = false;
+        this.Select = false;
+        this.Up = false;
+        this.Down = false;
+        this.Right = false;
+        this.Left = false;
+    }
 }
 class ArcadeEngine {
     constructor() {
         this.w = 160;
         this.h = 144;
         this.gameObjects = [];
+        this._lastT = undefined;
+        this.input = new ArcadeEngineInput();
         this.resize();
     }
     resize() {
@@ -4806,6 +4874,13 @@ class ArcadeEngine {
         }
         if (x >= 0 && x < this.w && y >= 0 && y < this.h) {
             this.pixels[x + y * this.w] = c;
+        }
+    }
+    drawRect(x, y, w, h, c, position) {
+        for (let i = 0; i < w; i++) {
+            for (let j = 0; j < h; j++) {
+                this.drawPixel(x + i, y + j, c, position);
+            }
         }
     }
     drawLine(start, end, c, position) {
@@ -4831,11 +4906,60 @@ class ArcadeEngine {
         this._debugCanvas.style.left = "10px";
         this._debugCanvas.style.zIndex = "100000";
         document.body.appendChild(this._debugCanvas);
-        new QixMap(this);
-        setInterval(() => { this.debugLoop(); }, 1000 / 24);
+        window.addEventListener("keydown", (ev) => {
+            if (ev.code === "KeyW") {
+                this.input.Up = true;
+            }
+            if (ev.code === "KeyA") {
+                this.input.Left = true;
+            }
+            if (ev.code === "KeyS") {
+                this.input.Down = true;
+            }
+            if (ev.code === "KeyD") {
+                this.input.Right = true;
+            }
+        });
+        window.addEventListener("keyup", (ev) => {
+            if (ev.code === "KeyW") {
+                this.input.Up = false;
+            }
+            if (ev.code === "KeyA") {
+                this.input.Left = false;
+            }
+            if (ev.code === "KeyS") {
+                this.input.Down = false;
+            }
+            if (ev.code === "KeyD") {
+                this.input.Right = false;
+            }
+        });
+        let map = new QixMap(this);
+        let player = new QixPlayer(map, this);
+        player.position.x = 30;
+        player.position.y = 4;
+        let loop = () => {
+            this.debugLoop();
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(loop);
+                });
+            });
+        };
+        requestAnimationFrame(loop);
     }
     debugLoop() {
         this.clear();
+        let t = performance.now() / 1000;
+        let dt = 1 / 24;
+        if (isFinite(this._lastT)) {
+            dt = t - this._lastT;
+        }
+        dt = Math.min(dt, 1);
+        this._lastT = t;
+        for (let i = 0; i < this.gameObjects.length; i++) {
+            this.gameObjects[i].update(dt);
+        }
         for (let i = 0; i < this.gameObjects.length; i++) {
             this.gameObjects[i].draw();
         }
@@ -4867,17 +4991,18 @@ class GameObject {
         }
     }
     draw() { }
+    update(dt) { }
 }
 class QixMap extends GameObject {
     constructor(engine) {
         super("qix-map", engine);
         this.min = new Vec2(4, 4);
         this.max = new Vec2(160 - 4, 144 - 4);
-        this.map = [];
+        this.points = [];
         this.initialize();
     }
     initialize() {
-        this.map = [
+        this.points = [
             new Vec2(this.min.x, this.min.y),
             new Vec2(this.max.x, this.min.y),
             new Vec2(this.max.x, this.max.y),
@@ -4885,11 +5010,112 @@ class QixMap extends GameObject {
         ];
     }
     draw() {
-        for (let i = 0; i < this.map.length; i++) {
-            let start = this.map[i];
-            let end = this.map[(i + 1) % this.map.length];
+        for (let i = 0; i < this.points.length; i++) {
+            let start = this.points[i];
+            let end = this.points[(i + 1) % this.points.length];
             this.engine.drawLine(start, end, 1, this.position);
         }
+    }
+}
+class QixPlayer extends GameObject {
+    constructor(map, engine) {
+        super("qix-player", engine);
+        this.map = map;
+        this.movingOnMap = 0;
+    }
+    indexOnMap() {
+        for (let i = 0; i < this.map.points.length; i++) {
+            let s1 = this.map.points[i];
+            let s2 = this.map.points[(i + 1) % this.map.points.length];
+            if (this.position.equals(s2)) {
+                return (i + 1) % this.map.points.length;
+            }
+            if (this.position.isOnRectSegment(s1, s2)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    getDir(index) {
+        while (index < 0) {
+            index += this.map.points.length;
+        }
+        while (index >= this.map.points.length) {
+            index -= this.map.points.length;
+        }
+        let s1 = this.map.points[index];
+        let s2 = this.map.points[(index + 1) % this.map.points.length];
+        return s2.subtract(s1).normalizeInPlace();
+    }
+    getDirInv(index) {
+        while (index < 0) {
+            index += this.map.points.length;
+        }
+        while (index >= this.map.points.length) {
+            index -= this.map.points.length;
+        }
+        let s1 = this.map.points[index];
+        if (this.position.equals(s1)) {
+            return this.getDir(index - 1).scaleInPlace(-1);
+        }
+        return this.getDir(index).scaleInPlace(-1);
+    }
+    update(dt) {
+        if (this.movingOnMap != 0) {
+            if (this.engine.input.Up || this.engine.input.Down || this.engine.input.Right || this.engine.input.Left) {
+                let index = this.indexOnMap();
+                if (index === -1) {
+                    this.position.copyFrom(this.map.points[0]);
+                    return;
+                }
+                if (this.movingOnMap === 1) {
+                    let dir = this.getDir(index);
+                    this.position.addInPlace(dir);
+                }
+                else if (this.movingOnMap = -1) {
+                    let dir = this.getDirInv(index);
+                    this.position.addInPlace(dir);
+                }
+            }
+            else {
+                this.movingOnMap = 0;
+            }
+        }
+        else {
+            let index = this.indexOnMap();
+            if (index === -1) {
+                this.position.copyFrom(this.map.points[0]);
+                return;
+            }
+            let dir = this.getDir(index);
+            if (dir.equals(Vec2.AxisUp) && this.engine.input.Up) {
+                this.movingOnMap = 1;
+            }
+            else if (dir.equals(Vec2.AxisDown) && this.engine.input.Down) {
+                this.movingOnMap = 1;
+            }
+            else if (dir.equals(Vec2.AxisRight) && this.engine.input.Right) {
+                this.movingOnMap = 1;
+            }
+            else if (dir.equals(Vec2.AxisLeft) && this.engine.input.Left) {
+                this.movingOnMap = 1;
+            }
+            else if (dir.equals(Vec2.AxisUp) && this.engine.input.Down) {
+                this.movingOnMap = -1;
+            }
+            else if (dir.equals(Vec2.AxisDown) && this.engine.input.Up) {
+                this.movingOnMap = -1;
+            }
+            else if (dir.equals(Vec2.AxisRight) && this.engine.input.Left) {
+                this.movingOnMap = -1;
+            }
+            else if (dir.equals(Vec2.AxisLeft) && this.engine.input.Right) {
+                this.movingOnMap = -1;
+            }
+        }
+    }
+    draw() {
+        this.engine.drawRect(-2, -2, 5, 5, 1, this.position);
     }
 }
 class BrickFactory {

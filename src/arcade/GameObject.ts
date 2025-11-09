@@ -14,4 +14,6 @@ class GameObject {
     }
 
     public draw(): void {}
+
+    public update(dt?: number): void {}
 }
