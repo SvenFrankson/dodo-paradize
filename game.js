@@ -4723,126 +4723,6 @@ class PlayerActionTemplate {
         return paintAction;
     }
 }
-class Vec2 {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-    static Zero() {
-        return new Vec2(0, 0);
-    }
-    static get AxisUp() {
-        return this._AxisUp;
-    }
-    static get AxisDown() {
-        return this._AxisDown;
-    }
-    static get AxisRight() {
-        return this._AxisRight;
-    }
-    static get AxisLeft() {
-        return this._AxisLeft;
-    }
-    copyFrom(other) {
-        this.x = other.x;
-        this.y = other.y;
-        return this;
-    }
-    clone() {
-        return new Vec2(this.x, this.y);
-    }
-    sqrLength() {
-        return this.x * this.x + this.y * this.y;
-    }
-    length() {
-        return Math.sqrt(this.sqrLength());
-    }
-    normalizeInPlace() {
-        let l = this.length();
-        this.x = this.x / l;
-        this.y = this.y / l;
-        return this;
-    }
-    normalize() {
-        return this.clone().normalizeInPlace();
-    }
-    scaleInPlace(s) {
-        this.x = this.x * s;
-        this.y = this.y * s;
-        return this;
-    }
-    scale(s) {
-        return this.clone().scaleInPlace(s);
-    }
-    addInPlace(other) {
-        this.x += other.x;
-        this.y += other.y;
-        return this;
-    }
-    add(other) {
-        return this.clone().addInPlace(other);
-    }
-    subtractInPlace(other) {
-        this.x -= other.x;
-        this.y -= other.y;
-        return this;
-    }
-    subtract(other) {
-        return this.clone().subtractInPlace(other);
-    }
-    lerpInPlace(other, f) {
-        this.x = this.x * (1 - f) + other.x * f;
-        this.y = this.y * (1 - f) + other.y * f;
-        return this;
-    }
-    lerp(other, f) {
-        return this.clone().lerpInPlace(other, f);
-    }
-    roundInPlace() {
-        this.x = Math.round(this.x);
-        this.y = Math.round(this.y);
-        return this;
-    }
-    round() {
-        return this.clone().roundInPlace();
-    }
-    floorInPlace() {
-        this.x = Math.floor(this.x);
-        this.y = Math.floor(this.y);
-        return this;
-    }
-    floor() {
-        return this.clone().floorInPlace();
-    }
-    ceilInPlace() {
-        this.x = Math.ceil(this.x);
-        this.y = Math.ceil(this.y);
-        return this;
-    }
-    ceil() {
-        return this.clone().ceilInPlace();
-    }
-    isOnRectSegment(s1, s2) {
-        if (this.x === s1.x && this.x === s2.x) {
-            let minY = Math.min(s1.y, s2.y);
-            let maxY = Math.max(s1.y, s2.y);
-            return this.y >= minY && this.y <= maxY;
-        }
-        if (this.y === s1.y && this.y === s2.y) {
-            let minX = Math.min(s1.x, s2.x);
-            let maxX = Math.max(s1.x, s2.x);
-            return this.x >= minX && this.x <= maxX;
-        }
-        return false;
-    }
-    equals(other) {
-        return this.x === other.x && this.y === other.y;
-    }
-}
-Vec2._AxisUp = new Vec2(0, -1);
-Vec2._AxisDown = new Vec2(0, 1);
-Vec2._AxisRight = new Vec2(1, 0);
-Vec2._AxisLeft = new Vec2(-1, 0);
 class ArcadeEngineInput {
     constructor() {
         this.A = false;
@@ -4861,6 +4741,7 @@ class ArcadeEngine {
         this.h = 144;
         this.gameObjects = [];
         this._lastT = undefined;
+        ArcadeEngine.Instance = this;
         this.input = new ArcadeEngineInput();
         this.resize();
     }
@@ -4971,7 +4852,15 @@ class ArcadeEngine {
             if (c > 0) {
                 let x = i % this.w;
                 let y = Math.floor(i / this.w);
-                context.fillStyle = "#00FF00";
+                if (c === 1) {
+                    context.fillStyle = "#00FF00";
+                }
+                else if (c === 2) {
+                    context.fillStyle = "#FF00FF";
+                }
+                else {
+                    context.fillStyle = "#00FFFF";
+                }
                 context.fillRect(x, y, 1, 1);
             }
         }
@@ -4993,6 +4882,214 @@ class GameObject {
     draw() { }
     update(dt) { }
 }
+class Triangle extends GameObject {
+    constructor(v1, v2, v3, engine) {
+        super("triangle", engine);
+        this.v1 = v1;
+        this.v2 = v2;
+        this.v3 = v3;
+    }
+    draw() {
+        this.engine.drawLine(this.v1, this.v2, 2);
+        this.engine.drawLine(this.v2, this.v3, 2);
+        this.engine.drawLine(this.v3, this.v1, 2);
+    }
+}
+class Polygon {
+    static Sign(p1, p2, p3) {
+        return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+    }
+    static PointInTriangle(p, v1, v2, v3) {
+        let d1 = Polygon.Sign(p, v1, v2);
+        let d2 = Polygon.Sign(p, v2, v3);
+        let d3 = Polygon.Sign(p, v3, v1);
+        let hasPos = d1 > 0 || d2 > 0 || d3 > 0;
+        let hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
+        return !hasPos || !hasNeg;
+    }
+    static IsEar(index, polygon) {
+        let l = polygon.length;
+        let prev = polygon[(index - 1 + l) % l];
+        let p = polygon[index];
+        let next = polygon[(index + 1) % l];
+        let e1 = next.subtract(p);
+        let e2 = prev.subtract(p);
+        let a = e1.angleTo(e2);
+        if (a > 0 && a < Math.PI) {
+            for (let i = 0; i < polygon.length; i++) {
+                if (i != index &&
+                    i != (index - 1 + l) % l &&
+                    i != (index + 1) % l) {
+                    if (Polygon.PointInTriangle(polygon[i], prev, p, next)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+    static TriangleArea(v1, v2, v3) {
+        return Math.abs(v2.subtract(v1).cross(v3.subtract(v1))) * 0.5;
+    }
+    static GetSurface(polygon) {
+        console.log("GetSurface " + polygon.length + " points");
+        let tmpCutPolygon = [...polygon];
+        let area = 0;
+        let triCount = 0;
+        while (tmpCutPolygon.length > 2) {
+            let earIndex = 0;
+            for (let i = 0; i < tmpCutPolygon.length; i++) {
+                if (Polygon.IsEar(i, tmpCutPolygon)) {
+                    earIndex = i;
+                    break;
+                }
+            }
+            let l = tmpCutPolygon.length;
+            let prev = tmpCutPolygon[(earIndex - 1 + l) % l];
+            let p = tmpCutPolygon[earIndex];
+            let next = tmpCutPolygon[(earIndex + 1) % l];
+            area += Polygon.TriangleArea(prev, p, next);
+            tmpCutPolygon.splice(earIndex, 1);
+            triCount++;
+            let tri = new Triangle(prev, p, next, ArcadeEngine.Instance);
+            setTimeout(() => {
+                tri.dispose();
+            }, 1000);
+        }
+        console.log("TriCount " + triCount);
+        return area;
+    }
+}
+class Vec2 {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    static Zero() {
+        return new Vec2(0, 0);
+    }
+    static get AxisUp() {
+        return this._AxisUp;
+    }
+    static get AxisDown() {
+        return this._AxisDown;
+    }
+    static get AxisRight() {
+        return this._AxisRight;
+    }
+    static get AxisLeft() {
+        return this._AxisLeft;
+    }
+    copyFrom(other) {
+        this.x = other.x;
+        this.y = other.y;
+        return this;
+    }
+    clone() {
+        return new Vec2(this.x, this.y);
+    }
+    sqrLength() {
+        return this.x * this.x + this.y * this.y;
+    }
+    length() {
+        return Math.sqrt(this.sqrLength());
+    }
+    normalizeInPlace() {
+        let l = this.length();
+        this.x = this.x / l;
+        this.y = this.y / l;
+        return this;
+    }
+    normalize() {
+        return this.clone().normalizeInPlace();
+    }
+    scaleInPlace(s) {
+        this.x = this.x * s;
+        this.y = this.y * s;
+        return this;
+    }
+    scale(s) {
+        return this.clone().scaleInPlace(s);
+    }
+    addInPlace(other) {
+        this.x += other.x;
+        this.y += other.y;
+        return this;
+    }
+    add(other) {
+        return this.clone().addInPlace(other);
+    }
+    subtractInPlace(other) {
+        this.x -= other.x;
+        this.y -= other.y;
+        return this;
+    }
+    subtract(other) {
+        return this.clone().subtractInPlace(other);
+    }
+    lerpInPlace(other, f) {
+        this.x = this.x * (1 - f) + other.x * f;
+        this.y = this.y * (1 - f) + other.y * f;
+        return this;
+    }
+    lerp(other, f) {
+        return this.clone().lerpInPlace(other, f);
+    }
+    dot(other) {
+        return this.x * other.x + this.y * other.y;
+    }
+    cross(other) {
+        return this.x * other.y - this.y * other.x;
+    }
+    roundInPlace() {
+        this.x = Math.round(this.x);
+        this.y = Math.round(this.y);
+        return this;
+    }
+    round() {
+        return this.clone().roundInPlace();
+    }
+    floorInPlace() {
+        this.x = Math.floor(this.x);
+        this.y = Math.floor(this.y);
+        return this;
+    }
+    floor() {
+        return this.clone().floorInPlace();
+    }
+    ceilInPlace() {
+        this.x = Math.ceil(this.x);
+        this.y = Math.ceil(this.y);
+        return this;
+    }
+    ceil() {
+        return this.clone().ceilInPlace();
+    }
+    isOnRectSegment(s1, s2) {
+        if (this.x === s1.x && this.x === s2.x) {
+            let minY = Math.min(s1.y, s2.y);
+            let maxY = Math.max(s1.y, s2.y);
+            return this.y >= minY && this.y <= maxY;
+        }
+        if (this.y === s1.y && this.y === s2.y) {
+            let minX = Math.min(s1.x, s2.x);
+            let maxX = Math.max(s1.x, s2.x);
+            return this.x >= minX && this.x <= maxX;
+        }
+        return false;
+    }
+    equals(other) {
+        return this.x === other.x && this.y === other.y;
+    }
+    angleTo(other) {
+        return Math.atan2(this.x * other.y - this.y * other.x, this.x * other.x + this.y * other.y);
+    }
+}
+Vec2._AxisUp = new Vec2(0, -1);
+Vec2._AxisDown = new Vec2(0, 1);
+Vec2._AxisRight = new Vec2(1, 0);
+Vec2._AxisLeft = new Vec2(-1, 0);
 class QixMap extends GameObject {
     constructor(engine) {
         super("qix-map", engine);
@@ -5016,12 +5113,89 @@ class QixMap extends GameObject {
             this.engine.drawLine(start, end, 1, this.position);
         }
     }
+    split(path) {
+        console.log(path);
+        let part1 = [...path];
+        let part2 = [...path].reverse();
+        let start = path[0];
+        let end = path[path.length - 1];
+        for (let i = 0; i < this.points.length; i++) {
+            let s1 = this.points[i];
+            let s2 = this.points[(i + 1) % this.points.length];
+            if (start.isOnRectSegment(s1, s2) && end.isOnRectSegment(s1, s2)) {
+                let tmp = start.add(end).scaleInPlace(0.5).roundInPlace();
+                if (i === this.points.length - 1) {
+                    this.points.push(tmp);
+                }
+                else {
+                    this.points.splice(i + 1, 0, tmp);
+                }
+            }
+        }
+        for (let i = 0; i < this.points.length; i++) {
+            let s1 = this.points[i];
+            let s2 = this.points[(i + 1) % this.points.length];
+            if (end.isOnRectSegment(s1, s2)) {
+                for (let j = 0; j < this.points.length; j++) {
+                    let n = (i + j) % this.points.length;
+                    let pt1 = this.points[n];
+                    let pt2 = this.points[(n + 1) % this.points.length];
+                    if (start.isOnRectSegment(pt1, pt2)) {
+                        break;
+                    }
+                    else {
+                        if (!part1[part1.length - 1].equals(pt2)) {
+                            part1.push(pt2);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        for (let i = 0; i < this.points.length; i++) {
+            let s1 = this.points[i];
+            let s2 = this.points[(i + 1) % this.points.length];
+            if (start.isOnRectSegment(s1, s2)) {
+                for (let j = 0; j < this.points.length; j++) {
+                    let n = (i + j) % this.points.length;
+                    let pt1 = this.points[n];
+                    let pt2 = this.points[(n + 1) % this.points.length];
+                    if (end.isOnRectSegment(pt1, pt2)) {
+                        break;
+                    }
+                    else {
+                        if (!part2[part2.length - 1].equals(pt2)) {
+                            part2.push(pt2);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        //let debugA = Polygon.GetSurface(this.points);
+        let a1 = Polygon.GetSurface(part1);
+        let a2 = Polygon.GetSurface(part2);
+        //console.log("Map Area " + debugA);
+        console.log("A1 Area " + a1);
+        console.log("A2 Area " + a2);
+        if (a1 >= a2) {
+            this.points = part1;
+            return part2;
+        }
+        else {
+            this.points = part2;
+            return part1;
+        }
+    }
 }
 class QixPlayer extends GameObject {
     constructor(map, engine) {
         super("qix-player", engine);
         this.map = map;
         this.movingOnMap = 0;
+        this.tracing = false;
+        this.tracingDir = Vec2.Zero();
+        this.tracePath = [];
     }
     indexOnMap() {
         for (let i = 0; i < this.map.points.length; i++) {
@@ -5081,6 +5255,30 @@ class QixPlayer extends GameObject {
                 this.movingOnMap = 0;
             }
         }
+        else if (this.tracing) {
+            if (this.engine.input.Up && !this.tracingDir.equals(Vec2.AxisUp) && !this.tracingDir.equals(Vec2.AxisDown)) {
+                this.tracingDir.copyFrom(Vec2.AxisUp);
+                this.tracePath.push(this.position.clone());
+            }
+            else if (this.engine.input.Down && !this.tracingDir.equals(Vec2.AxisDown) && !this.tracingDir.equals(Vec2.AxisUp)) {
+                this.tracingDir.copyFrom(Vec2.AxisDown);
+                this.tracePath.push(this.position.clone());
+            }
+            else if (this.engine.input.Right && !this.tracingDir.equals(Vec2.AxisRight) && !this.tracingDir.equals(Vec2.AxisLeft)) {
+                this.tracingDir.copyFrom(Vec2.AxisRight);
+                this.tracePath.push(this.position.clone());
+            }
+            else if (this.engine.input.Left && !this.tracingDir.equals(Vec2.AxisLeft) && !this.tracingDir.equals(Vec2.AxisRight)) {
+                this.tracingDir.copyFrom(Vec2.AxisLeft);
+                this.tracePath.push(this.position.clone());
+            }
+            this.position.addInPlace(this.tracingDir);
+            if (this.indexOnMap() != -1) {
+                this.tracePath.push(this.position.clone());
+                this.lastSplit = this.map.split(this.tracePath);
+                this.tracing = false;
+            }
+        }
         else {
             let index = this.indexOnMap();
             if (index === -1) {
@@ -5100,21 +5298,89 @@ class QixPlayer extends GameObject {
             else if (dir.equals(Vec2.AxisLeft) && this.engine.input.Left) {
                 this.movingOnMap = 1;
             }
-            else if (dir.equals(Vec2.AxisUp) && this.engine.input.Down) {
+            let dirInv = this.getDirInv(index);
+            if (dirInv.equals(Vec2.AxisUp) && this.engine.input.Up) {
                 this.movingOnMap = -1;
             }
-            else if (dir.equals(Vec2.AxisDown) && this.engine.input.Up) {
+            else if (dirInv.equals(Vec2.AxisDown) && this.engine.input.Down) {
                 this.movingOnMap = -1;
             }
-            else if (dir.equals(Vec2.AxisRight) && this.engine.input.Left) {
+            else if (dirInv.equals(Vec2.AxisRight) && this.engine.input.Right) {
                 this.movingOnMap = -1;
             }
-            else if (dir.equals(Vec2.AxisLeft) && this.engine.input.Right) {
+            else if (dirInv.equals(Vec2.AxisLeft) && this.engine.input.Left) {
                 this.movingOnMap = -1;
+            }
+            let inputDir = Vec2.Zero();
+            if (this.engine.input.Up) {
+                let angle = dir.angleTo(Vec2.AxisUp);
+                if (angle > 0) {
+                    let angleInv = Vec2.AxisUp.angleTo(dirInv);
+                    if (angleInv > 0) {
+                        this.tracing = true;
+                        this.tracingDir = Vec2.AxisUp.clone();
+                        this.tracePath = [this.position.clone()];
+                    }
+                }
+            }
+            if (this.engine.input.Down) {
+                let angle = dir.angleTo(Vec2.AxisDown);
+                if (angle > 0) {
+                    let angleInv = Vec2.AxisDown.angleTo(dirInv);
+                    if (angleInv > 0) {
+                        this.tracing = true;
+                        this.tracingDir = Vec2.AxisDown.clone();
+                        this.tracePath = [this.position.clone()];
+                    }
+                }
+            }
+            if (this.engine.input.Right) {
+                let angle = dir.angleTo(Vec2.AxisRight);
+                if (angle > 0) {
+                    let angleInv = Vec2.AxisRight.angleTo(dirInv);
+                    if (angleInv > 0) {
+                        this.tracing = true;
+                        this.tracingDir = Vec2.AxisRight.clone();
+                        this.tracePath = [this.position.clone()];
+                    }
+                }
+            }
+            if (this.engine.input.Left) {
+                let angle = dir.angleTo(Vec2.AxisLeft);
+                if (angle > 0) {
+                    let angleInv = Vec2.AxisLeft.angleTo(dirInv);
+                    if (angleInv > 0) {
+                        this.tracing = true;
+                        this.tracingDir = Vec2.AxisLeft.clone();
+                        this.tracePath = [this.position.clone()];
+                    }
+                }
             }
         }
     }
     draw() {
+        //if (this.lastSplit) {
+        //    for (let i = 0; i < this.lastSplit.length; i++) {
+        //        let start = this.lastSplit[i];
+        //        let end = this.lastSplit[(i + 1) % this.lastSplit.length];
+        //        this.engine.drawLine(start, end, 3);
+        //    }
+        //}
+        if (this.tracing) {
+            for (let i = 0; i < this.tracePath.length; i++) {
+                let start = this.tracePath[i];
+                let end;
+                if (this.tracing && i === this.tracePath.length - 1) {
+                    end = this.position;
+                }
+                else if (i < this.tracePath.length - 1) {
+                    end = this.tracePath[i + 1];
+                }
+                if (end) {
+                    this.engine.drawLine(start, end, 2);
+                }
+            }
+        }
         this.engine.drawRect(-2, -2, 5, 5, 1, this.position);
     }
 }
@@ -6384,7 +6650,6 @@ class Construction extends BABYLON.Mesh {
             let responseText = await response.text();
             if (responseText) {
                 let response = JSON.parse(responseText);
-                console.log(response);
                 this.reserved = response.reserved;
                 this.deserialize(response.content);
                 this.showLimits();

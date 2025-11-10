@@ -1,151 +1,3 @@
-class Vec2 {
-
-    public static Zero(): Vec2 {
-        return new Vec2(0, 0);
-    }
-
-    private static _AxisUp: Vec2 = new Vec2(0, - 1);
-    public static get AxisUp(): Vec2 {
-        return this._AxisUp;
-    }
-
-    private static _AxisDown: Vec2 = new Vec2(0, 1);
-    public static get AxisDown(): Vec2 {
-        return this._AxisDown;
-    }
-
-    private static _AxisRight: Vec2 = new Vec2(1, 0);
-    public static get AxisRight(): Vec2 {
-        return this._AxisRight;
-    }
-
-    private static _AxisLeft: Vec2 = new Vec2(- 1, 0);
-    public static get AxisLeft(): Vec2 {
-        return this._AxisLeft;
-    }
-
-    constructor(public x: number, public y: number) {
-        
-    }
-
-    public copyFrom(other: Vec2): Vec2 {
-        this.x = other.x;
-        this.y = other.y;
-        return this;
-    }
-
-    public clone(): Vec2 {
-        return new Vec2(this.x, this.y);
-    }
-
-    public sqrLength(): number {
-        return this.x * this.x + this.y * this.y;
-    }
-
-    public length(): number {
-        return Math.sqrt(this.sqrLength());
-    }
-
-    public normalizeInPlace(): Vec2 {
-        let l = this.length();
-        this.x = this.x / l;
-        this.y = this.y / l;
-        return this;
-    }
-
-    public normalize(): Vec2 {
-        return this.clone().normalizeInPlace();
-    }
-
-    public scaleInPlace(s: number): Vec2 {
-        this.x = this.x * s;
-        this.y = this.y * s;
-        return this;
-    }
-
-    public scale(s: number): Vec2 {
-        return this.clone().scaleInPlace(s);
-    }
-
-    public addInPlace(other: Vec2): Vec2 {
-        this.x += other.x;
-        this.y += other.y;
-        return this;
-    }
-
-    public add(other: Vec2): Vec2 {
-        return this.clone().addInPlace(other);
-    }
-
-    public subtractInPlace(other: Vec2): Vec2 {
-        this.x -= other.x;
-        this.y -= other.y;
-        return this;
-    }
-
-    public subtract(other: Vec2): Vec2 {
-        return this.clone().subtractInPlace(other);
-    }
-
-    public lerpInPlace(other: Vec2, f: number): Vec2 {
-        this.x = this.x * (1 - f) + other.x * f;
-        this.y = this.y * (1 - f) + other.y * f;
-        return this;
-    }
-
-    public lerp(other: Vec2, f: number): Vec2 {
-        return this.clone().lerpInPlace(other, f);
-    }
-
-    public roundInPlace(): Vec2 {
-        this.x = Math.round(this.x);
-        this.y = Math.round(this.y);
-        return this;
-    }
-
-    public round(): Vec2 {
-        return this.clone().roundInPlace();
-    }
-
-    public floorInPlace(): Vec2 {
-        this.x = Math.floor(this.x);
-        this.y = Math.floor(this.y);
-        return this;
-    }
-
-    public floor(): Vec2 {
-        return this.clone().floorInPlace();
-    }
-
-    public ceilInPlace(): Vec2 {
-        this.x = Math.ceil(this.x);
-        this.y = Math.ceil(this.y);
-        return this;
-    }
-
-    public ceil(): Vec2 {
-        return this.clone().ceilInPlace();
-    }
-
-    public isOnRectSegment(s1: Vec2, s2: Vec2): boolean {
-        if (this.x === s1.x && this.x === s2.x) {
-            let minY = Math.min(s1.y, s2.y);
-            let maxY = Math.max(s1.y, s2.y);
-            return this.y >= minY && this.y <= maxY;
-        }
-        if (this.y === s1.y && this.y === s2.y) {
-            let minX = Math.min(s1.x, s2.x);
-            let maxX = Math.max(s1.x, s2.x);
-            return this.x >= minX && this.x <= maxX;
-        }
-        return false;
-    }
-
-    public equals(other: Vec2): boolean {
-        return this.x === other.x && this.y === other.y;
-    }
-}
-
 class ArcadeEngineInput {
 
     public A: boolean = false;
@@ -160,6 +12,7 @@ class ArcadeEngineInput {
 
 class ArcadeEngine {
     
+    public static Instance: ArcadeEngine;
     public pixels: Uint8Array;
     public w: number = 160;
     public h: number = 144;
@@ -167,6 +20,8 @@ class ArcadeEngine {
     public input: ArcadeEngineInput;
 
     constructor() {
+        ArcadeEngine.Instance = this;
+        
         this.input = new ArcadeEngineInput();
 
         this.resize();
@@ -296,7 +151,15 @@ class ArcadeEngine {
             if (c > 0) {
                 let x = i % this.w;
                 let y = Math.floor(i / this.w);
-                context.fillStyle = "#00FF00";
+                if (c === 1) {
+                    context.fillStyle = "#00FF00";
+                }
+                else if (c === 2) {
+                    context.fillStyle = "#FF00FF";
+                }
+                else {
+                    context.fillStyle = "#00FFFF";
+                }
                 context.fillRect(x, y, 1, 1);
             }
         }

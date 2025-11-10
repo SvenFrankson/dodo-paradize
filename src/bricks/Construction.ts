@@ -313,7 +313,6 @@ class Construction extends BABYLON.Mesh {
             let responseText = await response.text();
             if (responseText) {
                 let response = JSON.parse(responseText);
-                console.log(response);
                 this.reserved = response.reserved;
                 this.deserialize(response.content);
                 this.showLimits();
