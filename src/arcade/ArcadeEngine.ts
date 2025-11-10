@@ -10,8 +10,63 @@ class ArcadeEngineInput {
     public Left: boolean = false;
 }
 
+enum FillStyle {
+    Full,
+    Lines,
+    Stripes,
+    Grid,
+    Dots
+}
+
+/*
+"#000000",
+"#FF0000",
+"#00FF00",
+"#0000FF",
+"#FFFF00",
+"#00FFFF",
+"#FF00FF",
+"#FFFFFF",
+*/
+
+enum ArcadeEngineColor {
+    Black = 0,
+    Marine,
+    DarkGray,
+    BlueGray,
+    Pourpre,
+    Beige,
+    LightGray,
+    Sand,
+    White,
+    Red,
+    Orange,
+    Yellow,
+    Lime,
+    Green,
+    Blue,
+    DeepBlue
+}
 class ArcadeEngine {
     
+    public static Colors: string[] = [
+        "#000000",
+        "#222244",
+        "#334455",
+        "#556666",
+        "#664455",
+        "#887766",
+        "#999988",
+        "#ccccaa",
+        "#ffffee",
+        "#cc5544",
+        "#ff8822",
+        "#ffcc33",
+        "#88cc44",
+        "#449944",
+        "#44aaff",
+        "#3377dd"
+    ]
     public static Instance: ArcadeEngine;
     public pixels: Uint8Array;
     public w: number = 160;
@@ -41,14 +96,6 @@ class ArcadeEngine {
         }
     }
 
-    public drawRect(x: number, y: number, w: number, h: number, c: number, position?: Vec2): void {
-        for (let i = 0; i < w; i++) {
-            for (let j = 0; j < h; j++) {
-                this.drawPixel(x + i, y + j, c, position);
-            }
-        }
-    }
-
     public drawLine(start: Vec2, end: Vec2, c: number, position?: Vec2): void {
         let diff = end.subtract(start);
         let count = Math.max(Math.abs(diff.x), Math.abs(diff.y));
@@ -60,6 +107,76 @@ class ArcadeEngine {
         }
     }
 
+    public drawRect(x: number, y: number, w: number, h: number, c: number, position?: Vec2): void {
+        for (let i = 0; i < w; i++) {
+            for (let j = 0; j < h; j++) {
+                this.drawPixel(x + i, y + j, c, position);
+            }
+        }
+    }
+
+    public drawPolygon(polygon: Vec2[], c: number, position?: Vec2): void {
+        for (let i = 0; i < polygon.length; i++) {
+            let start = polygon[i];
+            let end = polygon[(i + 1) % polygon.length];
+
+            this.drawLine(start, end, c, position);
+        }
+    }
+
+    public fillPolygon(polygon: Vec2[], c: number, fillStyle: FillStyle = FillStyle.Full, position?: Vec2): void {
+        for (let i = 0; i < polygon.length; i++) {
+            let start = polygon[i];
+            let end = polygon[(i + 1) % polygon.length];
+
+            let tmpCutPolygon = [...polygon];
+            while (tmpCutPolygon.length > 2) {
+                let earIndex = 0;
+                for (let i = 0; i < tmpCutPolygon.length; i++) {
+                    if (Polygon.IsEar(i, tmpCutPolygon)) {
+                        earIndex = i;
+                        break;
+                    }
+                }
+                let l = tmpCutPolygon.length;
+                let prev = tmpCutPolygon[(earIndex - 1 + l) % l];
+                let p = tmpCutPolygon[earIndex];
+                let next = tmpCutPolygon[(earIndex + 1) % l];
+                tmpCutPolygon.splice(earIndex, 1);
+
+                let min = prev.clone().minimizeInPlace(p).minimizeInPlace(next);
+                let max = prev.clone().maximizeInPlace(p).maximizeInPlace(next);
+
+                let pix = Vec2.Zero();
+                for (let x = min.x; x <= max.x; x++) {
+                    for (let y = min.y; y <= max.y; y++) {
+                        pix.x = x;
+                        pix.y = y;
+
+                        let canFill = true;
+                        if (fillStyle === FillStyle.Stripes) {
+                            canFill = pix.x % 2 === 0;
+                        }
+                        if (fillStyle === FillStyle.Lines) {
+                            canFill = pix.y % 2 === 0;
+                        }
+                        if (fillStyle === FillStyle.Grid) {
+                            canFill = (pix.x + pix.y) % 2 === 0;
+                        }
+                        if (fillStyle === FillStyle.Dots) {
+                            canFill = pix.x % 2 === 0 && pix.y % 2 === 0;
+                        }
+                        if (canFill && Polygon.PointInTriangle(pix, prev, p, next)) {
+                            this.drawPixel(x, y, c, position);
+                        }
+                    }
+                }
+            }
+
+            this.drawLine(start, end, c, position);
+        }
+    }
+
     public clear(): void {
         this.pixels.fill(0);
     }
@@ -67,7 +184,7 @@ class ArcadeEngine {
     private _debugCanvas: HTMLCanvasElement;
     public async debugStart(): Promise<void> {
         await ArcadeText.LoadCharacters();
-        
+
         this._debugCanvas = document.createElement("canvas");
         this._debugCanvas.width = this.w;
         this._debugCanvas.height = this.h;
@@ -112,8 +229,7 @@ class ArcadeEngine {
 
         let map = new QixMap(this);
         let player = new QixPlayer(map, this);
-        player.position.x = 30;
-        player.position.y = 4;
+        player.position.copyFrom(map.points[0])
 
         let loop = () => {
             this.debugLoop();
@@ -140,6 +256,7 @@ class ArcadeEngine {
         for (let i = 0; i < this.gameObjects.length; i++) {
             this.gameObjects[i].update(dt);
         }
+        this.gameObjects.sort((g1, g2) => { return g1.layer - g2.layer; });
         for (let i = 0; i < this.gameObjects.length; i++) {
             this.gameObjects[i].draw();
         }
@@ -153,15 +270,7 @@ class ArcadeEngine {
             if (c > 0) {
                 let x = i % this.w;
                 let y = Math.floor(i / this.w);
-                if (c === 1) {
-                    context.fillStyle = "#00FF00";
-                }
-                else if (c === 2) {
-                    context.fillStyle = "#FF00FF";
-                }
-                else {
-                    context.fillStyle = "#00FFFF";
-                }
+                context.fillStyle = ArcadeEngine.Colors[c];
                 context.fillRect(x, y, 1, 1);
             }
         }

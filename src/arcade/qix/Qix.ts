@@ -1,30 +1,40 @@
 class QixMap extends GameObject {
 
-    public min: Vec2 = new Vec2(4, 4);
-    public max: Vec2 = new Vec2(160 - 4, 144 - 4);
+    public scoreDisplay: ArcadeText;
+    public initialSurface: number = 1000;
+
+    public min: Vec2 = new Vec2(0, 0);
+    public max: Vec2 = new Vec2(159 - 6, 143 - 6 - 8);
     public points: Vec2[] = [];
 
     constructor(engine: ArcadeEngine) {
         super("qix-map", engine);
         this.initialize();
+        this.layer = 2;
+        this.position.x = 3;
+        this.position.y = 3 + 8;
     }
 
     public initialize(): void {
+        this.scoreDisplay = new ArcadeText("SCORE ", ArcadeEngineColor.Black, this.engine);
+        this.scoreDisplay.position.x = 1;
+        this.scoreDisplay.position.y = 1;
+        this.scoreDisplay.backgroundColor = ArcadeEngineColor.White;
+        
         this.points = [
             new Vec2(this.min.x, this.min.y),
             new Vec2(this.max.x, this.min.y),
             new Vec2(this.max.x, this.max.y),
             new Vec2(this.min.x, this.max.y)
         ];
+
+        this.initialSurface = Polygon.GetSurface(this.points);
+        this.scoreDisplay.text = "SCORE " + this.getScore().toFixed(0).padStart(3, "0");
     }
 
     public draw(): void {
-        for (let i = 0; i < this.points.length; i++) {
-            let start = this.points[i];
-            let end = this.points[(i + 1) % this.points.length];
-
-            this.engine.drawLine(start, end, 1, this.position);
-        }
+        this.engine.fillPolygon(this.points, ArcadeEngineColor.DeepBlue, FillStyle.Stripes, this.position);
+        this.engine.drawPolygon(this.points, ArcadeEngineColor.Blue, this.position);
     }
 
     public split(path: Vec2[]): Vec2[] {
@@ -97,32 +107,67 @@ class QixMap extends GameObject {
         }
 
         //let debugA = Polygon.GetSurface(this.points);
-        let a1 = Polygon.GetSurface(part1, 1);
-        let a2 = Polygon.GetSurface(part2, 2);
+        let a1 = Polygon.GetSurface(part1);
+        let a2 = Polygon.GetSurface(part2);
 
+        /*
         //console.log("Map Area " + debugA);
-        let text1 = new ArcadeText(a1.toFixed(0), 1, this.engine);
+        let text1 = new ArcadeText(a1.toFixed(0), ArcadeEngineColor.Black, this.engine);
+        text1.layer = 5;
+        text1.backgroundColor = ArcadeEngineColor.White;
         text1.position = Polygon.BBoxCenter(part1).roundInPlace();
         setInterval(() => {
             text1.dispose()
         }, 3000);
 
-        let text2 = new ArcadeText(a2.toFixed(0), 2, this.engine);
+        let text2 = new ArcadeText(a2.toFixed(0), ArcadeEngineColor.Black, this.engine);
+        text2.layer = 5;
+        text2.backgroundColor = ArcadeEngineColor.White;
         text2.position = Polygon.BBoxCenter(part2).roundInPlace();
         setInterval(() => {
             text2.dispose()
         }, 3000);
+        */
 
         console.log("A1 Area " + a1);
         console.log("A2 Area " + a2);
 
         if (a1 >= a2) {
             this.points = part1;
+            this.scoreDisplay.text = "SCORE " + this.getScore(a1).toFixed(0).padStart(3, "0");
             return part2;
         }
         else {
             this.points = part2;
+            this.scoreDisplay.text = "SCORE " + this.getScore(a2).toFixed(0).padStart(3, "0");
             return part1;
+        }
+    }
+
+    public getScore(surface?: number): number {
+        if (isNaN(surface)) {
+            surface = Polygon.GetSurface(this.points);
+        }
+        let winSurface = this.initialSurface * 0.1;
+        let f = (surface - winSurface) / (this.initialSurface - winSurface);
+        f = Math.min(Math.max(f, 0), 1);
+        return Math.floor(100 * (1 - f));
+    }
+}
+
+class QixLastSplit extends GameObject {
+
+    public path: Vec2[];
+
+    constructor(public player: QixPlayer) {
+        super("qix-split", player.engine);
+        this.layer = 1;
+    }
+
+    public draw(): void {
+        if (this.path) {
+            this.engine.fillPolygon(this.path, ArcadeEngineColor.Pourpre, FillStyle.Grid, this.player.map.position);
+            this.engine.drawPolygon(this.path, ArcadeEngineColor.Red, this.player.map.position);
         }
     }
 }
@@ -134,10 +179,12 @@ class QixPlayer extends GameObject {
     public tracingDir: Vec2 = Vec2.Zero();
     public tracePath: Vec2[] = [];
 
-    public lastSplit: Vec2[];
+    public lastSplit: QixLastSplit;
 
     constructor(public map: QixMap, engine: ArcadeEngine) {
         super("qix-player", engine);
+        this.layer = 4;
+        this.lastSplit = new QixLastSplit(this);
     }
 
     public indexOnMap(): number {
@@ -225,7 +272,7 @@ class QixPlayer extends GameObject {
             this.position.addInPlace(this.tracingDir);
             if (this.indexOnMap() != -1) {
                 this.tracePath.push(this.position.clone());
-                this.lastSplit = this.map.split(this.tracePath);
+                this.lastSplit.path = this.map.split(this.tracePath);
                 this.tracing = false;
             }
         }
@@ -313,14 +360,6 @@ class QixPlayer extends GameObject {
     }
 
     public draw(): void {
-        //if (this.lastSplit) {
-        //    for (let i = 0; i < this.lastSplit.length; i++) {
-        //        let start = this.lastSplit[i];
-        //        let end = this.lastSplit[(i + 1) % this.lastSplit.length];
-        //        this.engine.drawLine(start, end, 3);
-        //    }
-        //}
-
         if (this.tracing) {
             for (let i = 0; i < this.tracePath.length; i++) {
                 let start = this.tracePath[i];
@@ -333,11 +372,11 @@ class QixPlayer extends GameObject {
                 }
 
                 if (end) {
-                    this.engine.drawLine(start, end, 2);
+                    this.engine.drawLine(start, end, ArcadeEngineColor.Lime, this.map.position);
                 }
             }
         }
 
-        this.engine.drawRect(-2, -2, 5, 5, 1, this.position);
+        this.engine.drawRect(-2, -2, 5, 5, ArcadeEngineColor.Green, this.position.add(this.map.position));
     }
 }

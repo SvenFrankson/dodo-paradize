@@ -46,7 +46,7 @@ class Polygon {
         return Math.abs(v2.subtract(v1).cross(v3.subtract(v1))) * 0.5;
     }
 
-    public static GetSurface(polygon: Vec2[], color: number): number {
+    public static GetSurface(polygon: Vec2[]): number {
         console.log("GetSurface " + polygon.length + " points");
         let tmpCutPolygon = [...polygon];
         let area = 0;
@@ -66,13 +66,6 @@ class Polygon {
             area += Polygon.TriangleArea(prev, p, next);
             tmpCutPolygon.splice(earIndex, 1);
             triCount++;
-
-            if (false) {
-                let tri = new Triangle(prev, p, next, color, ArcadeEngine.Instance);
-                setTimeout(() => {
-                    tri.dispose();
-                }, 1000);
-            }
         }
         console.log("TriCount " + triCount);
         return area;

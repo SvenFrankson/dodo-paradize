@@ -1,5 +1,6 @@
 class GameObject {
 
+    public layer: number = 0;
     public position: Vec2 = Vec2.Zero();
 
     constructor(public name: string, public engine: ArcadeEngine) {
@@ -94,11 +95,19 @@ class ArcadeText extends GameObject {
         });
     }
 
+    public backgroundColor: number = -1;
+
     constructor(public text: string, public color: number, engine: ArcadeEngine) {
         super("text", engine);
     }
 
     public draw(): void {
+        if (this.backgroundColor != -1) {
+            let l = this.text.length * (ArcadeText.LetterW + 1) + 1;
+            let h = ArcadeText.LetterH + 1 + 1;
+            this.engine.drawRect(-1, -1, l, h, this.backgroundColor, this.position);
+        }
+
         for (let n = 0; n < this.text.length; n++) {
             let pixels = ArcadeText.Characters.get(this.text[n]);
             if (pixels) {

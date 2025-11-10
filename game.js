@@ -4735,6 +4735,43 @@ class ArcadeEngineInput {
         this.Left = false;
     }
 }
+var FillStyle;
+(function (FillStyle) {
+    FillStyle[FillStyle["Full"] = 0] = "Full";
+    FillStyle[FillStyle["Lines"] = 1] = "Lines";
+    FillStyle[FillStyle["Stripes"] = 2] = "Stripes";
+    FillStyle[FillStyle["Grid"] = 3] = "Grid";
+    FillStyle[FillStyle["Dots"] = 4] = "Dots";
+})(FillStyle || (FillStyle = {}));
+/*
+"#000000",
+"#FF0000",
+"#00FF00",
+"#0000FF",
+"#FFFF00",
+"#00FFFF",
+"#FF00FF",
+"#FFFFFF",
+*/
+var ArcadeEngineColor;
+(function (ArcadeEngineColor) {
+    ArcadeEngineColor[ArcadeEngineColor["Black"] = 0] = "Black";
+    ArcadeEngineColor[ArcadeEngineColor["Marine"] = 1] = "Marine";
+    ArcadeEngineColor[ArcadeEngineColor["DarkGray"] = 2] = "DarkGray";
+    ArcadeEngineColor[ArcadeEngineColor["BlueGray"] = 3] = "BlueGray";
+    ArcadeEngineColor[ArcadeEngineColor["Pourpre"] = 4] = "Pourpre";
+    ArcadeEngineColor[ArcadeEngineColor["Beige"] = 5] = "Beige";
+    ArcadeEngineColor[ArcadeEngineColor["LightGray"] = 6] = "LightGray";
+    ArcadeEngineColor[ArcadeEngineColor["Sand"] = 7] = "Sand";
+    ArcadeEngineColor[ArcadeEngineColor["White"] = 8] = "White";
+    ArcadeEngineColor[ArcadeEngineColor["Red"] = 9] = "Red";
+    ArcadeEngineColor[ArcadeEngineColor["Orange"] = 10] = "Orange";
+    ArcadeEngineColor[ArcadeEngineColor["Yellow"] = 11] = "Yellow";
+    ArcadeEngineColor[ArcadeEngineColor["Lime"] = 12] = "Lime";
+    ArcadeEngineColor[ArcadeEngineColor["Green"] = 13] = "Green";
+    ArcadeEngineColor[ArcadeEngineColor["Blue"] = 14] = "Blue";
+    ArcadeEngineColor[ArcadeEngineColor["DeepBlue"] = 15] = "DeepBlue";
+})(ArcadeEngineColor || (ArcadeEngineColor = {}));
 class ArcadeEngine {
     constructor() {
         this.w = 160;
@@ -4757,13 +4794,6 @@ class ArcadeEngine {
             this.pixels[x + y * this.w] = c;
         }
     }
-    drawRect(x, y, w, h, c, position) {
-        for (let i = 0; i < w; i++) {
-            for (let j = 0; j < h; j++) {
-                this.drawPixel(x + i, y + j, c, position);
-            }
-        }
-    }
     drawLine(start, end, c, position) {
         let diff = end.subtract(start);
         let count = Math.max(Math.abs(diff.x), Math.abs(diff.y));
@@ -4771,6 +4801,67 @@ class ArcadeEngine {
             let f = i / count;
             let p = start.lerp(end, f).roundInPlace();
             this.drawPixel(p.x, p.y, c, position);
+        }
+    }
+    drawRect(x, y, w, h, c, position) {
+        for (let i = 0; i < w; i++) {
+            for (let j = 0; j < h; j++) {
+                this.drawPixel(x + i, y + j, c, position);
+            }
+        }
+    }
+    drawPolygon(polygon, c, position) {
+        for (let i = 0; i < polygon.length; i++) {
+            let start = polygon[i];
+            let end = polygon[(i + 1) % polygon.length];
+            this.drawLine(start, end, c, position);
+        }
+    }
+    fillPolygon(polygon, c, fillStyle = FillStyle.Full, position) {
+        for (let i = 0; i < polygon.length; i++) {
+            let start = polygon[i];
+            let end = polygon[(i + 1) % polygon.length];
+            let tmpCutPolygon = [...polygon];
+            while (tmpCutPolygon.length > 2) {
+                let earIndex = 0;
+                for (let i = 0; i < tmpCutPolygon.length; i++) {
+                    if (Polygon.IsEar(i, tmpCutPolygon)) {
+                        earIndex = i;
+                        break;
+                    }
+                }
+                let l = tmpCutPolygon.length;
+                let prev = tmpCutPolygon[(earIndex - 1 + l) % l];
+                let p = tmpCutPolygon[earIndex];
+                let next = tmpCutPolygon[(earIndex + 1) % l];
+                tmpCutPolygon.splice(earIndex, 1);
+                let min = prev.clone().minimizeInPlace(p).minimizeInPlace(next);
+                let max = prev.clone().maximizeInPlace(p).maximizeInPlace(next);
+                let pix = Vec2.Zero();
+                for (let x = min.x; x <= max.x; x++) {
+                    for (let y = min.y; y <= max.y; y++) {
+                        pix.x = x;
+                        pix.y = y;
+                        let canFill = true;
+                        if (fillStyle === FillStyle.Stripes) {
+                            canFill = pix.x % 2 === 0;
+                        }
+                        if (fillStyle === FillStyle.Lines) {
+                            canFill = pix.y % 2 === 0;
+                        }
+                        if (fillStyle === FillStyle.Grid) {
+                            canFill = (pix.x + pix.y) % 2 === 0;
+                        }
+                        if (fillStyle === FillStyle.Dots) {
+                            canFill = pix.x % 2 === 0 && pix.y % 2 === 0;
+                        }
+                        if (canFill && Polygon.PointInTriangle(pix, prev, p, next)) {
+                            this.drawPixel(x, y, c, position);
+                        }
+                    }
+                }
+            }
+            this.drawLine(start, end, c, position);
         }
     }
     clear() {
@@ -4818,8 +4909,7 @@ class ArcadeEngine {
         });
         let map = new QixMap(this);
         let player = new QixPlayer(map, this);
-        player.position.x = 30;
-        player.position.y = 4;
+        player.position.copyFrom(map.points[0]);
         let loop = () => {
             this.debugLoop();
             requestAnimationFrame(() => {
@@ -4842,6 +4932,7 @@ class ArcadeEngine {
         for (let i = 0; i < this.gameObjects.length; i++) {
             this.gameObjects[i].update(dt);
         }
+        this.gameObjects.sort((g1, g2) => { return g1.layer - g2.layer; });
         for (let i = 0; i < this.gameObjects.length; i++) {
             this.gameObjects[i].draw();
         }
@@ -4853,24 +4944,35 @@ class ArcadeEngine {
             if (c > 0) {
                 let x = i % this.w;
                 let y = Math.floor(i / this.w);
-                if (c === 1) {
-                    context.fillStyle = "#00FF00";
-                }
-                else if (c === 2) {
-                    context.fillStyle = "#FF00FF";
-                }
-                else {
-                    context.fillStyle = "#00FFFF";
-                }
+                context.fillStyle = ArcadeEngine.Colors[c];
                 context.fillRect(x, y, 1, 1);
             }
         }
     }
 }
+ArcadeEngine.Colors = [
+    "#000000",
+    "#222244",
+    "#334455",
+    "#556666",
+    "#664455",
+    "#887766",
+    "#999988",
+    "#ccccaa",
+    "#ffffee",
+    "#cc5544",
+    "#ff8822",
+    "#ffcc33",
+    "#88cc44",
+    "#449944",
+    "#44aaff",
+    "#3377dd"
+];
 class GameObject {
     constructor(name, engine) {
         this.name = name;
         this.engine = engine;
+        this.layer = 0;
         this.position = Vec2.Zero();
         this.engine.gameObjects.push(this);
     }
@@ -4902,6 +5004,7 @@ class ArcadeText extends GameObject {
         super("text", engine);
         this.text = text;
         this.color = color;
+        this.backgroundColor = -1;
     }
     static IsWhite(r, g, b) {
         return r === 255 && g === 255 && b === 255;
@@ -4958,6 +5061,11 @@ class ArcadeText extends GameObject {
         });
     }
     draw() {
+        if (this.backgroundColor != -1) {
+            let l = this.text.length * (ArcadeText.LetterW + 1) + 1;
+            let h = ArcadeText.LetterH + 1 + 1;
+            this.engine.drawRect(-1, -1, l, h, this.backgroundColor, this.position);
+        }
         for (let n = 0; n < this.text.length; n++) {
             let pixels = ArcadeText.Characters.get(this.text[n]);
             if (pixels) {
@@ -5012,7 +5120,7 @@ class Polygon {
     static TriangleArea(v1, v2, v3) {
         return Math.abs(v2.subtract(v1).cross(v3.subtract(v1))) * 0.5;
     }
-    static GetSurface(polygon, color) {
+    static GetSurface(polygon) {
         console.log("GetSurface " + polygon.length + " points");
         let tmpCutPolygon = [...polygon];
         let area = 0;
@@ -5032,12 +5140,6 @@ class Polygon {
             area += Polygon.TriangleArea(prev, p, next);
             tmpCutPolygon.splice(earIndex, 1);
             triCount++;
-            if (false) {
-                let tri = new Triangle(prev, p, next, color, ArcadeEngine.Instance);
-                setTimeout(() => {
-                    tri.dispose();
-                }, 1000);
-            }
         }
         console.log("TriCount " + triCount);
         return area;
@@ -5200,25 +5302,32 @@ Vec2._AxisLeft = new Vec2(-1, 0);
 class QixMap extends GameObject {
     constructor(engine) {
         super("qix-map", engine);
-        this.min = new Vec2(4, 4);
-        this.max = new Vec2(160 - 4, 144 - 4);
+        this.initialSurface = 1000;
+        this.min = new Vec2(0, 0);
+        this.max = new Vec2(159 - 6, 143 - 6 - 8);
         this.points = [];
         this.initialize();
+        this.layer = 2;
+        this.position.x = 3;
+        this.position.y = 3 + 8;
     }
     initialize() {
+        this.scoreDisplay = new ArcadeText("SCORE ", ArcadeEngineColor.Black, this.engine);
+        this.scoreDisplay.position.x = 1;
+        this.scoreDisplay.position.y = 1;
+        this.scoreDisplay.backgroundColor = ArcadeEngineColor.White;
         this.points = [
             new Vec2(this.min.x, this.min.y),
             new Vec2(this.max.x, this.min.y),
             new Vec2(this.max.x, this.max.y),
             new Vec2(this.min.x, this.max.y)
         ];
+        this.initialSurface = Polygon.GetSurface(this.points);
+        this.scoreDisplay.text = "SCORE " + this.getScore().toFixed(0).padStart(3, "0");
     }
     draw() {
-        for (let i = 0; i < this.points.length; i++) {
-            let start = this.points[i];
-            let end = this.points[(i + 1) % this.points.length];
-            this.engine.drawLine(start, end, 1, this.position);
-        }
+        this.engine.fillPolygon(this.points, ArcadeEngineColor.DeepBlue, FillStyle.Stripes, this.position);
+        this.engine.drawPolygon(this.points, ArcadeEngineColor.Blue, this.position);
     }
     split(path) {
         console.log(path);
@@ -5280,28 +5389,59 @@ class QixMap extends GameObject {
             }
         }
         //let debugA = Polygon.GetSurface(this.points);
-        let a1 = Polygon.GetSurface(part1, 1);
-        let a2 = Polygon.GetSurface(part2, 2);
+        let a1 = Polygon.GetSurface(part1);
+        let a2 = Polygon.GetSurface(part2);
+        /*
         //console.log("Map Area " + debugA);
-        let text1 = new ArcadeText(a1.toFixed(0), 1, this.engine);
+        let text1 = new ArcadeText(a1.toFixed(0), ArcadeEngineColor.Black, this.engine);
+        text1.layer = 5;
+        text1.backgroundColor = ArcadeEngineColor.White;
         text1.position = Polygon.BBoxCenter(part1).roundInPlace();
         setInterval(() => {
-            text1.dispose();
+            text1.dispose()
         }, 3000);
-        let text2 = new ArcadeText(a2.toFixed(0), 2, this.engine);
+
+        let text2 = new ArcadeText(a2.toFixed(0), ArcadeEngineColor.Black, this.engine);
+        text2.layer = 5;
+        text2.backgroundColor = ArcadeEngineColor.White;
         text2.position = Polygon.BBoxCenter(part2).roundInPlace();
         setInterval(() => {
-            text2.dispose();
+            text2.dispose()
         }, 3000);
+        */
         console.log("A1 Area " + a1);
         console.log("A2 Area " + a2);
         if (a1 >= a2) {
             this.points = part1;
+            this.scoreDisplay.text = "SCORE " + this.getScore(a1).toFixed(0).padStart(3, "0");
             return part2;
         }
         else {
             this.points = part2;
+            this.scoreDisplay.text = "SCORE " + this.getScore(a2).toFixed(0).padStart(3, "0");
             return part1;
+        }
+    }
+    getScore(surface) {
+        if (isNaN(surface)) {
+            surface = Polygon.GetSurface(this.points);
+        }
+        let winSurface = this.initialSurface * 0.1;
+        let f = (surface - winSurface) / (this.initialSurface - winSurface);
+        f = Math.min(Math.max(f, 0), 1);
+        return Math.floor(100 * (1 - f));
+    }
+}
+class QixLastSplit extends GameObject {
+    constructor(player) {
+        super("qix-split", player.engine);
+        this.player = player;
+        this.layer = 1;
+    }
+    draw() {
+        if (this.path) {
+            this.engine.fillPolygon(this.path, ArcadeEngineColor.Pourpre, FillStyle.Grid, this.player.map.position);
+            this.engine.drawPolygon(this.path, ArcadeEngineColor.Red, this.player.map.position);
         }
     }
 }
@@ -5313,6 +5453,8 @@ class QixPlayer extends GameObject {
         this.tracing = false;
         this.tracingDir = Vec2.Zero();
         this.tracePath = [];
+        this.layer = 4;
+        this.lastSplit = new QixLastSplit(this);
     }
     indexOnMap() {
         for (let i = 0; i < this.map.points.length; i++) {
@@ -5392,7 +5534,7 @@ class QixPlayer extends GameObject {
             this.position.addInPlace(this.tracingDir);
             if (this.indexOnMap() != -1) {
                 this.tracePath.push(this.position.clone());
-                this.lastSplit = this.map.split(this.tracePath);
+                this.lastSplit.path = this.map.split(this.tracePath);
                 this.tracing = false;
             }
         }
@@ -5476,13 +5618,6 @@ class QixPlayer extends GameObject {
         }
     }
     draw() {
-        //if (this.lastSplit) {
-        //    for (let i = 0; i < this.lastSplit.length; i++) {
-        //        let start = this.lastSplit[i];
-        //        let end = this.lastSplit[(i + 1) % this.lastSplit.length];
-        //        this.engine.drawLine(start, end, 3);
-        //    }
-        //}
         if (this.tracing) {
             for (let i = 0; i < this.tracePath.length; i++) {
                 let start = this.tracePath[i];
@@ -5494,11 +5629,11 @@ class QixPlayer extends GameObject {
                     end = this.tracePath[i + 1];
                 }
                 if (end) {
-                    this.engine.drawLine(start, end, 2);
+                    this.engine.drawLine(start, end, ArcadeEngineColor.Lime, this.map.position);
                 }
             }
         }
-        this.engine.drawRect(-2, -2, 5, 5, 1, this.position);
+        this.engine.drawRect(-2, -2, 5, 5, ArcadeEngineColor.Green, this.position.add(this.map.position));
     }
 }
 class BrickFactory {
