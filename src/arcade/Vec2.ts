@@ -57,6 +57,26 @@ class Vec2 {
         return this.clone().normalizeInPlace();
     }
 
+    public minimizeInPlace(other: Vec2): Vec2 {
+        this.x = Math.min(this.x, other.x);
+        this.y = Math.min(this.y, other.y);
+        return this;
+    }
+
+    public minimize(other: Vec2): Vec2 {
+        return this.clone().minimizeInPlace(other);
+    }
+
+    public maximizeInPlace(other: Vec2): Vec2 {
+        this.x = Math.max(this.x, other.x);
+        this.y = Math.max(this.y, other.y);
+        return this;
+    }
+
+    public maximize(other: Vec2): Vec2 {
+        return this.clone().maximizeInPlace(other);
+    }
+
     public scaleInPlace(s: number): Vec2 {
         this.x = this.x * s;
         this.y = this.y * s;

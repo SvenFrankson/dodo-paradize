@@ -97,10 +97,22 @@ class QixMap extends GameObject {
         }
 
         //let debugA = Polygon.GetSurface(this.points);
-        let a1 = Polygon.GetSurface(part1);
-        let a2 = Polygon.GetSurface(part2);
+        let a1 = Polygon.GetSurface(part1, 1);
+        let a2 = Polygon.GetSurface(part2, 2);
 
         //console.log("Map Area " + debugA);
+        let text1 = new ArcadeText(a1.toFixed(0), 1, this.engine);
+        text1.position = Polygon.BBoxCenter(part1).roundInPlace();
+        setInterval(() => {
+            text1.dispose()
+        }, 3000);
+
+        let text2 = new ArcadeText(a2.toFixed(0), 2, this.engine);
+        text2.position = Polygon.BBoxCenter(part2).roundInPlace();
+        setInterval(() => {
+            text2.dispose()
+        }, 3000);
+
         console.log("A1 Area " + a1);
         console.log("A2 Area " + a2);
 

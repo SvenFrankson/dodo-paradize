@@ -4776,7 +4776,8 @@ class ArcadeEngine {
     clear() {
         this.pixels.fill(0);
     }
-    debugStart() {
+    async debugStart() {
+        await ArcadeText.LoadCharacters();
         this._debugCanvas = document.createElement("canvas");
         this._debugCanvas.width = this.w;
         this._debugCanvas.height = this.h;
@@ -4883,18 +4884,97 @@ class GameObject {
     update(dt) { }
 }
 class Triangle extends GameObject {
-    constructor(v1, v2, v3, engine) {
+    constructor(v1, v2, v3, color, engine) {
         super("triangle", engine);
         this.v1 = v1;
         this.v2 = v2;
         this.v3 = v3;
+        this.color = color;
     }
     draw() {
-        this.engine.drawLine(this.v1, this.v2, 2);
-        this.engine.drawLine(this.v2, this.v3, 2);
-        this.engine.drawLine(this.v3, this.v1, 2);
+        this.engine.drawLine(this.v1, this.v2, this.color);
+        this.engine.drawLine(this.v2, this.v3, this.color);
+        this.engine.drawLine(this.v3, this.v1, this.color);
     }
 }
+class ArcadeText extends GameObject {
+    constructor(text, color, engine) {
+        super("text", engine);
+        this.text = text;
+        this.color = color;
+    }
+    static IsWhite(r, g, b) {
+        return r === 255 && g === 255 && b === 255;
+    }
+    static async LoadCharacters() {
+        ArcadeText.Characters = new Map();
+        return new Promise(resolve => {
+            let canvas = document.createElement("canvas");
+            let spritesImg = document.createElement("img");
+            spritesImg.src = "datas/textures/arcade_text.png";
+            spritesImg.onload = () => {
+                canvas.width = spritesImg.width;
+                canvas.height = spritesImg.height;
+                let context = canvas.getContext("2d");
+                context.drawImage(spritesImg, 0, 0);
+                let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                let digits = "0123456789";
+                for (let i = 0; i < letters.length; i++) {
+                    let letterPixels = new Uint8Array(ArcadeText.LetterW * ArcadeText.LetterH);
+                    letterPixels.fill(0);
+                    let pixels = context.getImageData(i * (ArcadeText.LetterW + 1), 0, 6, 6);
+                    for (let jj = 0; jj < ArcadeText.LetterH; jj++) {
+                        for (let ii = 0; ii < ArcadeText.LetterW; ii++) {
+                            let n = 4 * (jj * ArcadeText.LetterW + ii);
+                            let r = pixels.data[n];
+                            let g = pixels.data[n + 1];
+                            let b = pixels.data[n + 2];
+                            if (ArcadeText.IsWhite(r, g, b)) {
+                                letterPixels[ii + jj * ArcadeText.LetterW] = 1;
+                            }
+                        }
+                    }
+                    ArcadeText.Characters.set(letters[i], letterPixels);
+                }
+                for (let i = 0; i < digits.length; i++) {
+                    let digitPixels = new Uint8Array(ArcadeText.LetterW * ArcadeText.LetterH);
+                    digitPixels.fill(0);
+                    let pixels = context.getImageData(i * (ArcadeText.LetterW + 1), ArcadeText.LetterH + 1, 6, 6);
+                    for (let jj = 0; jj < ArcadeText.LetterH; jj++) {
+                        for (let ii = 0; ii < ArcadeText.LetterW; ii++) {
+                            let n = 4 * (jj * ArcadeText.LetterW + ii);
+                            let r = pixels.data[n];
+                            let g = pixels.data[n + 1];
+                            let b = pixels.data[n + 2];
+                            if (ArcadeText.IsWhite(r, g, b)) {
+                                digitPixels[ii + jj * ArcadeText.LetterW] = 1;
+                            }
+                        }
+                    }
+                    ArcadeText.Characters.set(digits[i], digitPixels);
+                }
+                resolve();
+            };
+        });
+    }
+    draw() {
+        for (let n = 0; n < this.text.length; n++) {
+            let pixels = ArcadeText.Characters.get(this.text[n]);
+            if (pixels) {
+                for (let j = 0; j < ArcadeText.LetterH; j++) {
+                    for (let i = 0; i < ArcadeText.LetterW; i++) {
+                        let p = pixels[i + j * ArcadeText.LetterW];
+                        if (p > 0) {
+                            this.engine.drawPixel(this.position.x + i + n * (ArcadeText.LetterW + 1), this.position.y + j, this.color);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+ArcadeText.LetterH = 6;
+ArcadeText.LetterW = 6;
 class Polygon {
     static Sign(p1, p2, p3) {
         return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
@@ -4932,7 +5012,7 @@ class Polygon {
     static TriangleArea(v1, v2, v3) {
         return Math.abs(v2.subtract(v1).cross(v3.subtract(v1))) * 0.5;
     }
-    static GetSurface(polygon) {
+    static GetSurface(polygon, color) {
         console.log("GetSurface " + polygon.length + " points");
         let tmpCutPolygon = [...polygon];
         let area = 0;
@@ -4952,13 +5032,24 @@ class Polygon {
             area += Polygon.TriangleArea(prev, p, next);
             tmpCutPolygon.splice(earIndex, 1);
             triCount++;
-            let tri = new Triangle(prev, p, next, ArcadeEngine.Instance);
-            setTimeout(() => {
-                tri.dispose();
-            }, 1000);
+            if (false) {
+                let tri = new Triangle(prev, p, next, color, ArcadeEngine.Instance);
+                setTimeout(() => {
+                    tri.dispose();
+                }, 1000);
+            }
         }
         console.log("TriCount " + triCount);
         return area;
+    }
+    static BBoxCenter(polygon) {
+        let min = polygon[0].clone();
+        let max = polygon[0].clone();
+        for (let i = 1; i < polygon.length; i++) {
+            min.minimizeInPlace(polygon[i]);
+            max.maximizeInPlace(polygon[i]);
+        }
+        return min.addInPlace(max).scaleInPlace(0.5);
     }
 }
 class Vec2 {
@@ -5003,6 +5094,22 @@ class Vec2 {
     }
     normalize() {
         return this.clone().normalizeInPlace();
+    }
+    minimizeInPlace(other) {
+        this.x = Math.min(this.x, other.x);
+        this.y = Math.min(this.y, other.y);
+        return this;
+    }
+    minimize(other) {
+        return this.clone().minimizeInPlace(other);
+    }
+    maximizeInPlace(other) {
+        this.x = Math.max(this.x, other.x);
+        this.y = Math.max(this.y, other.y);
+        return this;
+    }
+    maximize(other) {
+        return this.clone().maximizeInPlace(other);
     }
     scaleInPlace(s) {
         this.x = this.x * s;
@@ -5173,9 +5280,19 @@ class QixMap extends GameObject {
             }
         }
         //let debugA = Polygon.GetSurface(this.points);
-        let a1 = Polygon.GetSurface(part1);
-        let a2 = Polygon.GetSurface(part2);
+        let a1 = Polygon.GetSurface(part1, 1);
+        let a2 = Polygon.GetSurface(part2, 2);
         //console.log("Map Area " + debugA);
+        let text1 = new ArcadeText(a1.toFixed(0), 1, this.engine);
+        text1.position = Polygon.BBoxCenter(part1).roundInPlace();
+        setInterval(() => {
+            text1.dispose();
+        }, 3000);
+        let text2 = new ArcadeText(a2.toFixed(0), 2, this.engine);
+        text2.position = Polygon.BBoxCenter(part2).roundInPlace();
+        setInterval(() => {
+            text2.dispose();
+        }, 3000);
         console.log("A1 Area " + a1);
         console.log("A2 Area " + a2);
         if (a1 >= a2) {

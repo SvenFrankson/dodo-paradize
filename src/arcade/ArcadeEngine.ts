@@ -21,7 +21,7 @@ class ArcadeEngine {
 
     constructor() {
         ArcadeEngine.Instance = this;
-        
+
         this.input = new ArcadeEngineInput();
 
         this.resize();
@@ -65,7 +65,9 @@ class ArcadeEngine {
     }
 
     private _debugCanvas: HTMLCanvasElement;
-    public debugStart(): void {
+    public async debugStart(): Promise<void> {
+        await ArcadeText.LoadCharacters();
+        
         this._debugCanvas = document.createElement("canvas");
         this._debugCanvas.width = this.w;
         this._debugCanvas.height = this.h;
