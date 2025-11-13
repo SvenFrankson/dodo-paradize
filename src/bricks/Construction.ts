@@ -20,8 +20,7 @@ class Construction extends BABYLON.Mesh {
 
     public bricks: Nabu.UniqueList<Brick> = new Nabu.UniqueList<Brick>();
     public mesh: ConstructionMesh;
-    public textBrickMeshes: TextBrickMesh[] = [];
-    public pictureBrickMeshes: PictureBrickMesh[] = [];
+    public specialBrickMeshes: SpecialBrickMesh[] = [];
 
     public limits: BABYLON.Mesh;
     public barycenter: BABYLON.Vector3 = BABYLON.Vector3.Zero();
@@ -69,39 +68,30 @@ class Construction extends BABYLON.Mesh {
     }
 
     public async updateMesh(): Promise<void> {
-        while (this.textBrickMeshes.length > 0) {
-            this.textBrickMeshes.pop().dispose(false, true);
+        while (this.specialBrickMeshes.length > 0) {
+            this.specialBrickMeshes.pop().dispose(false, true);
         }
 
         this.isMeshUpdated = false;
         let vDatas: BABYLON.VertexData[] = [];
-        let textBrickMeshes: BABYLON.Mesh[] = [];
-        let pictureBrickMeshes: BABYLON.Mesh[] = [];
+        let specialBrickMeshes: BABYLON.Mesh[] = [];
         this.subMeshInfos = [];
         for (let i = 0; i < this.bricks.length; i++) {
             let brick = this.bricks.get(i);
-            if (brick instanceof TextBrick) {
-                let vData = await brick.generateTextBrickVertexData();
-                let textBrickMesh = new TextBrickMesh(brick);
-                this.textBrickMeshes.push(textBrickMesh);
-                textBrickMesh.updateMaterial();
-                vData.applyToMesh(textBrickMesh);
-                textBrickMeshes.push(textBrickMesh);
-            }
-            else if (brick instanceof PictureBrick) {
-                let vData = await brick.generatePictureBrickVertexData();
-                let pictureBrickMesh = new PictureBrickMesh(brick);
-                this.pictureBrickMeshes.push(pictureBrickMesh);
-                pictureBrickMesh.updateMaterial();
-                vData.applyToMesh(pictureBrickMesh);
-                pictureBrickMeshes.push(pictureBrickMesh);
+            if (brick instanceof SpecialBrick) {
+                let vData = await brick.generateSpecialBrickVertexData();
+                let specialBrickMesh = brick.constructSpecialBrickMesh();
+                this.specialBrickMeshes.push(specialBrickMesh);
+                specialBrickMesh.updateMaterial();
+                vData.applyToMesh(specialBrickMesh);
+                specialBrickMeshes.push(specialBrickMesh);
             }
             else if (brick instanceof Brick) {
                 await brick.generateMeshVertexData(vDatas, this.subMeshInfos);
             }
         }
 
-        if (vDatas.length > 0 || textBrickMeshes.length > 0 || pictureBrickMeshes.length > 0) {
+        if (vDatas.length > 0 || specialBrickMeshes.length > 0) {
             if (!this.mesh) {
                 this.mesh = new ConstructionMesh(this);
                 this.mesh.parent = this;
@@ -113,14 +103,9 @@ class Construction extends BABYLON.Mesh {
                 let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
                 data.applyToMesh(this.mesh);
             }
-            if (textBrickMeshes.length > 0) {
-                textBrickMeshes.forEach(textBrickMesh => {
+            if (specialBrickMeshes.length > 0) {
+                specialBrickMeshes.forEach(textBrickMesh => {
                     textBrickMesh.parent = this.mesh;
-                })
-            }
-            if (pictureBrickMeshes.length > 0) {
-                pictureBrickMeshes.forEach(pictureBrickMesh => {
-                    pictureBrickMesh.parent = this.mesh;
                 })
             }
         }

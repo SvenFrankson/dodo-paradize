@@ -1061,9 +1061,6 @@ class Game {
         //brick.position.copyFromFloats(0, TILE_H, 0);
         //brick.updateMesh();
         this.gameLoaded = true;
-        // Test ArcadeEngine
-        let arcadeEngine = new ArcadeEngine();
-        arcadeEngine.debugStart();
         this.setGameMode(GameMode.Home);
         I18Nizer.Translate(LOCALE);
         if (USE_POKI_SDK) {
@@ -3557,10 +3554,7 @@ class PlayerAction {
         if (mesh instanceof ConstructionMesh) {
             return true;
         }
-        if (mesh instanceof TextBrickMesh) {
-            return true;
-        }
-        if (mesh instanceof PictureBrickMesh) {
+        if (mesh instanceof SpecialBrickMesh) {
             return true;
         }
         if (mesh instanceof DodoInteractCollider) {
@@ -4177,7 +4171,7 @@ class PlayerActionEditBrick {
                 }
             }
             let hit = player.game.scene.pick(x, y, (mesh) => {
-                return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh || mesh instanceof PictureBrickMesh;
+                return mesh instanceof ConstructionMesh || mesh instanceof SpecialBrickMesh;
             });
             if (hit.hit && hit.pickedPoint) {
                 if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
@@ -4191,8 +4185,8 @@ class PlayerActionEditBrick {
                             return;
                         }
                     }
-                    else if (hit.pickedMesh instanceof TextBrickMesh || hit.pickedMesh instanceof PictureBrickMesh) {
-                        let brick = hit.pickedMesh.brick;
+                    else if (hit.pickedMesh instanceof SpecialBrickMesh) {
+                        let brick = hit.pickedMesh.specialBrick;
                         if (brick) {
                             setAimedObject(brick);
                         }
@@ -4443,7 +4437,7 @@ class PlayerActionTemplate {
                     y = player.scene.pointerY * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh || mesh instanceof PictureBrickMesh;
+                    return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof SpecialBrickMesh;
                 });
                 if (hit && hit.pickedPoint) {
                     let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
@@ -4503,7 +4497,7 @@ class PlayerActionTemplate {
                     y = player.scene.pointerY * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh || mesh instanceof PictureBrickMesh;
+                    return mesh instanceof Chunck || mesh instanceof ConstructionMesh || mesh instanceof SpecialBrickMesh;
                 });
                 if (hit && hit.pickedPoint) {
                     let n = hit.getNormal(true).scaleInPlace(BRICK_H * 0.5);
@@ -4639,7 +4633,7 @@ class PlayerActionTemplate {
                     y = player.scene.pointerY * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof ConstructionMesh || mesh instanceof TextBrickMesh || mesh instanceof PictureBrickMesh;
+                    return mesh instanceof ConstructionMesh || mesh instanceof SpecialBrickMesh;
                 });
                 if (hit && hit.pickedPoint) {
                     if (hit.pickedMesh instanceof ConstructionMesh) {
@@ -4653,19 +4647,8 @@ class PlayerActionTemplate {
                             construction.saveToServer();
                         }
                     }
-                    if (hit.pickedMesh instanceof TextBrickMesh) {
-                        let aimedBrick = hit.pickedMesh.brick;
-                        let construction = aimedBrick.construction;
-                        if (construction.isPlayerAllowedToEdit()) {
-                            aimedBrick.colorIndex = paintIndex;
-                            //player.lastUsedPaintIndex = paintIndex;
-                            construction.updateMesh();
-                            construction.saveToLocalStorage();
-                            construction.saveToServer();
-                        }
-                    }
-                    if (hit.pickedMesh instanceof PictureBrickMesh) {
-                        let aimedBrick = hit.pickedMesh.brick;
+                    if (hit.pickedMesh instanceof SpecialBrickMesh) {
+                        let aimedBrick = hit.pickedMesh.specialBrick;
                         let construction = aimedBrick.construction;
                         if (construction.isPlayerAllowedToEdit()) {
                             aimedBrick.colorIndex = paintIndex;
@@ -4721,919 +4704,6 @@ class PlayerActionTemplate {
             }
         };
         return paintAction;
-    }
-}
-class ArcadeEngineInput {
-    constructor() {
-        this.A = false;
-        this.B = false;
-        this.Start = false;
-        this.Select = false;
-        this.Up = false;
-        this.Down = false;
-        this.Right = false;
-        this.Left = false;
-    }
-}
-var FillStyle;
-(function (FillStyle) {
-    FillStyle[FillStyle["Full"] = 0] = "Full";
-    FillStyle[FillStyle["Lines"] = 1] = "Lines";
-    FillStyle[FillStyle["Stripes"] = 2] = "Stripes";
-    FillStyle[FillStyle["Grid"] = 3] = "Grid";
-    FillStyle[FillStyle["Dots"] = 4] = "Dots";
-})(FillStyle || (FillStyle = {}));
-/*
-"#000000",
-"#FF0000",
-"#00FF00",
-"#0000FF",
-"#FFFF00",
-"#00FFFF",
-"#FF00FF",
-"#FFFFFF",
-*/
-var ArcadeEngineColor;
-(function (ArcadeEngineColor) {
-    ArcadeEngineColor[ArcadeEngineColor["Black"] = 0] = "Black";
-    ArcadeEngineColor[ArcadeEngineColor["Marine"] = 1] = "Marine";
-    ArcadeEngineColor[ArcadeEngineColor["DarkGray"] = 2] = "DarkGray";
-    ArcadeEngineColor[ArcadeEngineColor["BlueGray"] = 3] = "BlueGray";
-    ArcadeEngineColor[ArcadeEngineColor["Pourpre"] = 4] = "Pourpre";
-    ArcadeEngineColor[ArcadeEngineColor["Beige"] = 5] = "Beige";
-    ArcadeEngineColor[ArcadeEngineColor["LightGray"] = 6] = "LightGray";
-    ArcadeEngineColor[ArcadeEngineColor["Sand"] = 7] = "Sand";
-    ArcadeEngineColor[ArcadeEngineColor["White"] = 8] = "White";
-    ArcadeEngineColor[ArcadeEngineColor["Red"] = 9] = "Red";
-    ArcadeEngineColor[ArcadeEngineColor["Orange"] = 10] = "Orange";
-    ArcadeEngineColor[ArcadeEngineColor["Yellow"] = 11] = "Yellow";
-    ArcadeEngineColor[ArcadeEngineColor["Lime"] = 12] = "Lime";
-    ArcadeEngineColor[ArcadeEngineColor["Green"] = 13] = "Green";
-    ArcadeEngineColor[ArcadeEngineColor["Blue"] = 14] = "Blue";
-    ArcadeEngineColor[ArcadeEngineColor["DeepBlue"] = 15] = "DeepBlue";
-})(ArcadeEngineColor || (ArcadeEngineColor = {}));
-class ArcadeEngine {
-    constructor() {
-        this.w = 160;
-        this.h = 144;
-        this.gameObjects = [];
-        this._lastT = undefined;
-        ArcadeEngine.Instance = this;
-        this.input = new ArcadeEngineInput();
-        this.resize();
-    }
-    resize() {
-        this.pixels = new Uint8Array(this.w * this.h);
-    }
-    drawPixel(x, y, c, position) {
-        if (position) {
-            x = Math.round(x + position.x);
-            y = Math.round(y + position.y);
-        }
-        if (x >= 0 && x < this.w && y >= 0 && y < this.h) {
-            this.pixels[x + y * this.w] = c;
-        }
-    }
-    drawLine(start, end, c, position) {
-        let diff = end.subtract(start);
-        let count = Math.max(Math.abs(diff.x), Math.abs(diff.y));
-        for (let i = 0; i <= count; i++) {
-            let f = i / count;
-            let p = start.lerp(end, f).roundInPlace();
-            this.drawPixel(p.x, p.y, c, position);
-        }
-    }
-    drawRect(x, y, w, h, c, position) {
-        for (let i = 0; i < w; i++) {
-            for (let j = 0; j < h; j++) {
-                this.drawPixel(x + i, y + j, c, position);
-            }
-        }
-    }
-    drawPolygon(polygon, c, position) {
-        for (let i = 0; i < polygon.length; i++) {
-            let start = polygon[i];
-            let end = polygon[(i + 1) % polygon.length];
-            this.drawLine(start, end, c, position);
-        }
-    }
-    fillPolygon(polygon, c, fillStyle = FillStyle.Full, position) {
-        for (let i = 0; i < polygon.length; i++) {
-            let start = polygon[i];
-            let end = polygon[(i + 1) % polygon.length];
-            let tmpCutPolygon = [...polygon];
-            while (tmpCutPolygon.length > 2) {
-                let earIndex = 0;
-                for (let i = 0; i < tmpCutPolygon.length; i++) {
-                    if (Polygon.IsEar(i, tmpCutPolygon)) {
-                        earIndex = i;
-                        break;
-                    }
-                }
-                let l = tmpCutPolygon.length;
-                let prev = tmpCutPolygon[(earIndex - 1 + l) % l];
-                let p = tmpCutPolygon[earIndex];
-                let next = tmpCutPolygon[(earIndex + 1) % l];
-                tmpCutPolygon.splice(earIndex, 1);
-                let min = prev.clone().minimizeInPlace(p).minimizeInPlace(next);
-                let max = prev.clone().maximizeInPlace(p).maximizeInPlace(next);
-                let pix = Vec2.Zero();
-                for (let x = min.x; x <= max.x; x++) {
-                    for (let y = min.y; y <= max.y; y++) {
-                        pix.x = x;
-                        pix.y = y;
-                        let canFill = true;
-                        if (fillStyle === FillStyle.Stripes) {
-                            canFill = pix.x % 2 === 0;
-                        }
-                        if (fillStyle === FillStyle.Lines) {
-                            canFill = pix.y % 2 === 0;
-                        }
-                        if (fillStyle === FillStyle.Grid) {
-                            canFill = (pix.x + pix.y) % 2 === 0;
-                        }
-                        if (fillStyle === FillStyle.Dots) {
-                            canFill = pix.x % 2 === 0 && pix.y % 2 === 0;
-                        }
-                        if (canFill && Polygon.PointInTriangle(pix, prev, p, next)) {
-                            this.drawPixel(x, y, c, position);
-                        }
-                    }
-                }
-            }
-            this.drawLine(start, end, c, position);
-        }
-    }
-    clear() {
-        this.pixels.fill(0);
-    }
-    async debugStart() {
-        await ArcadeText.LoadCharacters();
-        this._debugCanvas = document.createElement("canvas");
-        this._debugCanvas.width = this.w;
-        this._debugCanvas.height = this.h;
-        this._debugCanvas.style.width = (5 * this.w).toFixed(0) + "px";
-        this._debugCanvas.style.height = (5 * this.h).toFixed(0) + "px";
-        this._debugCanvas.style.position = "fixed";
-        this._debugCanvas.style.top = "10px";
-        this._debugCanvas.style.left = "10px";
-        this._debugCanvas.style.zIndex = "100000";
-        document.body.appendChild(this._debugCanvas);
-        window.addEventListener("keydown", (ev) => {
-            if (ev.code === "KeyW") {
-                this.input.Up = true;
-            }
-            if (ev.code === "KeyA") {
-                this.input.Left = true;
-            }
-            if (ev.code === "KeyS") {
-                this.input.Down = true;
-            }
-            if (ev.code === "KeyD") {
-                this.input.Right = true;
-            }
-        });
-        window.addEventListener("keyup", (ev) => {
-            if (ev.code === "KeyW") {
-                this.input.Up = false;
-            }
-            if (ev.code === "KeyA") {
-                this.input.Left = false;
-            }
-            if (ev.code === "KeyS") {
-                this.input.Down = false;
-            }
-            if (ev.code === "KeyD") {
-                this.input.Right = false;
-            }
-        });
-        let map = new QixMap(this);
-        let player = new QixPlayer(map, this);
-        player.position.copyFrom(map.points[0]);
-        let loop = () => {
-            this.debugLoop();
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(loop);
-                });
-            });
-        };
-        requestAnimationFrame(loop);
-    }
-    debugLoop() {
-        this.clear();
-        let t = performance.now() / 1000;
-        let dt = 1 / 24;
-        if (isFinite(this._lastT)) {
-            dt = t - this._lastT;
-        }
-        dt = Math.min(dt, 1);
-        this._lastT = t;
-        for (let i = 0; i < this.gameObjects.length; i++) {
-            this.gameObjects[i].update(dt);
-        }
-        this.gameObjects.sort((g1, g2) => { return g1.layer - g2.layer; });
-        for (let i = 0; i < this.gameObjects.length; i++) {
-            this.gameObjects[i].draw();
-        }
-        let context = this._debugCanvas.getContext("2d");
-        context.fillStyle = "black";
-        context.fillRect(0, 0, this.w, this.h);
-        for (let i = 0; i < this.pixels.length; i++) {
-            let c = this.pixels[i];
-            if (c > 0) {
-                let x = i % this.w;
-                let y = Math.floor(i / this.w);
-                context.fillStyle = ArcadeEngine.Colors[c];
-                context.fillRect(x, y, 1, 1);
-            }
-        }
-    }
-}
-ArcadeEngine.Colors = [
-    "#000000",
-    "#222244",
-    "#334455",
-    "#556666",
-    "#664455",
-    "#887766",
-    "#999988",
-    "#ccccaa",
-    "#ffffee",
-    "#cc5544",
-    "#ff8822",
-    "#ffcc33",
-    "#88cc44",
-    "#449944",
-    "#44aaff",
-    "#3377dd"
-];
-class GameObject {
-    constructor(name, engine) {
-        this.name = name;
-        this.engine = engine;
-        this.layer = 0;
-        this.position = Vec2.Zero();
-        this.engine.gameObjects.push(this);
-    }
-    dispose() {
-        let index = this.engine.gameObjects.indexOf(this);
-        if (index != -1) {
-            this.engine.gameObjects.splice(index, 1);
-        }
-    }
-    draw() { }
-    update(dt) { }
-}
-class Triangle extends GameObject {
-    constructor(v1, v2, v3, color, engine) {
-        super("triangle", engine);
-        this.v1 = v1;
-        this.v2 = v2;
-        this.v3 = v3;
-        this.color = color;
-    }
-    draw() {
-        this.engine.drawLine(this.v1, this.v2, this.color);
-        this.engine.drawLine(this.v2, this.v3, this.color);
-        this.engine.drawLine(this.v3, this.v1, this.color);
-    }
-}
-class ArcadeText extends GameObject {
-    constructor(text, color, engine) {
-        super("text", engine);
-        this.text = text;
-        this.color = color;
-        this.backgroundColor = -1;
-    }
-    static IsWhite(r, g, b) {
-        return r === 255 && g === 255 && b === 255;
-    }
-    static async LoadCharacters() {
-        ArcadeText.Characters = new Map();
-        return new Promise(resolve => {
-            let canvas = document.createElement("canvas");
-            let spritesImg = document.createElement("img");
-            spritesImg.src = "datas/textures/arcade_text.png";
-            spritesImg.onload = () => {
-                canvas.width = spritesImg.width;
-                canvas.height = spritesImg.height;
-                let context = canvas.getContext("2d");
-                context.drawImage(spritesImg, 0, 0);
-                let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                let digits = "0123456789";
-                for (let i = 0; i < letters.length; i++) {
-                    let letterPixels = new Uint8Array(ArcadeText.LetterW * ArcadeText.LetterH);
-                    letterPixels.fill(0);
-                    let pixels = context.getImageData(i * (ArcadeText.LetterW + 1), 0, 6, 6);
-                    for (let jj = 0; jj < ArcadeText.LetterH; jj++) {
-                        for (let ii = 0; ii < ArcadeText.LetterW; ii++) {
-                            let n = 4 * (jj * ArcadeText.LetterW + ii);
-                            let r = pixels.data[n];
-                            let g = pixels.data[n + 1];
-                            let b = pixels.data[n + 2];
-                            if (ArcadeText.IsWhite(r, g, b)) {
-                                letterPixels[ii + jj * ArcadeText.LetterW] = 1;
-                            }
-                        }
-                    }
-                    ArcadeText.Characters.set(letters[i], letterPixels);
-                }
-                for (let i = 0; i < digits.length; i++) {
-                    let digitPixels = new Uint8Array(ArcadeText.LetterW * ArcadeText.LetterH);
-                    digitPixels.fill(0);
-                    let pixels = context.getImageData(i * (ArcadeText.LetterW + 1), ArcadeText.LetterH + 1, 6, 6);
-                    for (let jj = 0; jj < ArcadeText.LetterH; jj++) {
-                        for (let ii = 0; ii < ArcadeText.LetterW; ii++) {
-                            let n = 4 * (jj * ArcadeText.LetterW + ii);
-                            let r = pixels.data[n];
-                            let g = pixels.data[n + 1];
-                            let b = pixels.data[n + 2];
-                            if (ArcadeText.IsWhite(r, g, b)) {
-                                digitPixels[ii + jj * ArcadeText.LetterW] = 1;
-                            }
-                        }
-                    }
-                    ArcadeText.Characters.set(digits[i], digitPixels);
-                }
-                resolve();
-            };
-        });
-    }
-    draw() {
-        if (this.backgroundColor != -1) {
-            let l = this.text.length * (ArcadeText.LetterW + 1) + 1;
-            let h = ArcadeText.LetterH + 1 + 1;
-            this.engine.drawRect(-1, -1, l, h, this.backgroundColor, this.position);
-        }
-        for (let n = 0; n < this.text.length; n++) {
-            let pixels = ArcadeText.Characters.get(this.text[n]);
-            if (pixels) {
-                for (let j = 0; j < ArcadeText.LetterH; j++) {
-                    for (let i = 0; i < ArcadeText.LetterW; i++) {
-                        let p = pixels[i + j * ArcadeText.LetterW];
-                        if (p > 0) {
-                            this.engine.drawPixel(this.position.x + i + n * (ArcadeText.LetterW + 1), this.position.y + j, this.color);
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-ArcadeText.LetterH = 6;
-ArcadeText.LetterW = 6;
-class Polygon {
-    static Sign(p1, p2, p3) {
-        return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
-    }
-    static PointInTriangle(p, v1, v2, v3) {
-        let d1 = Polygon.Sign(p, v1, v2);
-        let d2 = Polygon.Sign(p, v2, v3);
-        let d3 = Polygon.Sign(p, v3, v1);
-        let hasPos = d1 > 0 || d2 > 0 || d3 > 0;
-        let hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
-        return !hasPos || !hasNeg;
-    }
-    static IsEar(index, polygon) {
-        let l = polygon.length;
-        let prev = polygon[(index - 1 + l) % l];
-        let p = polygon[index];
-        let next = polygon[(index + 1) % l];
-        let e1 = next.subtract(p);
-        let e2 = prev.subtract(p);
-        let a = e1.angleTo(e2);
-        if (a > 0 && a < Math.PI) {
-            for (let i = 0; i < polygon.length; i++) {
-                if (i != index &&
-                    i != (index - 1 + l) % l &&
-                    i != (index + 1) % l) {
-                    if (Polygon.PointInTriangle(polygon[i], prev, p, next)) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-    static TriangleArea(v1, v2, v3) {
-        return Math.abs(v2.subtract(v1).cross(v3.subtract(v1))) * 0.5;
-    }
-    static GetSurface(polygon) {
-        console.log("GetSurface " + polygon.length + " points");
-        let tmpCutPolygon = [...polygon];
-        let area = 0;
-        let triCount = 0;
-        while (tmpCutPolygon.length > 2) {
-            let earIndex = 0;
-            for (let i = 0; i < tmpCutPolygon.length; i++) {
-                if (Polygon.IsEar(i, tmpCutPolygon)) {
-                    earIndex = i;
-                    break;
-                }
-            }
-            let l = tmpCutPolygon.length;
-            let prev = tmpCutPolygon[(earIndex - 1 + l) % l];
-            let p = tmpCutPolygon[earIndex];
-            let next = tmpCutPolygon[(earIndex + 1) % l];
-            area += Polygon.TriangleArea(prev, p, next);
-            tmpCutPolygon.splice(earIndex, 1);
-            triCount++;
-        }
-        console.log("TriCount " + triCount);
-        return area;
-    }
-    static BBoxCenter(polygon) {
-        let min = polygon[0].clone();
-        let max = polygon[0].clone();
-        for (let i = 1; i < polygon.length; i++) {
-            min.minimizeInPlace(polygon[i]);
-            max.maximizeInPlace(polygon[i]);
-        }
-        return min.addInPlace(max).scaleInPlace(0.5);
-    }
-}
-class Vec2 {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-    static Zero() {
-        return new Vec2(0, 0);
-    }
-    static get AxisUp() {
-        return this._AxisUp;
-    }
-    static get AxisDown() {
-        return this._AxisDown;
-    }
-    static get AxisRight() {
-        return this._AxisRight;
-    }
-    static get AxisLeft() {
-        return this._AxisLeft;
-    }
-    copyFrom(other) {
-        this.x = other.x;
-        this.y = other.y;
-        return this;
-    }
-    clone() {
-        return new Vec2(this.x, this.y);
-    }
-    sqrLength() {
-        return this.x * this.x + this.y * this.y;
-    }
-    length() {
-        return Math.sqrt(this.sqrLength());
-    }
-    normalizeInPlace() {
-        let l = this.length();
-        this.x = this.x / l;
-        this.y = this.y / l;
-        return this;
-    }
-    normalize() {
-        return this.clone().normalizeInPlace();
-    }
-    minimizeInPlace(other) {
-        this.x = Math.min(this.x, other.x);
-        this.y = Math.min(this.y, other.y);
-        return this;
-    }
-    minimize(other) {
-        return this.clone().minimizeInPlace(other);
-    }
-    maximizeInPlace(other) {
-        this.x = Math.max(this.x, other.x);
-        this.y = Math.max(this.y, other.y);
-        return this;
-    }
-    maximize(other) {
-        return this.clone().maximizeInPlace(other);
-    }
-    scaleInPlace(s) {
-        this.x = this.x * s;
-        this.y = this.y * s;
-        return this;
-    }
-    scale(s) {
-        return this.clone().scaleInPlace(s);
-    }
-    addInPlace(other) {
-        this.x += other.x;
-        this.y += other.y;
-        return this;
-    }
-    add(other) {
-        return this.clone().addInPlace(other);
-    }
-    subtractInPlace(other) {
-        this.x -= other.x;
-        this.y -= other.y;
-        return this;
-    }
-    subtract(other) {
-        return this.clone().subtractInPlace(other);
-    }
-    lerpInPlace(other, f) {
-        this.x = this.x * (1 - f) + other.x * f;
-        this.y = this.y * (1 - f) + other.y * f;
-        return this;
-    }
-    lerp(other, f) {
-        return this.clone().lerpInPlace(other, f);
-    }
-    dot(other) {
-        return this.x * other.x + this.y * other.y;
-    }
-    cross(other) {
-        return this.x * other.y - this.y * other.x;
-    }
-    roundInPlace() {
-        this.x = Math.round(this.x);
-        this.y = Math.round(this.y);
-        return this;
-    }
-    round() {
-        return this.clone().roundInPlace();
-    }
-    floorInPlace() {
-        this.x = Math.floor(this.x);
-        this.y = Math.floor(this.y);
-        return this;
-    }
-    floor() {
-        return this.clone().floorInPlace();
-    }
-    ceilInPlace() {
-        this.x = Math.ceil(this.x);
-        this.y = Math.ceil(this.y);
-        return this;
-    }
-    ceil() {
-        return this.clone().ceilInPlace();
-    }
-    isOnRectSegment(s1, s2) {
-        if (this.x === s1.x && this.x === s2.x) {
-            let minY = Math.min(s1.y, s2.y);
-            let maxY = Math.max(s1.y, s2.y);
-            return this.y >= minY && this.y <= maxY;
-        }
-        if (this.y === s1.y && this.y === s2.y) {
-            let minX = Math.min(s1.x, s2.x);
-            let maxX = Math.max(s1.x, s2.x);
-            return this.x >= minX && this.x <= maxX;
-        }
-        return false;
-    }
-    equals(other) {
-        return this.x === other.x && this.y === other.y;
-    }
-    angleTo(other) {
-        return Math.atan2(this.x * other.y - this.y * other.x, this.x * other.x + this.y * other.y);
-    }
-}
-Vec2._AxisUp = new Vec2(0, -1);
-Vec2._AxisDown = new Vec2(0, 1);
-Vec2._AxisRight = new Vec2(1, 0);
-Vec2._AxisLeft = new Vec2(-1, 0);
-class QixMap extends GameObject {
-    constructor(engine) {
-        super("qix-map", engine);
-        this.initialSurface = 1000;
-        this.min = new Vec2(0, 0);
-        this.max = new Vec2(159 - 6, 143 - 6 - 8);
-        this.points = [];
-        this.initialize();
-        this.layer = 2;
-        this.position.x = 3;
-        this.position.y = 3 + 8;
-    }
-    initialize() {
-        this.scoreDisplay = new ArcadeText("SCORE ", ArcadeEngineColor.Black, this.engine);
-        this.scoreDisplay.position.x = 1;
-        this.scoreDisplay.position.y = 1;
-        this.scoreDisplay.backgroundColor = ArcadeEngineColor.White;
-        this.points = [
-            new Vec2(this.min.x, this.min.y),
-            new Vec2(this.max.x, this.min.y),
-            new Vec2(this.max.x, this.max.y),
-            new Vec2(this.min.x, this.max.y)
-        ];
-        this.initialSurface = Polygon.GetSurface(this.points);
-        this.scoreDisplay.text = "SCORE " + this.getScore().toFixed(0).padStart(3, "0");
-    }
-    draw() {
-        this.engine.fillPolygon(this.points, ArcadeEngineColor.DeepBlue, FillStyle.Stripes, this.position);
-        this.engine.drawPolygon(this.points, ArcadeEngineColor.Blue, this.position);
-    }
-    split(path) {
-        console.log(path);
-        let part1 = [...path];
-        let part2 = [...path].reverse();
-        let start = path[0];
-        let end = path[path.length - 1];
-        for (let i = 0; i < this.points.length; i++) {
-            let s1 = this.points[i];
-            let s2 = this.points[(i + 1) % this.points.length];
-            if (start.isOnRectSegment(s1, s2) && end.isOnRectSegment(s1, s2)) {
-                let tmp = start.add(end).scaleInPlace(0.5).roundInPlace();
-                if (i === this.points.length - 1) {
-                    this.points.push(tmp);
-                }
-                else {
-                    this.points.splice(i + 1, 0, tmp);
-                }
-            }
-        }
-        for (let i = 0; i < this.points.length; i++) {
-            let s1 = this.points[i];
-            let s2 = this.points[(i + 1) % this.points.length];
-            if (end.isOnRectSegment(s1, s2)) {
-                for (let j = 0; j < this.points.length; j++) {
-                    let n = (i + j) % this.points.length;
-                    let pt1 = this.points[n];
-                    let pt2 = this.points[(n + 1) % this.points.length];
-                    if (start.isOnRectSegment(pt1, pt2)) {
-                        break;
-                    }
-                    else {
-                        if (!part1[part1.length - 1].equals(pt2)) {
-                            part1.push(pt2);
-                        }
-                    }
-                }
-                break;
-            }
-        }
-        for (let i = 0; i < this.points.length; i++) {
-            let s1 = this.points[i];
-            let s2 = this.points[(i + 1) % this.points.length];
-            if (start.isOnRectSegment(s1, s2)) {
-                for (let j = 0; j < this.points.length; j++) {
-                    let n = (i + j) % this.points.length;
-                    let pt1 = this.points[n];
-                    let pt2 = this.points[(n + 1) % this.points.length];
-                    if (end.isOnRectSegment(pt1, pt2)) {
-                        break;
-                    }
-                    else {
-                        if (!part2[part2.length - 1].equals(pt2)) {
-                            part2.push(pt2);
-                        }
-                    }
-                }
-                break;
-            }
-        }
-        //let debugA = Polygon.GetSurface(this.points);
-        let a1 = Polygon.GetSurface(part1);
-        let a2 = Polygon.GetSurface(part2);
-        /*
-        //console.log("Map Area " + debugA);
-        let text1 = new ArcadeText(a1.toFixed(0), ArcadeEngineColor.Black, this.engine);
-        text1.layer = 5;
-        text1.backgroundColor = ArcadeEngineColor.White;
-        text1.position = Polygon.BBoxCenter(part1).roundInPlace();
-        setInterval(() => {
-            text1.dispose()
-        }, 3000);
-
-        let text2 = new ArcadeText(a2.toFixed(0), ArcadeEngineColor.Black, this.engine);
-        text2.layer = 5;
-        text2.backgroundColor = ArcadeEngineColor.White;
-        text2.position = Polygon.BBoxCenter(part2).roundInPlace();
-        setInterval(() => {
-            text2.dispose()
-        }, 3000);
-        */
-        console.log("A1 Area " + a1);
-        console.log("A2 Area " + a2);
-        if (a1 >= a2) {
-            this.points = part1;
-            this.scoreDisplay.text = "SCORE " + this.getScore(a1).toFixed(0).padStart(3, "0");
-            return part2;
-        }
-        else {
-            this.points = part2;
-            this.scoreDisplay.text = "SCORE " + this.getScore(a2).toFixed(0).padStart(3, "0");
-            return part1;
-        }
-    }
-    getScore(surface) {
-        if (isNaN(surface)) {
-            surface = Polygon.GetSurface(this.points);
-        }
-        let winSurface = this.initialSurface * 0.1;
-        let f = (surface - winSurface) / (this.initialSurface - winSurface);
-        f = Math.min(Math.max(f, 0), 1);
-        return Math.floor(100 * (1 - f));
-    }
-}
-class QixLastSplit extends GameObject {
-    constructor(player) {
-        super("qix-split", player.engine);
-        this.player = player;
-        this.layer = 1;
-    }
-    draw() {
-        if (this.path) {
-            this.engine.fillPolygon(this.path, ArcadeEngineColor.Pourpre, FillStyle.Grid, this.player.map.position);
-            this.engine.drawPolygon(this.path, ArcadeEngineColor.Red, this.player.map.position);
-        }
-    }
-}
-class QixPlayer extends GameObject {
-    constructor(map, engine) {
-        super("qix-player", engine);
-        this.map = map;
-        this.movingOnMap = 0;
-        this.tracing = false;
-        this.tracingDir = Vec2.Zero();
-        this.tracePath = [];
-        this.layer = 4;
-        this.lastSplit = new QixLastSplit(this);
-    }
-    indexOnMap() {
-        for (let i = 0; i < this.map.points.length; i++) {
-            let s1 = this.map.points[i];
-            let s2 = this.map.points[(i + 1) % this.map.points.length];
-            if (this.position.equals(s2)) {
-                return (i + 1) % this.map.points.length;
-            }
-            if (this.position.isOnRectSegment(s1, s2)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-    getDir(index) {
-        while (index < 0) {
-            index += this.map.points.length;
-        }
-        while (index >= this.map.points.length) {
-            index -= this.map.points.length;
-        }
-        let s1 = this.map.points[index];
-        let s2 = this.map.points[(index + 1) % this.map.points.length];
-        return s2.subtract(s1).normalizeInPlace();
-    }
-    getDirInv(index) {
-        while (index < 0) {
-            index += this.map.points.length;
-        }
-        while (index >= this.map.points.length) {
-            index -= this.map.points.length;
-        }
-        let s1 = this.map.points[index];
-        if (this.position.equals(s1)) {
-            return this.getDir(index - 1).scaleInPlace(-1);
-        }
-        return this.getDir(index).scaleInPlace(-1);
-    }
-    update(dt) {
-        if (this.movingOnMap != 0) {
-            if (this.engine.input.Up || this.engine.input.Down || this.engine.input.Right || this.engine.input.Left) {
-                let index = this.indexOnMap();
-                if (index === -1) {
-                    this.position.copyFrom(this.map.points[0]);
-                    return;
-                }
-                if (this.movingOnMap === 1) {
-                    let dir = this.getDir(index);
-                    this.position.addInPlace(dir);
-                }
-                else if (this.movingOnMap = -1) {
-                    let dir = this.getDirInv(index);
-                    this.position.addInPlace(dir);
-                }
-            }
-            else {
-                this.movingOnMap = 0;
-            }
-        }
-        else if (this.tracing) {
-            if (this.engine.input.Up && !this.tracingDir.equals(Vec2.AxisUp) && !this.tracingDir.equals(Vec2.AxisDown)) {
-                this.tracingDir.copyFrom(Vec2.AxisUp);
-                this.tracePath.push(this.position.clone());
-            }
-            else if (this.engine.input.Down && !this.tracingDir.equals(Vec2.AxisDown) && !this.tracingDir.equals(Vec2.AxisUp)) {
-                this.tracingDir.copyFrom(Vec2.AxisDown);
-                this.tracePath.push(this.position.clone());
-            }
-            else if (this.engine.input.Right && !this.tracingDir.equals(Vec2.AxisRight) && !this.tracingDir.equals(Vec2.AxisLeft)) {
-                this.tracingDir.copyFrom(Vec2.AxisRight);
-                this.tracePath.push(this.position.clone());
-            }
-            else if (this.engine.input.Left && !this.tracingDir.equals(Vec2.AxisLeft) && !this.tracingDir.equals(Vec2.AxisRight)) {
-                this.tracingDir.copyFrom(Vec2.AxisLeft);
-                this.tracePath.push(this.position.clone());
-            }
-            this.position.addInPlace(this.tracingDir);
-            if (this.indexOnMap() != -1) {
-                this.tracePath.push(this.position.clone());
-                this.lastSplit.path = this.map.split(this.tracePath);
-                this.tracing = false;
-            }
-        }
-        else {
-            let index = this.indexOnMap();
-            if (index === -1) {
-                this.position.copyFrom(this.map.points[0]);
-                return;
-            }
-            let dir = this.getDir(index);
-            if (dir.equals(Vec2.AxisUp) && this.engine.input.Up) {
-                this.movingOnMap = 1;
-            }
-            else if (dir.equals(Vec2.AxisDown) && this.engine.input.Down) {
-                this.movingOnMap = 1;
-            }
-            else if (dir.equals(Vec2.AxisRight) && this.engine.input.Right) {
-                this.movingOnMap = 1;
-            }
-            else if (dir.equals(Vec2.AxisLeft) && this.engine.input.Left) {
-                this.movingOnMap = 1;
-            }
-            let dirInv = this.getDirInv(index);
-            if (dirInv.equals(Vec2.AxisUp) && this.engine.input.Up) {
-                this.movingOnMap = -1;
-            }
-            else if (dirInv.equals(Vec2.AxisDown) && this.engine.input.Down) {
-                this.movingOnMap = -1;
-            }
-            else if (dirInv.equals(Vec2.AxisRight) && this.engine.input.Right) {
-                this.movingOnMap = -1;
-            }
-            else if (dirInv.equals(Vec2.AxisLeft) && this.engine.input.Left) {
-                this.movingOnMap = -1;
-            }
-            let inputDir = Vec2.Zero();
-            if (this.engine.input.Up) {
-                let angle = dir.angleTo(Vec2.AxisUp);
-                if (angle > 0) {
-                    let angleInv = Vec2.AxisUp.angleTo(dirInv);
-                    if (angleInv > 0) {
-                        this.tracing = true;
-                        this.tracingDir = Vec2.AxisUp.clone();
-                        this.tracePath = [this.position.clone()];
-                    }
-                }
-            }
-            if (this.engine.input.Down) {
-                let angle = dir.angleTo(Vec2.AxisDown);
-                if (angle > 0) {
-                    let angleInv = Vec2.AxisDown.angleTo(dirInv);
-                    if (angleInv > 0) {
-                        this.tracing = true;
-                        this.tracingDir = Vec2.AxisDown.clone();
-                        this.tracePath = [this.position.clone()];
-                    }
-                }
-            }
-            if (this.engine.input.Right) {
-                let angle = dir.angleTo(Vec2.AxisRight);
-                if (angle > 0) {
-                    let angleInv = Vec2.AxisRight.angleTo(dirInv);
-                    if (angleInv > 0) {
-                        this.tracing = true;
-                        this.tracingDir = Vec2.AxisRight.clone();
-                        this.tracePath = [this.position.clone()];
-                    }
-                }
-            }
-            if (this.engine.input.Left) {
-                let angle = dir.angleTo(Vec2.AxisLeft);
-                if (angle > 0) {
-                    let angleInv = Vec2.AxisLeft.angleTo(dirInv);
-                    if (angleInv > 0) {
-                        this.tracing = true;
-                        this.tracingDir = Vec2.AxisLeft.clone();
-                        this.tracePath = [this.position.clone()];
-                    }
-                }
-            }
-        }
-    }
-    draw() {
-        if (this.tracing) {
-            for (let i = 0; i < this.tracePath.length; i++) {
-                let start = this.tracePath[i];
-                let end;
-                if (this.tracing && i === this.tracePath.length - 1) {
-                    end = this.position;
-                }
-                else if (i < this.tracePath.length - 1) {
-                    end = this.tracePath[i + 1];
-                }
-                if (end) {
-                    this.engine.drawLine(start, end, ArcadeEngineColor.Lime, this.map.position);
-                }
-            }
-        }
-        this.engine.drawRect(-2, -2, 5, 5, ArcadeEngineColor.Green, this.position.add(this.map.position));
     }
 }
 class BrickFactory {
@@ -6649,8 +5719,7 @@ class Construction extends BABYLON.Mesh {
         this.j = j;
         this.terrain = terrain;
         this.bricks = new Nabu.UniqueList();
-        this.textBrickMeshes = [];
-        this.pictureBrickMeshes = [];
+        this.specialBrickMeshes = [];
         this.barycenter = BABYLON.Vector3.Zero();
         this.isMeshUpdated = false;
         this.reserved = -1;
@@ -6683,37 +5752,28 @@ class Construction extends BABYLON.Mesh {
         }
     }
     async updateMesh() {
-        while (this.textBrickMeshes.length > 0) {
-            this.textBrickMeshes.pop().dispose(false, true);
+        while (this.specialBrickMeshes.length > 0) {
+            this.specialBrickMeshes.pop().dispose(false, true);
         }
         this.isMeshUpdated = false;
         let vDatas = [];
-        let textBrickMeshes = [];
-        let pictureBrickMeshes = [];
+        let specialBrickMeshes = [];
         this.subMeshInfos = [];
         for (let i = 0; i < this.bricks.length; i++) {
             let brick = this.bricks.get(i);
-            if (brick instanceof TextBrick) {
-                let vData = await brick.generateTextBrickVertexData();
-                let textBrickMesh = new TextBrickMesh(brick);
-                this.textBrickMeshes.push(textBrickMesh);
-                textBrickMesh.updateMaterial();
-                vData.applyToMesh(textBrickMesh);
-                textBrickMeshes.push(textBrickMesh);
-            }
-            else if (brick instanceof PictureBrick) {
-                let vData = await brick.generatePictureBrickVertexData();
-                let pictureBrickMesh = new PictureBrickMesh(brick);
-                this.pictureBrickMeshes.push(pictureBrickMesh);
-                pictureBrickMesh.updateMaterial();
-                vData.applyToMesh(pictureBrickMesh);
-                pictureBrickMeshes.push(pictureBrickMesh);
+            if (brick instanceof SpecialBrick) {
+                let vData = await brick.generateSpecialBrickVertexData();
+                let specialBrickMesh = brick.constructSpecialBrickMesh();
+                this.specialBrickMeshes.push(specialBrickMesh);
+                specialBrickMesh.updateMaterial();
+                vData.applyToMesh(specialBrickMesh);
+                specialBrickMeshes.push(specialBrickMesh);
             }
             else if (brick instanceof Brick) {
                 await brick.generateMeshVertexData(vDatas, this.subMeshInfos);
             }
         }
-        if (vDatas.length > 0 || textBrickMeshes.length > 0 || pictureBrickMeshes.length > 0) {
+        if (vDatas.length > 0 || specialBrickMeshes.length > 0) {
             if (!this.mesh) {
                 this.mesh = new ConstructionMesh(this);
                 this.mesh.parent = this;
@@ -6723,14 +5783,9 @@ class Construction extends BABYLON.Mesh {
                 let data = Construction.MergeVertexDatas(this.subMeshInfos, ...vDatas);
                 data.applyToMesh(this.mesh);
             }
-            if (textBrickMeshes.length > 0) {
-                textBrickMeshes.forEach(textBrickMesh => {
+            if (specialBrickMeshes.length > 0) {
+                specialBrickMeshes.forEach(textBrickMesh => {
                     textBrickMesh.parent = this.mesh;
-                });
-            }
-            if (pictureBrickMeshes.length > 0) {
-                pictureBrickMeshes.forEach(pictureBrickMesh => {
-                    pictureBrickMesh.parent = this.mesh;
                 });
             }
         }
@@ -6938,7 +5993,35 @@ class Construction extends BABYLON.Mesh {
     }
 }
 Construction.SIZE_m = BRICKS_PER_CONSTRUCTION * BRICK_S;
-class PictureBrick extends Brick {
+class SpecialBrick extends Brick {
+    constructor(arg1, colorIndex, construction) {
+        super(arg1, colorIndex, construction);
+    }
+    dispose() {
+        this.construction.bricks.remove(this);
+        if (this.construction) {
+            let index = this.construction.specialBrickMeshes.findIndex(sbm => {
+                return sbm.specialBrick === this;
+            });
+            if (index != -1) {
+                let pictureBrickMesh = this.construction.specialBrickMeshes[index];
+                this.construction.specialBrickMeshes.splice(index, 1);
+                pictureBrickMesh.dispose(false, true);
+            }
+        }
+    }
+    async generateMeshVertexData(vDatas, subMeshInfos) {
+    }
+}
+class SpecialBrickMesh extends BABYLON.Mesh {
+    constructor(specialBrick, name) {
+        super(name);
+        this.specialBrick = specialBrick;
+    }
+    updateMaterial() { }
+}
+///  <reference path="./SpecialBrick.ts"/>
+class PictureBrick extends SpecialBrick {
     constructor(arg1, colorIndex, construction) {
         super(arg1, colorIndex, construction);
         this.w = 1;
@@ -6946,22 +6029,12 @@ class PictureBrick extends Brick {
         this.text = split.pop();
         this.w = parseInt(split.pop());
     }
-    dispose() {
-        this.construction.bricks.remove(this);
-        if (this.construction) {
-            let index = this.construction.pictureBrickMeshes.findIndex(pbm => {
-                return pbm.brick === this;
-            });
-            if (index != -1) {
-                let pictureBrickMesh = this.construction.pictureBrickMeshes[index];
-                this.construction.pictureBrickMeshes.splice(index, 1);
-                pictureBrickMesh.dispose(false, true);
-            }
-        }
+    constructSpecialBrickMesh() {
+        return new PictureBrickMesh(this);
     }
     async generateMeshVertexData(vDatas, subMeshInfos) {
     }
-    async generatePictureBrickVertexData() {
+    async generateSpecialBrickVertexData() {
         let template = await BrickTemplateManager.Instance.getTemplate(this.index);
         let vData = Mummu.CloneVertexData(template.vertexData);
         let colors = [];
@@ -6974,10 +6047,9 @@ class PictureBrick extends Brick {
         return vData;
     }
 }
-class PictureBrickMesh extends BABYLON.Mesh {
+class PictureBrickMesh extends SpecialBrickMesh {
     constructor(brick) {
-        super("picture-brick-mesh");
-        this.brick = brick;
+        super(brick, "picture-brick-mesh");
     }
     updateMaterial() {
         let material = new ToonMaterial("name-tag-material", this._scene);
@@ -6985,10 +6057,10 @@ class PictureBrickMesh extends BABYLON.Mesh {
         material.setDiffuseSharpness(-1);
         material.setDiffuseCount(2);
         material.setAutoLight(0.75);
-        let texture = new BABYLON.DynamicTexture("picture-brick-texture", { width: 256, height: 230 }, this.brick.construction.game.scene);
+        let texture = new BABYLON.DynamicTexture("picture-brick-texture", { width: 256, height: 230 }, this.specialBrick.construction.game.scene);
         let context = texture.getContext();
         let img = document.createElement("img");
-        let brickTemplate = BRICK_LIST[this.brick.index];
+        let brickTemplate = BRICK_LIST[this.specialBrick.index];
         if (brickTemplate && brickTemplate.src) {
             img.src = brickTemplate.src;
             img.onload = () => {
@@ -7000,7 +6072,7 @@ class PictureBrickMesh extends BABYLON.Mesh {
         this.material = material;
     }
 }
-class TextBrick extends Brick {
+class TextBrick extends SpecialBrick {
     constructor(arg1, colorIndex, construction) {
         super(arg1, colorIndex, construction);
         this.w = 1;
@@ -7008,22 +6080,12 @@ class TextBrick extends Brick {
         this.text = split.pop();
         this.w = parseInt(split.pop());
     }
-    dispose() {
-        this.construction.bricks.remove(this);
-        if (this.construction) {
-            let index = this.construction.textBrickMeshes.findIndex(tbm => {
-                return tbm.brick === this;
-            });
-            if (index != -1) {
-                let textBrickMesh = this.construction.textBrickMeshes[index];
-                this.construction.textBrickMeshes.splice(index, 1);
-                textBrickMesh.dispose(false, true);
-            }
-        }
+    constructSpecialBrickMesh() {
+        return new TextBrickMesh(this);
     }
     async generateMeshVertexData(vDatas, subMeshInfos) {
     }
-    async generateTextBrickVertexData() {
+    async generateSpecialBrickVertexData() {
         let template = await BrickTemplateManager.Instance.getTemplate(this.index);
         let vData = Mummu.CloneVertexData(template.vertexData);
         let colors = [];
@@ -7052,10 +6114,10 @@ class TextBrick extends Brick {
         return vData;
     }
 }
-class TextBrickMesh extends BABYLON.Mesh {
-    constructor(brick) {
-        super("text-brick-mesh");
-        this.brick = brick;
+class TextBrickMesh extends SpecialBrickMesh {
+    constructor(textBrick) {
+        super(textBrick, "text-brick-mesh");
+        this.textBrick = textBrick;
     }
     updateMaterial() {
         let material = new ToonMaterial("name-tag-material", this._scene);
@@ -7063,18 +6125,18 @@ class TextBrickMesh extends BABYLON.Mesh {
         material.setDiffuseSharpness(-1);
         material.setDiffuseCount(2);
         let h = 64;
-        let w = this.brick.w * h / (3 * BRICK_H) * BRICK_S;
-        let texture = new BABYLON.DynamicTexture("name-tag-texture", { width: w, height: h }, this.brick.construction.game.scene);
+        let w = this.textBrick.w * h / (3 * BRICK_H) * BRICK_S;
+        let texture = new BABYLON.DynamicTexture("name-tag-texture", { width: w, height: h }, this.textBrick.construction.game.scene);
         let context = texture.getContext();
-        context.fillStyle = DodoColors[this.brick.colorIndex].hex;
+        context.fillStyle = DodoColors[this.textBrick.colorIndex].hex;
         context.fillRect(0, 0, w, h);
         context.font = (h * 0.6).toFixed(0) + "px Cartoon";
-        context.fillStyle = DodoColors[this.brick.colorIndex].textColor;
-        context.strokeStyle = DodoColors[this.brick.colorIndex].textColor;
+        context.fillStyle = DodoColors[this.textBrick.colorIndex].textColor;
+        context.strokeStyle = DodoColors[this.textBrick.colorIndex].textColor;
         context.lineWidth = h / 32;
-        let l = context.measureText(this.brick.text);
-        //context.strokeText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
-        context.fillText(this.brick.text, w / 2 - l.width * 0.5, h - h / 8);
+        let l = context.measureText(this.textBrick.text);
+        //context.strokeText(this.textBrick.text, w / 2 - l.width * 0.5, h - h / 8);
+        context.fillText(this.textBrick.text, w / 2 - l.width * 0.5, h - h / 8);
         texture.update();
         material.setDiffuseTexture(texture);
         this.material = material;

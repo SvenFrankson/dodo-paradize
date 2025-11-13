@@ -521,9 +521,6 @@ class Game {
 
         this.gameLoaded = true;
 
-        // Test ArcadeEngine
-        let arcadeEngine = new ArcadeEngine();
-        arcadeEngine.debugStart();
 
         this.setGameMode(GameMode.Home);
 

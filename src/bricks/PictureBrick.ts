@@ -1,4 +1,6 @@
-class PictureBrick extends Brick {
+///  <reference path="./SpecialBrick.ts"/>
+
+class PictureBrick extends SpecialBrick {
     
     public w: number = 1;
     public text: string;
@@ -12,26 +14,16 @@ class PictureBrick extends Brick {
         this.text = split.pop();
         this.w = parseInt(split.pop());
     }
-    
-    public dispose(): void {
-        this.construction.bricks.remove(this);
-        if (this.construction) {
-            let index = this.construction.pictureBrickMeshes.findIndex(pbm => {
-                return pbm.brick === this;
-            })
-            if (index != -1) {
-                let pictureBrickMesh = this.construction.pictureBrickMeshes[index];
-                this.construction.pictureBrickMeshes.splice(index, 1);
-                pictureBrickMesh.dispose(false, true);
-            }
-        }
+
+    public constructSpecialBrickMesh(): SpecialBrickMesh {
+        return new PictureBrickMesh(this);
     }
 
     public async generateMeshVertexData(vDatas: BABYLON.VertexData[], subMeshInfos: { faceId: number, brick: Brick }[]): Promise<void> {
 
     }
 
-    public async generatePictureBrickVertexData(): Promise<BABYLON.VertexData> {
+    public async generateSpecialBrickVertexData(): Promise<BABYLON.VertexData> {
         let template = await BrickTemplateManager.Instance.getTemplate(this.index);
         let vData = Mummu.CloneVertexData(template.vertexData);
         let colors = [];
@@ -47,10 +39,10 @@ class PictureBrick extends Brick {
     }
 }
 
-class PictureBrickMesh extends BABYLON.Mesh {
+class PictureBrickMesh extends SpecialBrickMesh {
 
-    constructor(public brick: PictureBrick) {
-        super("picture-brick-mesh");
+    constructor(brick: PictureBrick) {
+        super(brick, "picture-brick-mesh");
     }
 
     public updateMaterial(): void {
@@ -60,12 +52,12 @@ class PictureBrickMesh extends BABYLON.Mesh {
         material.setDiffuseCount(2);
         material.setAutoLight(0.75);
         
-        let texture = new BABYLON.DynamicTexture("picture-brick-texture", { width: 256, height: 230 }, this.brick.construction.game.scene);
+        let texture = new BABYLON.DynamicTexture("picture-brick-texture", { width: 256, height: 230 }, this.specialBrick.construction.game.scene);
 
         let context = texture.getContext();
 
         let img = document.createElement("img");
-        let brickTemplate = BRICK_LIST[this.brick.index];
+        let brickTemplate = BRICK_LIST[this.specialBrick.index];
         if (brickTemplate && brickTemplate.src) {
             img.src = brickTemplate.src;
             img.onload = () => {
