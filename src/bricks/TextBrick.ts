@@ -13,7 +13,7 @@ class TextBrick extends SpecialBrick {
         this.w = parseInt(split.pop());
     }
 
-    public constructSpecialBrickMesh(): SpecialBrickMesh {
+    public _constructSpecialBrickMesh(): SpecialBrickMesh {
         return new TextBrickMesh(this);
     }
 
@@ -21,7 +21,7 @@ class TextBrick extends SpecialBrick {
 
     }
 
-    public async generateSpecialBrickVertexData(): Promise<BABYLON.VertexData> {
+    public async _generateSpecialBrickVertexData(): Promise<BABYLON.VertexData> {
         let template = await BrickTemplateManager.Instance.getTemplate(this.index);
         let vData = Mummu.CloneVertexData(template.vertexData);
         let colors = [];

@@ -2059,6 +2059,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
         this.playerPosY = 0;
         this.dialogOffset = BABYLON.Vector3.Zero();
         this.dialogRotation = 0;
+        this.camDir = BABYLON.Vector3.Forward();
         this.bestDialogRotation = Math.PI * 0.5;
         this.minZ = 0.2;
         this.maxZ = 2000;
@@ -2139,41 +2140,60 @@ class PlayerCamera extends BABYLON.FreeCamera {
             }
             else if (this.game.gameMode === GameMode.Playing) {
                 let fDialogTransition = Nabu.Easing.smoothNSec(1 / dt, 0.5);
-                if (this.game.playerBrain.inDialog) {
-                    let dialogOffset = this.game.playerBrain.inDialog.dodo.position.subtract(this.player.position).scale(0.5);
-                    dialogOffset.y -= this.pivotHeight;
-                    dialogOffset.y += 0.5;
-                    BABYLON.Vector3.LerpToRef(this.dialogOffset, dialogOffset, 1 - fDialogTransition, this.dialogOffset);
-                    this.dialogRotation = this.dialogRotation * fDialogTransition + this.bestDialogRotation * (1 - fDialogTransition);
-                    this.verticalAngle = this.verticalAngle * fDialogTransition + Math.PI / 8 * (1 - fDialogTransition);
+                if (this.game.playerBrain.inStation) {
+                    let targetPosition = this.game.playerDodo.head.absolutePosition;
+                    let camDir = this.player.forward;
+                    Mummu.RotateInPlace(camDir, this.player.right, this.verticalAngle);
+                    let rotation = Mummu.QuaternionFromZYAxis(camDir, BABYLON.Axis.Y);
+                    BABYLON.Vector3.LerpToRef(this.position, targetPosition, 1 - fDialogTransition, this.position);
+                    BABYLON.Quaternion.SlerpToRef(this.rotationQuaternion, rotation, 1 - fDialogTransition, this.rotationQuaternion);
                 }
                 else {
-                    this.dialogOffset.scaleInPlace(fDialogTransition);
-                    this.dialogRotation *= fDialogTransition;
+                    if (this.game.playerBrain.inDialog) {
+                        this.pivotRecoil = 4;
+                        let dialogOffset = this.game.playerBrain.inDialog.dodo.position.subtract(this.player.position).scale(0.5);
+                        dialogOffset.y -= this.pivotHeight;
+                        dialogOffset.y += 0.5;
+                        BABYLON.Vector3.LerpToRef(this.dialogOffset, dialogOffset, 1 - fDialogTransition, this.dialogOffset);
+                        this.dialogRotation = this.dialogRotation * fDialogTransition + this.bestDialogRotation * (1 - fDialogTransition);
+                        this.verticalAngle = this.verticalAngle * fDialogTransition + Math.PI / 8 * (1 - fDialogTransition);
+                    }
+                    else {
+                        this.pivotRecoil = 4;
+                        this.dialogOffset.scaleInPlace(fDialogTransition);
+                        this.dialogRotation *= fDialogTransition;
+                    }
+                    let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+                    this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
+                    this.camDir.copyFrom(this.player.forward);
+                    Mummu.RotateInPlace(this.camDir, this.player.right, this.verticalAngle);
+                    Mummu.RotateInPlace(this.camDir, BABYLON.Axis.Y, this.dialogRotation);
+                    let camPivot = new BABYLON.Vector3(this.player.position.x, this.pivotHeight + this.playerPosY, this.player.position.z);
+                    camPivot.addInPlace(this.dialogOffset);
+                    let ray = new BABYLON.Ray(camPivot, this.camDir.scale(-1), this.pivotRecoil);
+                    let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, this.game.playerBrain.inDialog ? 0.5 : 0.1);
+                    let pick = this.game.scene.pickWithRay(ray, (mesh => { return mesh instanceof ConstructionMesh; }));
+                    if (pick && pick.hit) {
+                        this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + pick.distance * (1 - fRecoilSmooth);
+                    }
+                    else {
+                        this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + this.pivotRecoil * (1 - fRecoilSmooth);
+                    }
+                    let target = this.camDir.scale(-this.currentPivotRecoil);
+                    target.addInPlace(camPivot);
+                    let targetLook = this.camDir.scale(10);
+                    targetLook.addInPlace(camPivot);
+                    this.position.copyFrom(target);
+                    let dir = targetLook.subtract(this.position);
+                    this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
                 }
-                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.1);
-                this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
-                let camDir = this.player.forward;
-                Mummu.RotateInPlace(camDir, this.player.right, this.verticalAngle);
-                Mummu.RotateInPlace(camDir, BABYLON.Axis.Y, this.dialogRotation);
-                let camPivot = new BABYLON.Vector3(this.player.position.x, this.pivotHeight + this.playerPosY, this.player.position.z);
-                camPivot.addInPlace(this.dialogOffset);
-                let ray = new BABYLON.Ray(camPivot, camDir.scale(-1), this.pivotRecoil);
-                let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, this.game.playerBrain.inDialog ? 0.5 : 0.1);
-                let pick = this.game.scene.pickWithRay(ray, (mesh => { return mesh instanceof ConstructionMesh; }));
-                if (pick && pick.hit) {
-                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + pick.distance * (1 - fRecoilSmooth);
+                let distance = BABYLON.Vector3.DistanceSquared(this.position, this.game.playerDodo.head.position);
+                if (distance < 0.5 * 0.5) {
+                    this.game.playerDodo.setIsVisible(false);
                 }
                 else {
-                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + this.pivotRecoil * (1 - fRecoilSmooth);
+                    this.game.playerDodo.setIsVisible(true);
                 }
-                let target = camDir.scale(-this.currentPivotRecoil);
-                target.addInPlace(camPivot);
-                let targetLook = camDir.scale(10);
-                targetLook.addInPlace(camPivot);
-                this.position.copyFrom(target);
-                let dir = targetLook.subtract(this.position);
-                this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
             }
         }
     }
@@ -4341,13 +4361,20 @@ class PlayerActionEmptyHand {
                     y = player.scene.pointerY * PerformanceWatcher.DEVICE_PIXEL_RATIO;
                 }
                 let hit = player.game.scene.pick(x, y, (mesh) => {
-                    return mesh instanceof DodoInteractCollider && mesh != player.dodo.dodoInteractCollider;
+                    return (mesh instanceof DodoInteractCollider && mesh != player.dodo.dodoInteractCollider) ||
+                        (mesh instanceof SpecialBrickMesh && mesh.specialBrick instanceof StationBrick);
                 });
                 if (hit.hit && hit.pickedPoint) {
                     if (BABYLON.Vector3.DistanceSquared(player.dodo.position, hit.pickedPoint) < actionRangeSquared) {
                         if (hit.pickedMesh instanceof DodoInteractCollider) {
                             setAimedObject(hit.pickedMesh);
                             return;
+                        }
+                        if (hit.pickedMesh instanceof SpecialBrickMesh) {
+                            if (hit.pickedMesh.specialBrick instanceof StationBrick) {
+                                setAimedObject(hit.pickedMesh.specialBrick);
+                                return;
+                            }
                         }
                     }
                 }
@@ -4369,6 +4396,9 @@ class PlayerActionEmptyHand {
                         };
                         aimedObject.dodo.brain.npcDialog.start();
                     }
+                }
+                else if (aimedObject instanceof StationBrick) {
+                    aimedObject.start();
                 }
             }
         };
@@ -4706,6 +4736,1486 @@ class PlayerActionTemplate {
         return paintAction;
     }
 }
+class ArcadeEngineInput {
+    constructor() {
+        this.A = false;
+        this.B = false;
+        this.Start = false;
+        this.Select = false;
+        this.Up = false;
+        this.Down = false;
+        this.Right = false;
+        this.Left = false;
+        this.AUp = false;
+        this.BUp = false;
+        this.StartUp = false;
+        this.SelectUp = false;
+        this.UpUp = false;
+        this.DownUp = false;
+        this.RightUp = false;
+        this.LeftUp = false;
+    }
+}
+var FillStyle;
+(function (FillStyle) {
+    FillStyle[FillStyle["Full"] = 0] = "Full";
+    FillStyle[FillStyle["Lines"] = 1] = "Lines";
+    FillStyle[FillStyle["Stripes"] = 2] = "Stripes";
+    FillStyle[FillStyle["Grid"] = 3] = "Grid";
+    FillStyle[FillStyle["Dots"] = 4] = "Dots";
+    FillStyle[FillStyle["Diagonals"] = 5] = "Diagonals";
+    FillStyle[FillStyle["LENGTH"] = 6] = "LENGTH";
+})(FillStyle || (FillStyle = {}));
+class ArcadeEngine {
+    constructor(texture) {
+        this.texture = texture;
+        this.fillPatterns = [];
+        this.w = 160;
+        this.h = 144;
+        this.gameObjects = [];
+        this._stopped = true;
+        this._lastT = undefined;
+        this._updateStep = () => {
+            this.clear();
+            let t = performance.now() / 1000;
+            let dt = 1 / 24;
+            if (isFinite(this._lastT)) {
+                dt = t - this._lastT;
+            }
+            dt = Math.min(dt, 1);
+            this._lastT = t;
+            this.context.fillStyle = ArcadeEngineColorsHex[ArcadeEngineColor.Black];
+            this.context.fillRect(0, 0, this.w, this.h);
+            for (let i = 0; i < this.gameObjects.length; i++) {
+                this.gameObjects[i].update(dt);
+            }
+            this.gameObjects.sort((g1, g2) => { return g1.layer - g2.layer; });
+            for (let i = 0; i < this.gameObjects.length; i++) {
+                if (this.gameObjects[i].isVisible) {
+                    this.gameObjects[i].draw();
+                }
+            }
+            let pixels = this.context.getImageData(0, 0, this.w, this.h);
+            if (!this.texture) {
+                return;
+            }
+            let babylonJSContext = this.texture.getContext();
+            if (!babylonJSContext) {
+                return;
+            }
+            babylonJSContext.putImageData(pixels, 0, 0);
+            this.texture.update();
+            this.input.AUp = false;
+            this.input.BUp = false;
+            this.input.StartUp = false;
+            this.input.SelectUp = false;
+            this.input.UpUp = false;
+            this.input.DownUp = false;
+            this.input.RightUp = false;
+            this.input.LeftUp = false;
+            if (this._stopped) {
+                return;
+            }
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(this._updateStep);
+                });
+            });
+        };
+        ArcadeEngine.Instance = this;
+        this.input = new ArcadeEngineInput();
+        this.resize();
+    }
+    resize() {
+        this.pixels = new Uint8Array(this.w * this.h);
+        this.canvas = document.createElement("canvas");
+        this.canvas.width = this.w;
+        this.canvas.height = this.h;
+        this.context = this.canvas.getContext("2d");
+    }
+    drawPixel(x, y, c, position) {
+        if (position) {
+            x = Math.round(x + position.x);
+            y = Math.round(y + position.y);
+        }
+        if (x >= 0 && x < this.w && y >= 0 && y < this.h) {
+            this.context.fillStyle = ArcadeEngineColorsHex[c];
+            this.context.fillRect(x, y, 1, 1);
+        }
+    }
+    drawLine(start, end, c, position) {
+        this.context.strokeStyle = ArcadeEngineColorsHex[c];
+        this.context.beginPath();
+        this.context.moveTo(start.x + position.x + 0.5, start.y + position.y + 0.5);
+        this.context.lineTo(end.x + position.x + 0.5, end.y + position.y + 0.5);
+        this.context.stroke();
+    }
+    drawRect(x, y, w, h, c, position) {
+        this.context.fillStyle = ArcadeEngineColorsHex[c];
+        this.context.fillRect(x + position.x, y + position.y, w, h);
+    }
+    fillRect(x, y, w, h, c, fillStyle = FillStyle.Full, position) {
+        let pattern = this.fillPatterns[fillStyle * ArcadeEngineColorsHex.length + c];
+        if (pattern) {
+            this.context.fillStyle = pattern;
+        }
+        else {
+            this.context.fillStyle = ArcadeEngineColorsHex[c];
+        }
+        this.context.fillRect(x + position.x, y + position.y, w, h);
+    }
+    drawPolygon(polygon, c, position) {
+        this.context.strokeStyle = ArcadeEngineColorsHex[c];
+        this.context.beginPath();
+        let start = polygon[0];
+        this.context.moveTo(start.x + position.x + 0.5, start.y + position.y + 0.5);
+        for (let i = 1; i < polygon.length; i++) {
+            let point = polygon[i];
+            this.context.lineTo(point.x + position.x + 0.5, point.y + position.y + 0.5);
+        }
+        this.context.closePath();
+        this.context.stroke();
+    }
+    fillPolygon(polygon, c, fillStyle = FillStyle.Full, position) {
+        let pattern = this.fillPatterns[fillStyle * ArcadeEngineColorsHex.length + c];
+        if (pattern) {
+            this.context.fillStyle = pattern;
+        }
+        else {
+            this.context.fillStyle = ArcadeEngineColorsHex[c];
+        }
+        this.context.beginPath();
+        let start = polygon[0];
+        this.context.moveTo(start.x + position.x + 0.5, start.y + position.y + 0.5);
+        for (let i = 1; i < polygon.length; i++) {
+            let point = polygon[i];
+            this.context.lineTo(point.x + position.x + 0.5, point.y + position.y + 0.5);
+        }
+        this.context.closePath();
+        this.context.fill();
+    }
+    clear() {
+        this.pixels.fill(0);
+    }
+    async start() {
+        for (let c = 0; c < ArcadeEngineColorsHex.length; c++) {
+            let dotsPatternCanvas = document.createElement("canvas");
+            dotsPatternCanvas.width = 3;
+            dotsPatternCanvas.height = 3;
+            let dotsPatternContext = dotsPatternCanvas.getContext("2d");
+            dotsPatternContext.fillStyle = ArcadeEngineColorsHex[c];
+            dotsPatternContext.fillRect(0, 0, 1, 1);
+            this.fillPatterns[FillStyle.Dots * ArcadeEngineColorsHex.length + c] = this.context.createPattern(dotsPatternCanvas, "repeat");
+            let gridPatternCanvas = document.createElement("canvas");
+            gridPatternCanvas.width = 2;
+            gridPatternCanvas.height = 2;
+            let gridPatternContext = gridPatternCanvas.getContext("2d");
+            gridPatternContext.fillStyle = ArcadeEngineColorsHex[c];
+            gridPatternContext.fillRect(0, 0, 1, 1);
+            gridPatternContext.fillRect(0, 1, 1, 1);
+            gridPatternContext.fillRect(1, 0, 1, 1);
+            this.fillPatterns[FillStyle.Grid * ArcadeEngineColorsHex.length + c] = this.context.createPattern(gridPatternCanvas, "repeat");
+            let linesPatternCanvas = document.createElement("canvas");
+            linesPatternCanvas.width = 2;
+            linesPatternCanvas.height = 2;
+            let linesPatternContext = linesPatternCanvas.getContext("2d");
+            linesPatternContext.fillStyle = ArcadeEngineColorsHex[c];
+            linesPatternContext.fillRect(0, 0, 2, 1);
+            this.fillPatterns[FillStyle.Lines * ArcadeEngineColorsHex.length + c] = this.context.createPattern(linesPatternCanvas, "repeat");
+            let stripesPatternCanvas = document.createElement("canvas");
+            stripesPatternCanvas.width = 2;
+            stripesPatternCanvas.height = 2;
+            let stripesPatternContext = stripesPatternCanvas.getContext("2d");
+            stripesPatternContext.fillStyle = ArcadeEngineColorsHex[c];
+            stripesPatternContext.fillRect(0, 0, 1, 2);
+            this.fillPatterns[FillStyle.Stripes * ArcadeEngineColorsHex.length + c] = this.context.createPattern(stripesPatternCanvas, "repeat");
+            let diagonalPatternCanvas = document.createElement("canvas");
+            diagonalPatternCanvas.width = 3;
+            diagonalPatternCanvas.height = 3;
+            let diagonalPatternContext = diagonalPatternCanvas.getContext("2d");
+            diagonalPatternContext.fillStyle = ArcadeEngineColorsHex[c];
+            diagonalPatternContext.fillRect(0, 0, 1, 1);
+            diagonalPatternContext.fillRect(1, 1, 1, 1);
+            diagonalPatternContext.fillRect(2, 2, 1, 1);
+            this.fillPatterns[FillStyle.Diagonals * ArcadeEngineColorsHex.length + c] = this.context.createPattern(diagonalPatternCanvas, "repeat");
+        }
+        await TextGameObject.LoadCharacters();
+        if (!this.qix) {
+            this.qix = new Qix(this);
+        }
+        this.qix.initialize();
+        this._stopped = false;
+        this._updateStep();
+    }
+    stop() {
+        if (this.qix) {
+            this.qix.setState(QixState.Home);
+            requestAnimationFrame(() => {
+                this._stopped = true;
+            });
+        }
+    }
+}
+var ArcadeEngineColor;
+(function (ArcadeEngineColor) {
+    ArcadeEngineColor[ArcadeEngineColor["Black"] = 0] = "Black";
+    ArcadeEngineColor[ArcadeEngineColor["Purple"] = 1] = "Purple";
+    ArcadeEngineColor[ArcadeEngineColor["Red"] = 2] = "Red";
+    ArcadeEngineColor[ArcadeEngineColor["Orange"] = 3] = "Orange";
+    ArcadeEngineColor[ArcadeEngineColor["Yellow"] = 4] = "Yellow";
+    ArcadeEngineColor[ArcadeEngineColor["Lime"] = 5] = "Lime";
+    ArcadeEngineColor[ArcadeEngineColor["Green"] = 6] = "Green";
+    ArcadeEngineColor[ArcadeEngineColor["Turquoise"] = 7] = "Turquoise";
+    ArcadeEngineColor[ArcadeEngineColor["Marine"] = 8] = "Marine";
+    ArcadeEngineColor[ArcadeEngineColor["DeepBlue"] = 9] = "DeepBlue";
+    ArcadeEngineColor[ArcadeEngineColor["Blue"] = 10] = "Blue";
+    ArcadeEngineColor[ArcadeEngineColor["Cyan"] = 11] = "Cyan";
+    ArcadeEngineColor[ArcadeEngineColor["White"] = 12] = "White";
+    ArcadeEngineColor[ArcadeEngineColor["LightGray"] = 13] = "LightGray";
+    ArcadeEngineColor[ArcadeEngineColor["Gray"] = 14] = "Gray";
+    ArcadeEngineColor[ArcadeEngineColor["Anthracite"] = 15] = "Anthracite";
+})(ArcadeEngineColor || (ArcadeEngineColor = {}));
+var ArcadeEngineColorsHex = [
+    "#1a1c2c",
+    "#5d275d",
+    "#b13e53",
+    "#ef7d57",
+    "#ffcd75",
+    "#a7f070",
+    "#38b764",
+    "#257179",
+    "#29366f",
+    "#3b5dc9",
+    "#41a6f6",
+    "#73eff7",
+    "#f4f4f4",
+    "#94b0c2",
+    "#566c86",
+    "#333c57"
+];
+ArcadeEngineColorsHex = ArcadeEngineColorsHex.map(hex => {
+    let r = parseInt(hex.substring(1, 3), 16);
+    let g = parseInt(hex.substring(3, 5), 16);
+    let b = parseInt(hex.substring(5, 7), 16);
+    let f = 1;
+    r = Math.floor(Math.min(255, r * f));
+    g = Math.floor(Math.min(255, g * f));
+    b = Math.floor(Math.min(255, b * f));
+    return "#" + r.toString(16).padStart(2, "0") + g.toString(16).padStart(2, "0") + b.toString(16).padStart(2, "0");
+});
+var ArcadeEngineColorsInt = ArcadeEngineColorsHex.map(hex => {
+    let r = parseInt(hex.substring(1, 3), 16);
+    let g = parseInt(hex.substring(3, 5), 16);
+    let b = parseInt(hex.substring(5, 7), 16);
+    return { r: r, g: g, b: b };
+});
+function GetClosestColorIndex(r, g, b) {
+    let bestDist = Infinity;
+    let index = 0;
+    for (let c = 0; c < ArcadeEngineColorsInt.length; c++) {
+        let dr = Math.abs(ArcadeEngineColorsInt[c].r - r);
+        let dg = Math.abs(ArcadeEngineColorsInt[c].g - g);
+        let db = Math.abs(ArcadeEngineColorsInt[c].b - b);
+        let dist = dr * dr + dg * dg + db * db;
+        if (dist < bestDist) {
+            bestDist = dist;
+            index = c;
+        }
+    }
+    return index;
+}
+class Polygon {
+    static Sign(p1, p2, p3) {
+        return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+    }
+    static PointInTriangle(p, v1, v2, v3) {
+        let d1 = Polygon.Sign(p, v1, v2);
+        let d2 = Polygon.Sign(p, v2, v3);
+        let d3 = Polygon.Sign(p, v3, v1);
+        let hasPos = d1 > 0 || d2 > 0 || d3 > 0;
+        let hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
+        return !hasPos || !hasNeg;
+    }
+    static PointInPolygon(pt, polygon) {
+        let tmpCutPolygon = [...polygon];
+        while (tmpCutPolygon.length > 2) {
+            let earIndex = 0;
+            for (let i = 0; i < tmpCutPolygon.length; i++) {
+                if (Polygon.IsEar(i, tmpCutPolygon)) {
+                    earIndex = i;
+                    break;
+                }
+            }
+            let l = tmpCutPolygon.length;
+            let prev = tmpCutPolygon[(earIndex - 1 + l) % l];
+            let p = tmpCutPolygon[earIndex];
+            let next = tmpCutPolygon[(earIndex + 1) % l];
+            tmpCutPolygon.splice(earIndex, 1);
+            if (this.PointInTriangle(pt, prev, p, next)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    static IsEar(index, polygon) {
+        let l = polygon.length;
+        let prev = polygon[(index - 1 + l) % l];
+        let p = polygon[index];
+        let next = polygon[(index + 1) % l];
+        let e1 = next.subtract(p);
+        let e2 = prev.subtract(p);
+        let a = e1.angleTo(e2);
+        if (a > 0 && a < Math.PI) {
+            for (let i = 0; i < polygon.length; i++) {
+                if (i != index &&
+                    i != (index - 1 + l) % l &&
+                    i != (index + 1) % l) {
+                    if (Polygon.PointInTriangle(polygon[i], prev, p, next)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+    static TriangleArea(v1, v2, v3) {
+        return Math.abs(v2.subtract(v1).cross(v3.subtract(v1))) * 0.5;
+    }
+    static GetSurface(polygon) {
+        console.log("GetSurface " + polygon.length + " points");
+        let tmpCutPolygon = [...polygon];
+        let area = 0;
+        let triCount = 0;
+        while (tmpCutPolygon.length > 2) {
+            let earIndex = 0;
+            for (let i = 0; i < tmpCutPolygon.length; i++) {
+                if (Polygon.IsEar(i, tmpCutPolygon)) {
+                    earIndex = i;
+                    break;
+                }
+            }
+            let l = tmpCutPolygon.length;
+            let prev = tmpCutPolygon[(earIndex - 1 + l) % l];
+            let p = tmpCutPolygon[earIndex];
+            let next = tmpCutPolygon[(earIndex + 1) % l];
+            area += Polygon.TriangleArea(prev, p, next);
+            tmpCutPolygon.splice(earIndex, 1);
+            triCount++;
+        }
+        console.log("TriCount " + triCount);
+        return area;
+    }
+    static BBoxCenter(polygon) {
+        let min = polygon[0].clone();
+        let max = polygon[0].clone();
+        for (let i = 1; i < polygon.length; i++) {
+            min.minimizeInPlace(polygon[i]);
+            max.maximizeInPlace(polygon[i]);
+        }
+        return min.addInPlace(max).scaleInPlace(0.5);
+    }
+}
+class Vec2 {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    static Zero() {
+        return new Vec2(0, 0);
+    }
+    static get AxisUp() {
+        return this._AxisUp;
+    }
+    static get AxisDown() {
+        return this._AxisDown;
+    }
+    static get AxisRight() {
+        return this._AxisRight;
+    }
+    static get AxisLeft() {
+        return this._AxisLeft;
+    }
+    copyFrom(other) {
+        this.x = other.x;
+        this.y = other.y;
+        return this;
+    }
+    clone() {
+        return new Vec2(this.x, this.y);
+    }
+    sqrLength() {
+        return this.x * this.x + this.y * this.y;
+    }
+    length() {
+        return Math.sqrt(this.sqrLength());
+    }
+    normalizeInPlace() {
+        let l = this.length();
+        this.x = this.x / l;
+        this.y = this.y / l;
+        return this;
+    }
+    normalize() {
+        return this.clone().normalizeInPlace();
+    }
+    minimizeInPlace(other) {
+        this.x = Math.min(this.x, other.x);
+        this.y = Math.min(this.y, other.y);
+        return this;
+    }
+    minimize(other) {
+        return this.clone().minimizeInPlace(other);
+    }
+    maximizeInPlace(other) {
+        this.x = Math.max(this.x, other.x);
+        this.y = Math.max(this.y, other.y);
+        return this;
+    }
+    maximize(other) {
+        return this.clone().maximizeInPlace(other);
+    }
+    clampInPlace(xMin, xMax, yMin, yMax) {
+        this.x = Math.min(Math.max(this.x, xMin), xMax);
+        this.y = Math.min(Math.max(this.y, yMin), yMax);
+        return this;
+    }
+    scaleInPlace(s) {
+        this.x = this.x * s;
+        this.y = this.y * s;
+        return this;
+    }
+    scale(s) {
+        return this.clone().scaleInPlace(s);
+    }
+    addInPlace(other) {
+        this.x += other.x;
+        this.y += other.y;
+        return this;
+    }
+    add(other) {
+        return this.clone().addInPlace(other);
+    }
+    subtractInPlace(other) {
+        this.x -= other.x;
+        this.y -= other.y;
+        return this;
+    }
+    subtract(other) {
+        return this.clone().subtractInPlace(other);
+    }
+    lerpInPlace(other, f) {
+        this.x = this.x * (1 - f) + other.x * f;
+        this.y = this.y * (1 - f) + other.y * f;
+        return this;
+    }
+    lerp(other, f) {
+        return this.clone().lerpInPlace(other, f);
+    }
+    dot(other) {
+        return this.x * other.x + this.y * other.y;
+    }
+    cross(other) {
+        return this.x * other.y - this.y * other.x;
+    }
+    roundInPlace() {
+        this.x = Math.round(this.x);
+        this.y = Math.round(this.y);
+        return this;
+    }
+    round() {
+        return this.clone().roundInPlace();
+    }
+    floorInPlace() {
+        this.x = Math.floor(this.x);
+        this.y = Math.floor(this.y);
+        return this;
+    }
+    floor() {
+        return this.clone().floorInPlace();
+    }
+    ceilInPlace() {
+        this.x = Math.ceil(this.x);
+        this.y = Math.ceil(this.y);
+        return this;
+    }
+    ceil() {
+        return this.clone().ceilInPlace();
+    }
+    isOnRectSegment(s1, s2) {
+        if (this.x === s1.x && this.x === s2.x) {
+            let minY = Math.min(s1.y, s2.y);
+            let maxY = Math.max(s1.y, s2.y);
+            return this.y >= minY && this.y <= maxY;
+        }
+        if (this.y === s1.y && this.y === s2.y) {
+            let minX = Math.min(s1.x, s2.x);
+            let maxX = Math.max(s1.x, s2.x);
+            return this.x >= minX && this.x <= maxX;
+        }
+        return false;
+    }
+    isOnRectPath(path) {
+        for (let i = 0; i < path.length - 1; i++) {
+            let p1 = path[i];
+            let p2 = path[i + 1];
+            if (this.isOnRectSegment(p1, p2)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    equals(other) {
+        return Math.abs(this.x - other.x) < 0.001 && Math.abs(this.y - other.y) < 0.001;
+    }
+    angleTo(other) {
+        return Math.atan2(this.x * other.y - this.y * other.x, this.x * other.x + this.y * other.y);
+    }
+    rotateInPlace(angle) {
+        let x = this.x;
+        let y = this.y;
+        let cosa = Math.cos(angle);
+        let sina = Math.sin(angle);
+        this.x = x * cosa - y * sina;
+        this.y = x * sina + y * cosa;
+        return this;
+    }
+}
+Vec2._AxisUp = new Vec2(0, -1);
+Vec2._AxisDown = new Vec2(0, 1);
+Vec2._AxisRight = new Vec2(1, 0);
+Vec2._AxisLeft = new Vec2(-1, 0);
+class GameObject {
+    constructor(name, engine) {
+        this.name = name;
+        this.engine = engine;
+        this.layer = 0;
+        this.isVisible = true;
+        this.position = Vec2.Zero();
+        this._roundedPosition = Vec2.Zero();
+        this.engine.gameObjects.push(this);
+    }
+    get roundedPosition() {
+        this._roundedPosition.copyFrom(this.position).roundInPlace();
+        return this._roundedPosition;
+    }
+    dispose() {
+        let index = this.engine.gameObjects.indexOf(this);
+        if (index != -1) {
+            this.engine.gameObjects.splice(index, 1);
+        }
+    }
+    draw() { }
+    update(dt) { }
+}
+class TriangleGameObject extends GameObject {
+    constructor(v1, v2, v3, color, engine) {
+        super("triangle", engine);
+        this.v1 = v1;
+        this.v2 = v2;
+        this.v3 = v3;
+        this.color = color;
+    }
+    draw() {
+        this.engine.drawLine(this.v1, this.v2, this.color);
+        this.engine.drawLine(this.v2, this.v3, this.color);
+        this.engine.drawLine(this.v3, this.v1, this.color);
+    }
+}
+class RectGameObject extends GameObject {
+    constructor(name, engine, w, h, color = ArcadeEngineColor.Marine, fillStyle = FillStyle.Full) {
+        super(name, engine);
+        this.w = w;
+        this.h = h;
+        this.color = color;
+        this.fillStyle = fillStyle;
+    }
+    draw() {
+        this.engine.fillRect(0, 0, this.w, this.h, this.color, this.fillStyle, this.position);
+    }
+}
+class PictureGameObject extends GameObject {
+    constructor(src, engine, color = -1) {
+        super("text", engine);
+        this.src = src;
+        this.color = color;
+        this._loaded = false;
+        this.blinking = false;
+        this.blinkingCD = 0;
+        this.blinkingTime = 5;
+        this.load();
+    }
+    async load() {
+        return new Promise(resolve => {
+            let repaintColor;
+            if (this.color != -1) {
+                repaintColor = ArcadeEngineColorsInt[this.color];
+            }
+            this.canvas = document.createElement("canvas");
+            let img = document.createElement("img");
+            img.src = this.src;
+            img.onload = () => {
+                this.canvas.width = img.width;
+                this.canvas.height = img.height;
+                let context = this.canvas.getContext("2d");
+                context.drawImage(img, 0, 0);
+                let closestColorsMap = [];
+                let data = context.getImageData(0, 0, img.width, img.height);
+                for (let i = 0; i < data.data.length / 4; i++) {
+                    if (repaintColor) {
+                        let a = data.data[4 * i + 3];
+                        if (a > 0) {
+                            data.data[4 * i] = repaintColor.r;
+                            data.data[4 * i + 1] = repaintColor.g;
+                            data.data[4 * i + 2] = repaintColor.b;
+                        }
+                    }
+                    else {
+                        let r = data.data[4 * i];
+                        let g = data.data[4 * i + 1];
+                        let b = data.data[4 * i + 2];
+                        let v = r + g * 256 + b * 256 * 256;
+                        if (!closestColorsMap[v]) {
+                            closestColorsMap[v] = ArcadeEngineColorsInt[GetClosestColorIndex(r, g, b)];
+                        }
+                        let color = closestColorsMap[v];
+                        data.data[4 * i] = color.r;
+                        data.data[4 * i + 1] = color.g;
+                        data.data[4 * i + 2] = color.b;
+                    }
+                }
+                context.putImageData(data, 0, 0);
+                this._loaded = true;
+                resolve();
+            };
+        });
+    }
+    update() {
+        if (this.blinking) {
+            this.blinkingCD--;
+            if (this.blinkingCD <= 0) {
+                this.isVisible = !this.isVisible;
+                this.blinkingCD = this.blinkingTime;
+            }
+        }
+    }
+    draw() {
+        if (this._loaded) {
+            this.engine.context.drawImage(this.canvas, this.position.x, this.position.y);
+        }
+    }
+}
+var TextAlign;
+(function (TextAlign) {
+    TextAlign[TextAlign["Left"] = 0] = "Left";
+    TextAlign[TextAlign["Center"] = 1] = "Center";
+    TextAlign[TextAlign["Right"] = 2] = "Right";
+})(TextAlign || (TextAlign = {}));
+class TextGameObject extends GameObject {
+    constructor(text, color, engine) {
+        super("text", engine);
+        this.text = text;
+        this.color = color;
+        this.backgroundColor = -1;
+        this.textAlign = TextAlign.Left;
+    }
+    static IsWhite(r, g, b) {
+        return r === 255 && g === 255 && b === 255;
+    }
+    static async LoadCharacters() {
+        TextGameObject.Characters = new Map();
+        return new Promise(resolve => {
+            let canvas = document.createElement("canvas");
+            let spritesImg = document.createElement("img");
+            spritesImg.src = "arcade_text.png";
+            spritesImg.onload = () => {
+                canvas.width = spritesImg.width;
+                canvas.height = spritesImg.height;
+                let context = canvas.getContext("2d");
+                context.drawImage(spritesImg, 0, 0);
+                let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                let digits = "0123456789";
+                for (let i = 0; i < letters.length; i++) {
+                    let letterPixels = new Uint8Array(TextGameObject.LetterW * TextGameObject.LetterH);
+                    letterPixels.fill(0);
+                    let pixels = context.getImageData(i * (TextGameObject.LetterW + 1), 0, 6, 6);
+                    for (let jj = 0; jj < TextGameObject.LetterH; jj++) {
+                        for (let ii = 0; ii < TextGameObject.LetterW; ii++) {
+                            let n = 4 * (jj * TextGameObject.LetterW + ii);
+                            let r = pixels.data[n];
+                            let g = pixels.data[n + 1];
+                            let b = pixels.data[n + 2];
+                            if (TextGameObject.IsWhite(r, g, b)) {
+                                letterPixels[ii + jj * TextGameObject.LetterW] = 1;
+                            }
+                        }
+                    }
+                    TextGameObject.Characters.set(letters[i], letterPixels);
+                }
+                for (let i = 0; i < digits.length; i++) {
+                    let digitPixels = new Uint8Array(TextGameObject.LetterW * TextGameObject.LetterH);
+                    digitPixels.fill(0);
+                    let pixels = context.getImageData(i * (TextGameObject.LetterW + 1), TextGameObject.LetterH + 1, 6, 6);
+                    for (let jj = 0; jj < TextGameObject.LetterH; jj++) {
+                        for (let ii = 0; ii < TextGameObject.LetterW; ii++) {
+                            let n = 4 * (jj * TextGameObject.LetterW + ii);
+                            let r = pixels.data[n];
+                            let g = pixels.data[n + 1];
+                            let b = pixels.data[n + 2];
+                            if (TextGameObject.IsWhite(r, g, b)) {
+                                digitPixels[ii + jj * TextGameObject.LetterW] = 1;
+                            }
+                        }
+                    }
+                    TextGameObject.Characters.set(digits[i], digitPixels);
+                }
+                resolve();
+            };
+        });
+    }
+    draw() {
+        let l = this.text.length * (TextGameObject.LetterW + 1) + 1;
+        if (this.backgroundColor != -1) {
+            let h = TextGameObject.LetterH + 1 + 1;
+            let x = -1;
+            if (this.textAlign === TextAlign.Center) {
+                x -= Math.round(l * 0.5);
+            }
+            else if (this.textAlign === TextAlign.Right) {
+                x -= l;
+            }
+            this.engine.drawRect(x, -1, l, h, this.backgroundColor, this.position);
+        }
+        for (let n = 0; n < this.text.length; n++) {
+            let pixels = TextGameObject.Characters.get(this.text[n]);
+            if (pixels) {
+                for (let j = 0; j < TextGameObject.LetterH; j++) {
+                    for (let i = 0; i < TextGameObject.LetterW; i++) {
+                        let p = pixels[i + j * TextGameObject.LetterW];
+                        if (p > 0) {
+                            let x = this.position.x + i + n * (TextGameObject.LetterW + 1);
+                            if (this.textAlign === TextAlign.Center) {
+                                x -= Math.round(l * 0.5);
+                            }
+                            else if (this.textAlign === TextAlign.Right) {
+                                x -= l;
+                            }
+                            this.engine.drawPixel(x, this.position.y + j, this.color);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+TextGameObject.LetterH = 6;
+TextGameObject.LetterW = 6;
+/// <reference path="../gameObjects/GameObject.ts" />
+var QixState;
+(function (QixState) {
+    QixState[QixState["Home"] = 0] = "Home";
+    QixState[QixState["Ready"] = 1] = "Ready";
+    QixState[QixState["Playing"] = 2] = "Playing";
+    QixState[QixState["Paused"] = 3] = "Paused";
+    QixState[QixState["Victory"] = 4] = "Victory";
+    QixState[QixState["GameOver"] = 5] = "GameOver";
+})(QixState || (QixState = {}));
+class Qix extends GameObject {
+    constructor(engine) {
+        super("qix", engine);
+        this.engine = engine;
+        this.qixState = QixState.Home;
+        this.creeps = [];
+        this.level = 1;
+        this.lives = 3;
+        this.score = 0;
+        this.livesDisplay = [];
+        this.homeBackground = new RectGameObject("home-bg", this.engine, this.engine.w, this.engine.h, ArcadeEngineColor.Turquoise, FillStyle.Grid);
+        this.homeBackground.layer = 4;
+        this.homeLogo = new PictureGameObject("home.png", this.engine);
+        this.homeLogo.position.y = 10;
+        this.homeLogo.layer = 5;
+        this.homeAuthor = new TextGameObject("PRESS START TO ENTER", ArcadeEngineColor.White, this.engine);
+        this.homeAuthor.layer = 6;
+        this.homeAuthor.textAlign = TextAlign.Center;
+        this.homeAuthor.position.x = 80;
+        this.homeAuthor.position.y = 116;
+        this.homeAuthor.backgroundColor = ArcadeEngineColor.Black;
+        this.homeText = new TextGameObject("MADE BY SVEN", ArcadeEngineColor.Green, this.engine);
+        this.homeText.layer = 6;
+        this.homeText.textAlign = TextAlign.Right;
+        this.homeText.position.x = 158;
+        this.homeText.position.y = 134;
+        this.homeText.backgroundColor = ArcadeEngineColor.Black;
+        this.scoreDisplay = new TextGameObject("SCORE 000", ArcadeEngineColor.White, this.engine);
+        this.scoreDisplay.position.x = 1;
+        this.scoreDisplay.position.y = 1;
+        this.scoreDisplay.backgroundColor = ArcadeEngineColor.Black;
+        this.incScore(0);
+        this.areaDisplay = new TextGameObject("AREA 00000", ArcadeEngineColor.Black, this.engine);
+        this.areaDisplay.position.x = 90;
+        this.areaDisplay.position.y = 1;
+        this.areaDisplay.backgroundColor = ArcadeEngineColor.Marine;
+        for (let i = 0; i < 5; i++) {
+            let lifeDisplay = new PictureGameObject("heart.png", this.engine);
+            lifeDisplay.position.x = 160 - 8 * (i + 1);
+            lifeDisplay.position.y = 1;
+            lifeDisplay.layer = 5;
+            this.livesDisplay[i] = lifeDisplay;
+        }
+        this.successText = new TextGameObject("SUCCESS", ArcadeEngineColor.White, this.engine);
+        this.successText.layer = 5;
+        this.successText.position.x = 50;
+        this.successText.position.y = 66;
+        this.successText.backgroundColor = ArcadeEngineColor.Black;
+        this.gameOverText = new TextGameObject("GAME OVER", ArcadeEngineColor.Red, this.engine);
+        this.gameOverText.layer = 5;
+        this.gameOverText.position.x = 50;
+        this.gameOverText.position.y = 66;
+        this.gameOverText.backgroundColor = ArcadeEngineColor.Black;
+        this.nextText = new TextGameObject("PRESS START TO RESTART", ArcadeEngineColor.White, this.engine);
+        this.nextText.layer = 6;
+        this.nextText.textAlign = TextAlign.Center;
+        this.nextText.position.x = 80;
+        this.nextText.position.y = 90;
+        this.nextText.backgroundColor = ArcadeEngineColor.Black;
+        this.hitSound = document.createElement("audio");
+        this.hitSound.src = "sounds/laserLarge_000.ogg";
+        this.map = new QixMap(this);
+        this.player = new QixPlayer(this);
+        this.creeps = [];
+    }
+    initialize() {
+        this.level = 1;
+        this.lives = 3;
+        this.score = 0;
+        this.setState(QixState.Home);
+    }
+    setState(state) {
+        this.qixState = state;
+        if (this.qixState === QixState.GameOver) {
+            this.nextText.text = "PRESS START TO EXIT";
+        }
+        else if (this.qixState === QixState.Victory) {
+            this.nextText.text = "PRESS START TO PLAY";
+        }
+        this.homeBackground.isVisible = this.qixState === QixState.Home;
+        this.homeLogo.isVisible = this.qixState === QixState.Home;
+        this.homeAuthor.isVisible = this.qixState === QixState.Home;
+        this.homeText.isVisible = this.qixState === QixState.Home;
+        this.map.isVisible = this.qixState >= QixState.Ready;
+        this.player.isVisible = this.qixState >= QixState.Ready;
+        this.creeps.forEach(creep => {
+            creep.isVisible = this.qixState >= QixState.Ready;
+        });
+        this.scoreDisplay.isVisible = this.qixState >= QixState.Ready;
+        this.livesDisplay.forEach((lifeDisplay, i) => {
+            lifeDisplay.blinking = false;
+            lifeDisplay.isVisible = i < this.lives && this.qixState >= QixState.Ready;
+        });
+        this.areaDisplay.isVisible = false;
+        this.successText.isVisible = this.qixState === QixState.Victory;
+        this.gameOverText.isVisible = this.qixState === QixState.GameOver;
+        this.nextText.isVisible = this.qixState === QixState.GameOver || this.qixState === QixState.Victory;
+    }
+    initializeGame() {
+        this.map.initialize();
+        this.player.initialize();
+        while (this.creeps.length > 0) {
+            this.creeps.pop().dispose();
+        }
+        for (let n = 0; n < this.level; n++) {
+            let creep = new QixCreep(this);
+            creep.position.x = Math.random() * (this.map.max.x - 10) + 5;
+            creep.position.y = Math.random() * (this.map.max.y - 10) + 5;
+            this.creeps.push(creep);
+        }
+        this.setState(QixState.Ready);
+        this.incScore(0);
+    }
+    start() {
+        this.setState(QixState.Playing);
+    }
+    win() {
+        this.incScore(this.level * 100);
+        this.level++;
+        this.setState(QixState.Victory);
+    }
+    hit() {
+        this.hitSound.play();
+        this.lives--;
+        this.setState(QixState.Paused);
+        if (this.livesDisplay[this.lives]) {
+            this.livesDisplay[this.lives].blinking = true;
+        }
+        this.player.blinking = true;
+        setTimeout(() => {
+            if (this.lives >= 0) {
+                this.initializeGame();
+            }
+            else {
+                this.player.blinking = false;
+                this.gameOver();
+            }
+        }, 1000);
+    }
+    gameOver() {
+        this.level = Math.max(this.level - 1, 1);
+        this.setState(QixState.GameOver);
+    }
+    incScore(amount = 0) {
+        this.score += amount;
+        this.scoreDisplay.text = this.score.toFixed(0).padStart(5, "0") + " LVL " + this.level.toFixed(0);
+    }
+    update(dt) {
+        if (this.qixState === QixState.Home) {
+            if (this.engine.input.UpUp) {
+                this.initializeGame();
+            }
+        }
+        if (this.qixState === QixState.Victory) {
+            if (this.engine.input.UpUp) {
+                this.initializeGame();
+            }
+        }
+        if (this.qixState === QixState.GameOver) {
+            if (this.engine.input.UpUp) {
+                this.initialize();
+            }
+        }
+    }
+}
+class QixPlayer extends GameObject {
+    constructor(qix) {
+        super("qix-player", qix.engine);
+        this.qix = qix;
+        this.movingOnMap = 0;
+        this.tracing = false;
+        this.tracingDir = Vec2.Zero();
+        this.tracePath = [];
+        this.color = ArcadeEngineColor.Lime;
+        this.blinking = false;
+        this.blinkingCD = 0;
+        this.tracingSoundPlaying = false;
+        this.layer = 4;
+        this.tracingSound = document.createElement("audio");
+        this.tracingSound.src = "sounds/spaceEngine_003.ogg";
+        this.tracingSound.loop = true;
+    }
+    get map() {
+        return this.qix.map;
+    }
+    initialize() {
+        this.position.copyFrom(this.map.points[0]);
+        this.blinking = false;
+        this.color = ArcadeEngineColor.Lime;
+        this.tracing = false;
+        this.tracePath = [];
+        this.tracingSound.pause();
+        this.tracingSoundPlaying = false;
+    }
+    indexOnMap() {
+        for (let i = 0; i < this.map.points.length; i++) {
+            let s1 = this.map.points[i];
+            let s2 = this.map.points[(i + 1) % this.map.points.length];
+            if (this.position.equals(s2)) {
+                return (i + 1) % this.map.points.length;
+            }
+            if (this.position.isOnRectSegment(s1, s2)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    getDir(index) {
+        while (index < 0) {
+            index += this.map.points.length;
+        }
+        while (index >= this.map.points.length) {
+            index -= this.map.points.length;
+        }
+        let s1 = this.map.points[index];
+        let s2 = this.map.points[(index + 1) % this.map.points.length];
+        return s2.subtract(s1).normalizeInPlace();
+    }
+    getDirInv(index) {
+        while (index < 0) {
+            index += this.map.points.length;
+        }
+        while (index >= this.map.points.length) {
+            index -= this.map.points.length;
+        }
+        let s1 = this.map.points[index];
+        if (this.position.equals(s1)) {
+            return this.getDir(index - 1).scaleInPlace(-1);
+        }
+        return this.getDir(index).scaleInPlace(-1);
+    }
+    update(dt) {
+        if (this.qix.qixState === QixState.Ready) {
+            if (this.engine.input.Up || this.engine.input.Down || this.engine.input.Right || this.engine.input.Left) {
+                this.qix.start();
+            }
+        }
+        if (this.blinking) {
+            this.blinkingCD--;
+            if (this.blinkingCD <= 0) {
+                if (this.color === ArcadeEngineColor.Lime) {
+                    this.color = ArcadeEngineColor.Red;
+                }
+                else {
+                    this.color = ArcadeEngineColor.Lime;
+                }
+                this.blinkingCD = 4;
+            }
+        }
+        if (this.qix.qixState != QixState.Playing) {
+            this.tracingSound.pause();
+            this.tracingSound.currentTime = 0;
+            this.tracingSoundPlaying = false;
+            return;
+        }
+        for (let n = 0; n < 1; n++) {
+            if (this.movingOnMap != 0) {
+                this.tracingSound.pause();
+                this.tracingSound.currentTime = 0;
+                this.tracingSoundPlaying = false;
+                if (this.engine.input.Up || this.engine.input.Down || this.engine.input.Right || this.engine.input.Left) {
+                    let index = this.indexOnMap();
+                    if (index === -1) {
+                        this.position.copyFrom(this.map.points[0]);
+                        return;
+                    }
+                    if (this.movingOnMap === 1) {
+                        let dir = this.getDir(index);
+                        this.position.addInPlace(dir);
+                    }
+                    else if (this.movingOnMap = -1) {
+                        let dir = this.getDirInv(index);
+                        this.position.addInPlace(dir);
+                    }
+                }
+                else {
+                    this.movingOnMap = 0;
+                }
+            }
+            else if (this.tracing) {
+                if (!this.tracingSoundPlaying) {
+                    this.tracingSoundPlaying = true;
+                    this.tracingSound.play();
+                }
+                if (this.engine.input.Up && !this.tracingDir.equals(Vec2.AxisUp) && !this.tracingDir.equals(Vec2.AxisDown)) {
+                    this.tracingDir.copyFrom(Vec2.AxisUp);
+                    this.tracePath.push(this.position.clone());
+                }
+                else if (this.engine.input.Down && !this.tracingDir.equals(Vec2.AxisDown) && !this.tracingDir.equals(Vec2.AxisUp)) {
+                    this.tracingDir.copyFrom(Vec2.AxisDown);
+                    this.tracePath.push(this.position.clone());
+                }
+                else if (this.engine.input.Right && !this.tracingDir.equals(Vec2.AxisRight) && !this.tracingDir.equals(Vec2.AxisLeft)) {
+                    this.tracingDir.copyFrom(Vec2.AxisRight);
+                    this.tracePath.push(this.position.clone());
+                }
+                else if (this.engine.input.Left && !this.tracingDir.equals(Vec2.AxisLeft) && !this.tracingDir.equals(Vec2.AxisRight)) {
+                    this.tracingDir.copyFrom(Vec2.AxisLeft);
+                    this.tracePath.push(this.position.clone());
+                }
+                this.position.addInPlace(this.tracingDir);
+                if (this.position.isOnRectPath(this.tracePath) != -1) {
+                    this.qix.hit();
+                    return;
+                }
+                if (this.indexOnMap() != -1) {
+                    this.tracePath.push(this.position.clone());
+                    this.map.split(this.tracePath);
+                    this.tracing = false;
+                }
+            }
+            else {
+                this.tracingSound.pause();
+                this.tracingSound.currentTime = 0;
+                this.tracingSoundPlaying = false;
+                let index = this.indexOnMap();
+                if (index === -1) {
+                    this.position.copyFrom(this.map.points[0]);
+                    return;
+                }
+                let dir = this.getDir(index);
+                if (dir.equals(Vec2.AxisUp) && this.engine.input.Up) {
+                    this.movingOnMap = 1;
+                }
+                else if (dir.equals(Vec2.AxisDown) && this.engine.input.Down) {
+                    this.movingOnMap = 1;
+                }
+                else if (dir.equals(Vec2.AxisRight) && this.engine.input.Right) {
+                    this.movingOnMap = 1;
+                }
+                else if (dir.equals(Vec2.AxisLeft) && this.engine.input.Left) {
+                    this.movingOnMap = 1;
+                }
+                let dirInv = this.getDirInv(index);
+                if (dirInv.equals(Vec2.AxisUp) && this.engine.input.Up) {
+                    this.movingOnMap = -1;
+                }
+                else if (dirInv.equals(Vec2.AxisDown) && this.engine.input.Down) {
+                    this.movingOnMap = -1;
+                }
+                else if (dirInv.equals(Vec2.AxisRight) && this.engine.input.Right) {
+                    this.movingOnMap = -1;
+                }
+                else if (dirInv.equals(Vec2.AxisLeft) && this.engine.input.Left) {
+                    this.movingOnMap = -1;
+                }
+                let inputDir = Vec2.Zero();
+                if (this.engine.input.Up) {
+                    let angle = dir.angleTo(Vec2.AxisUp);
+                    if (angle > 0) {
+                        let angleInv = Vec2.AxisUp.angleTo(dirInv);
+                        if (angleInv > 0) {
+                            this.tracing = true;
+                            this.tracingDir = Vec2.AxisUp.clone();
+                            this.tracePath = [this.position.clone()];
+                        }
+                    }
+                }
+                if (this.engine.input.Down) {
+                    let angle = dir.angleTo(Vec2.AxisDown);
+                    if (angle > 0) {
+                        let angleInv = Vec2.AxisDown.angleTo(dirInv);
+                        if (angleInv > 0) {
+                            this.tracing = true;
+                            this.tracingDir = Vec2.AxisDown.clone();
+                            this.tracePath = [this.position.clone()];
+                        }
+                    }
+                }
+                if (this.engine.input.Right) {
+                    let angle = dir.angleTo(Vec2.AxisRight);
+                    if (angle > 0) {
+                        let angleInv = Vec2.AxisRight.angleTo(dirInv);
+                        if (angleInv > 0) {
+                            this.tracing = true;
+                            this.tracingDir = Vec2.AxisRight.clone();
+                            this.tracePath = [this.position.clone()];
+                        }
+                    }
+                }
+                if (this.engine.input.Left) {
+                    let angle = dir.angleTo(Vec2.AxisLeft);
+                    if (angle > 0) {
+                        let angleInv = Vec2.AxisLeft.angleTo(dirInv);
+                        if (angleInv > 0) {
+                            this.tracing = true;
+                            this.tracingDir = Vec2.AxisLeft.clone();
+                            this.tracePath = [this.position.clone()];
+                        }
+                    }
+                }
+            }
+        }
+    }
+    draw() {
+        if (this.tracing) {
+            for (let i = 0; i < this.tracePath.length; i++) {
+                let start = this.tracePath[i];
+                let end;
+                if (this.tracing && i === this.tracePath.length - 1) {
+                    end = this.position;
+                }
+                else if (i < this.tracePath.length - 1) {
+                    end = this.tracePath[i + 1];
+                }
+                if (end) {
+                    this.engine.drawLine(start, end, this.color, this.map.position);
+                }
+            }
+        }
+        this.engine.drawRect(-2, -2, 5, 5, this.color, this.position.add(this.map.position));
+    }
+}
+class QixCreep extends GameObject {
+    constructor(qix) {
+        super("creep", qix.engine);
+        this.qix = qix;
+        this._dir = Vec2.Zero();
+        this.bounceSoundIndex = 0;
+        this.layer = 4;
+        this._dir.x = -0.5 + Math.random();
+        this._dir.y = -0.5 + Math.random();
+        this._dir.normalizeInPlace();
+        this.bounceSounds = [];
+        this.bounceSounds[0] = document.createElement("audio");
+        this.bounceSounds[0].src = "sounds/impactMetal_000.ogg";
+        this.bounceSounds[1] = document.createElement("audio");
+        this.bounceSounds[1].src = "sounds/impactMetal_000.ogg";
+    }
+    get map() {
+        return this.qix.map;
+    }
+    update() {
+        if (this.qix.qixState != QixState.Playing) {
+            return;
+        }
+        for (let steps = 0; steps < 1; steps++) {
+            this.position.addInPlace(this._dir);
+            let roundedPos = this.roundedPosition;
+            if (this.qix.player.tracing) {
+                if (this.qix.player.tracePath.length >= 2) {
+                    if (roundedPos.isOnRectPath(this.qix.player.tracePath) != -1) {
+                        this.qix.hit();
+                        return;
+                    }
+                }
+                if (this.qix.player.tracePath.length > 0) {
+                    if (roundedPos.isOnRectSegment(this.qix.player.tracePath[this.qix.player.tracePath.length - 1], this.qix.player.position)) {
+                        this.qix.hit();
+                        return;
+                    }
+                }
+            }
+            for (let i = 0; i < this.map.points.length; i++) {
+                let l = this.map.points.length;
+                let p1 = this.map.points[i];
+                let p2 = this.map.points[(i + 1) % l];
+                if (roundedPos.isOnRectSegment(p1, p2)) {
+                    let n = p2.subtract(p1).normalizeInPlace().rotateInPlace(Math.PI / 2);
+                    if (n.equals(Vec2.AxisLeft)) {
+                        this.bounceSounds[this.bounceSoundIndex].play();
+                        this.bounceSoundIndex = (this.bounceSoundIndex + 1) % 2;
+                        this._dir.x = -Math.abs(this._dir.x);
+                        this._dir.y += -0.2 + 0.4 * Math.random();
+                        this._dir.normalizeInPlace();
+                    }
+                    else if (n.equals(Vec2.AxisRight)) {
+                        this.bounceSounds[this.bounceSoundIndex].play();
+                        this.bounceSoundIndex = (this.bounceSoundIndex + 1) % 2;
+                        this._dir.x = Math.abs(this._dir.x);
+                        this._dir.y += -0.2 + 0.4 * Math.random();
+                        this._dir.normalizeInPlace();
+                    }
+                    else if (n.equals(Vec2.AxisUp)) {
+                        this.bounceSounds[this.bounceSoundIndex].play();
+                        this.bounceSoundIndex = (this.bounceSoundIndex + 1) % 2;
+                        this._dir.y = -Math.abs(this._dir.y);
+                        this._dir.x += -0.2 + 0.4 * Math.random();
+                        this._dir.normalizeInPlace();
+                    }
+                    else if (n.equals(Vec2.AxisDown)) {
+                        this.bounceSounds[this.bounceSoundIndex].play();
+                        this.bounceSoundIndex = (this.bounceSoundIndex + 1) % 2;
+                        this._dir.y = Math.abs(this._dir.y);
+                        this._dir.x += -0.2 + 0.4 * Math.random();
+                        this._dir.normalizeInPlace();
+                    }
+                }
+            }
+        }
+    }
+    draw() {
+        this.engine.drawRect(-2, -2, 5, 5, ArcadeEngineColor.Red, this.position.add(this.map.position));
+        this.engine.drawRect(-1, -1, 3, 3, ArcadeEngineColor.Black, this.position.add(this.map.position));
+    }
+}
+/// <reference path="../ArcadeEngineColor.ts" />
+class QixSplit extends GameObject {
+    constructor(map) {
+        super("qix-split", map.engine);
+        this.map = map;
+        this.blinking = false;
+        this.blinkingCD = 0;
+        this.layer = 1;
+    }
+    update(dt) {
+        if (this.blinking) {
+            this.blinkingCD--;
+            if (this.blinkingCD <= 0) {
+                if (this.strokeColor === ArcadeEngineColor.Gray) {
+                    this.strokeColor = this.map.strokeColor;
+                }
+                else {
+                    this.strokeColor = ArcadeEngineColor.Gray;
+                }
+                if (this.fillColor === ArcadeEngineColor.Anthracite) {
+                    this.fillColor = this.map.fillColor;
+                }
+                else {
+                    this.fillColor = ArcadeEngineColor.Anthracite;
+                }
+                this.blinkingCD = 5;
+            }
+        }
+        else {
+            this.strokeColor = ArcadeEngineColor.Gray;
+            this.fillColor = ArcadeEngineColor.Anthracite;
+        }
+    }
+    draw() {
+        if (this.path) {
+            this.engine.fillPolygon(this.path, this.fillColor, FillStyle.Dots, this.map.position);
+            this.engine.drawPolygon(this.path, this.strokeColor, this.map.position);
+        }
+    }
+}
+class QixMap extends GameObject {
+    constructor(qix) {
+        super("qix-map", qix.engine);
+        this.qix = qix;
+        this.initialSurface = 1000;
+        this.min = new Vec2(0, 0);
+        this.max = new Vec2(159 - 6, 143 - 6 - 8);
+        this.points = [];
+        this.splits = [];
+        this.initialize();
+        this.layer = 2;
+        this.position.x = 3;
+        this.position.y = 3 + 8;
+        this.splitSound = document.createElement("audio");
+        this.splitSound.src = "sounds/doorClose_002.ogg";
+    }
+    initialize() {
+        this.points = [
+            new Vec2(this.min.x, this.min.y),
+            new Vec2(this.max.x, this.min.y),
+            new Vec2(this.max.x, this.max.y),
+            new Vec2(this.min.x, this.max.y)
+        ];
+        while (this.splits.length > 0) {
+            this.splits.pop().dispose();
+        }
+        this.strokeColor = QixMap.MapColorPairs[this.qix.level % QixMap.MapColorPairs.length][0];
+        this.fillColor = QixMap.MapColorPairs[this.qix.level % QixMap.MapColorPairs.length][1];
+        this.fillStyle = FillStyle.Dots;
+        this.initialSurface = Polygon.GetSurface(this.points);
+        //this.qix.scoreDisplay.text = "SCORE " + this.getScore().toFixed(0).padStart(3, "0");
+        this.qix.areaDisplay.text = "AREA " + this.initialSurface.toFixed(0).padStart(5, "0");
+    }
+    draw() {
+        this.engine.fillPolygon(this.points, this.fillColor, this.fillStyle, this.position);
+        this.engine.drawPolygon(this.points, this.strokeColor, this.position);
+    }
+    split(path) {
+        let part1 = [...path];
+        let part2 = [...path].reverse();
+        let start = path[0];
+        let end = path[path.length - 1];
+        for (let i = 0; i < this.points.length; i++) {
+            let s1 = this.points[i];
+            let s2 = this.points[(i + 1) % this.points.length];
+            if (start.isOnRectSegment(s1, s2) && end.isOnRectSegment(s1, s2)) {
+                let tmp = start.add(end).scaleInPlace(0.5).roundInPlace();
+                if (i === this.points.length - 1) {
+                    this.points.push(tmp);
+                }
+                else {
+                    this.points.splice(i + 1, 0, tmp);
+                }
+            }
+        }
+        for (let i = 0; i < this.points.length; i++) {
+            let s1 = this.points[i];
+            let s2 = this.points[(i + 1) % this.points.length];
+            if (end.isOnRectSegment(s1, s2)) {
+                for (let j = 0; j < this.points.length; j++) {
+                    let n = (i + j) % this.points.length;
+                    let pt1 = this.points[n];
+                    let pt2 = this.points[(n + 1) % this.points.length];
+                    if (start.isOnRectSegment(pt1, pt2)) {
+                        break;
+                    }
+                    else {
+                        if (!part1[part1.length - 1].equals(pt2)) {
+                            part1.push(pt2);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        for (let i = 0; i < this.points.length; i++) {
+            let s1 = this.points[i];
+            let s2 = this.points[(i + 1) % this.points.length];
+            if (start.isOnRectSegment(s1, s2)) {
+                for (let j = 0; j < this.points.length; j++) {
+                    let n = (i + j) % this.points.length;
+                    let pt1 = this.points[n];
+                    let pt2 = this.points[(n + 1) % this.points.length];
+                    if (end.isOnRectSegment(pt1, pt2)) {
+                        break;
+                    }
+                    else {
+                        if (!part2[part2.length - 1].equals(pt2)) {
+                            part2.push(pt2);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        let a1 = Polygon.GetSurface(part1);
+        let a2 = Polygon.GetSurface(part2);
+        this.splitSound.play();
+        if (a1 >= a2) {
+            this.points = part1;
+            let split = new QixSplit(this);
+            split.path = part2;
+            split.blinking = true;
+            setTimeout(() => {
+                split.blinking = false;
+            }, 1000);
+            this.splits.push(split);
+            for (let i = 0; i < this.qix.creeps.length; i++) {
+                if (Polygon.PointInPolygon(this.qix.creeps[i].position, part2)) {
+                    this.qix.creeps[i].dispose();
+                }
+            }
+            //this.qix.scoreDisplay.text = "SCORE " + this.getScore(a1).toFixed(0).padStart(3, "0");
+            this.qix.areaDisplay.text = "AREA " + a1.toFixed(0).padStart(5, "0");
+            this.qix.incScore(Math.floor(a2 / 100));
+            if (this.getScore(a1) >= 100) {
+                this.qix.win();
+            }
+            return part2;
+        }
+        else {
+            this.points = part2;
+            let split = new QixSplit(this);
+            split.path = part1;
+            split.blinking = true;
+            setTimeout(() => {
+                split.blinking = false;
+            }, 1000);
+            this.splits.push(split);
+            for (let i = 0; i < this.qix.creeps.length; i++) {
+                if (Polygon.PointInPolygon(this.qix.creeps[i].position, part1)) {
+                    this.qix.creeps[i].dispose();
+                }
+            }
+            //this.qix.scoreDisplay.text = "SCORE " + this.getScore(a2).toFixed(0).padStart(3, "0");
+            this.qix.areaDisplay.text = "AREA " + a2.toFixed(0).padStart(5, "0");
+            this.qix.incScore(Math.floor(a1 / 100));
+            if (this.getScore(a2) >= 100) {
+                this.qix.win();
+            }
+            return part1;
+        }
+    }
+    getScore(surface) {
+        if (isNaN(surface)) {
+            surface = Polygon.GetSurface(this.points);
+        }
+        let winSurface = this.initialSurface * 0.1;
+        let f = (surface - winSurface) / (this.initialSurface - winSurface);
+        f = Math.min(Math.max(f, 0), 1);
+        return Math.floor(100 * (1 - f));
+    }
+}
+QixMap.MapColorPairs = [
+    [ArcadeEngineColor.Red, ArcadeEngineColor.Purple],
+    [ArcadeEngineColor.Cyan, ArcadeEngineColor.Turquoise],
+    [ArcadeEngineColor.Yellow, ArcadeEngineColor.Purple],
+    [ArcadeEngineColor.Blue, ArcadeEngineColor.Marine],
+    [ArcadeEngineColor.White, ArcadeEngineColor.Gray],
+];
 class BrickFactory {
     static NewBrick(arg1, colorIndex, construction) {
         let name = Brick.BrickIdToName(arg1);
@@ -4715,6 +6225,9 @@ class BrickFactory {
             }
             else if (name.startsWith("picture_")) {
                 return new PictureBrick(arg1, colorIndex, construction);
+            }
+            else if (name.startsWith("arcade_")) {
+                return new ArcadeBrick(arg1, colorIndex, construction);
             }
             else {
                 return new Brick(arg1, colorIndex, construction);
@@ -4965,6 +6478,136 @@ Brick.depthColors = [
     new BABYLON.Color4(0.2, 0.2, 0.2, 1)
 ];
 var ALLBRICKS = [];
+///  <reference path="./Brick.ts"/>
+class SpecialBrick extends Brick {
+    constructor(arg1, colorIndex, construction) {
+        super(arg1, colorIndex, construction);
+    }
+    async generateSpecialBrickMesh() {
+        let vData = await this._generateSpecialBrickVertexData();
+        let specialBrickMesh = this._constructSpecialBrickMesh();
+        specialBrickMesh.updateMaterial();
+        vData.applyToMesh(specialBrickMesh);
+        return specialBrickMesh;
+    }
+    dispose() {
+        this.construction.bricks.remove(this);
+        if (this.construction) {
+            let index = this.construction.specialBrickMeshes.findIndex(sbm => {
+                return sbm.specialBrick === this;
+            });
+            if (index != -1) {
+                let pictureBrickMesh = this.construction.specialBrickMeshes[index];
+                this.construction.specialBrickMeshes.splice(index, 1);
+                pictureBrickMesh.dispose(false, true);
+            }
+        }
+    }
+    async generateMeshVertexData(vDatas, subMeshInfos) {
+    }
+}
+class SpecialBrickMesh extends BABYLON.Mesh {
+    constructor(specialBrick, name) {
+        super(name);
+        this.specialBrick = specialBrick;
+    }
+    updateMaterial() { }
+}
+class StationBrick extends SpecialBrick {
+    constructor() {
+        super(...arguments);
+        this.dodoStationPosition = new BABYLON.Vector3(0.168, 0, 1.7);
+        this.cameraStationTarget = new BABYLON.Vector3(0.168, 1.21 - 0.134, 0.178);
+        this.worldDodoStationPosition = BABYLON.Vector3.Zero();
+        this.worldCameraStationTarget = BABYLON.Vector3.Zero();
+    }
+    start() {
+        this.game.playerBrain.inStation = this;
+    }
+    stop() {
+        this.game.playerBrain.inStation = undefined;
+        if (this.onNextStop) {
+            this.onNextStop();
+            this.onNextStop = undefined;
+        }
+    }
+}
+///  <reference path="./SpecialBrick.ts"/>
+class ArcadeBrick extends StationBrick {
+    constructor(arg1, colorIndex, construction) {
+        super(arg1, colorIndex, construction);
+    }
+    _constructSpecialBrickMesh() {
+        return new ArcadeBrickMesh(this);
+    }
+    async generateSpecialBrickMesh() {
+        let specialBrickMesh = await super.generateSpecialBrickMesh();
+        specialBrickMesh.position.copyFrom(this.position);
+        specialBrickMesh.rotation.y = this.r * Math.PI * 0.5;
+        this.worldDodoStationPosition.copyFrom(this.dodoStationPosition);
+        Mummu.RotateInPlace(this.worldDodoStationPosition, BABYLON.Axis.Y, this.r * Math.PI * 0.5);
+        this.worldDodoStationPosition.addInPlace(this.position);
+        this.worldDodoStationPosition.addInPlace(this.construction.position);
+        this.worldCameraStationTarget.copyFrom(this.cameraStationTarget);
+        Mummu.RotateInPlace(this.worldCameraStationTarget, BABYLON.Axis.Y, this.r * Math.PI * 0.5);
+        this.worldCameraStationTarget.addInPlace(this.position);
+        this.worldCameraStationTarget.addInPlace(this.construction.position);
+        let vDatas = await this.game.vertexDataLoader.get("datas/meshes/arcade.babylon");
+        let screenVData = Mummu.CloneVertexData(vDatas[1]);
+        screenVData.applyToMesh(specialBrickMesh.screenMesh);
+        let material = new ToonMaterial("screen-material", this._scene);
+        material.setNoColorOutline(true);
+        material.setDiffuseSharpness(-1);
+        material.setDiffuseCount(2);
+        let h = 144;
+        let w = 160;
+        let texture = new BABYLON.DynamicTexture("screen-texture", { width: w, height: h }, this.construction.game.scene, true, BABYLON.Texture.LINEAR_NEAREST);
+        material.setDiffuseTexture(texture);
+        specialBrickMesh.screenMesh.material = material;
+        this.arcadeEngine = new ArcadeEngine(texture);
+        this.arcadeEngine.start();
+        return specialBrickMesh;
+    }
+    async generateMeshVertexData(vDatas, subMeshInfos) {
+    }
+    async _generateSpecialBrickVertexData() {
+        let vDatas = await this.game.vertexDataLoader.get("datas/meshes/arcade.babylon");
+        let bodyVData = Mummu.CloneVertexData(vDatas[0]);
+        Mummu.ColorizeVertexDataInPlace(bodyVData, DodoColors[this.colorIndex].color, BABYLON.Color3.Red());
+        let a = 2 * Math.PI * Math.random();
+        a = 0;
+        let cosa = Math.cos(a);
+        let sina = Math.sin(a);
+        let dU = Math.random();
+        dU = 0;
+        let dV = Math.random();
+        dV = 0;
+        let uvs = bodyVData.uvs;
+        for (let i = 0; i < uvs.length / 2; i++) {
+            let u = uvs[2 * i];
+            let v = uvs[2 * i + 1];
+            uvs[2 * i] = cosa * u - sina * v + dU;
+            uvs[2 * i + 1] = sina * u + cosa * v + dV;
+        }
+        bodyVData.uvs = uvs;
+        return bodyVData;
+    }
+    dispose() {
+        if (this.arcadeEngine) {
+            this.arcadeEngine.stop();
+        }
+        super.dispose();
+    }
+}
+class ArcadeBrickMesh extends SpecialBrickMesh {
+    constructor(arcadeBrick) {
+        super(arcadeBrick, "text-brick-mesh");
+        this.arcadeBrick = arcadeBrick;
+        this.material = arcadeBrick.game.defaultToonMaterial;
+        this.screenMesh = new BABYLON.Mesh("arcade-screen-mesh");
+        this.screenMesh.parent = this;
+    }
+}
 var BRICK_LIST = [
     { name: "tile_1x1", stackable: false, isPublic: true },
     { name: "tile_2x1", stackable: false, isPublic: true },
@@ -5079,7 +6722,8 @@ var BRICK_LIST = [
     { name: "text_8_TIARATUM", stackable: true, isPublic: false },
     { name: "text_6_GAMES", stackable: true, isPublic: false },
     { name: "picture_marble-run-simulator", stackable: true, isPublic: false, src: "./datas/textures/marble-run-simulator.png" },
-    { name: "picture_carillion", stackable: true, isPublic: false, src: "./datas/textures/carillion.png" }
+    { name: "picture_carillion", stackable: true, isPublic: false, src: "./datas/textures/carillion.png" },
+    { name: "arcade_dodoqix", stackable: true, isPublic: false }
 ];
 class BrickTemplateManager {
     constructor(vertexDataLoader) {
@@ -5753,7 +7397,13 @@ class Construction extends BABYLON.Mesh {
     }
     async updateMesh() {
         while (this.specialBrickMeshes.length > 0) {
-            this.specialBrickMeshes.pop().dispose(false, true);
+            let sbm = this.specialBrickMeshes.pop();
+            if (sbm.material === this.game.defaultToonMaterial || sbm.material === this.game.defaultToonNoOutlineMaterial) {
+                sbm.dispose();
+            }
+            else {
+                sbm.dispose(false, true);
+            }
         }
         this.isMeshUpdated = false;
         let vDatas = [];
@@ -5762,11 +7412,8 @@ class Construction extends BABYLON.Mesh {
         for (let i = 0; i < this.bricks.length; i++) {
             let brick = this.bricks.get(i);
             if (brick instanceof SpecialBrick) {
-                let vData = await brick.generateSpecialBrickVertexData();
-                let specialBrickMesh = brick.constructSpecialBrickMesh();
+                let specialBrickMesh = await brick.generateSpecialBrickMesh();
                 this.specialBrickMeshes.push(specialBrickMesh);
-                specialBrickMesh.updateMaterial();
-                vData.applyToMesh(specialBrickMesh);
                 specialBrickMeshes.push(specialBrickMesh);
             }
             else if (brick instanceof Brick) {
@@ -5993,33 +7640,6 @@ class Construction extends BABYLON.Mesh {
     }
 }
 Construction.SIZE_m = BRICKS_PER_CONSTRUCTION * BRICK_S;
-class SpecialBrick extends Brick {
-    constructor(arg1, colorIndex, construction) {
-        super(arg1, colorIndex, construction);
-    }
-    dispose() {
-        this.construction.bricks.remove(this);
-        if (this.construction) {
-            let index = this.construction.specialBrickMeshes.findIndex(sbm => {
-                return sbm.specialBrick === this;
-            });
-            if (index != -1) {
-                let pictureBrickMesh = this.construction.specialBrickMeshes[index];
-                this.construction.specialBrickMeshes.splice(index, 1);
-                pictureBrickMesh.dispose(false, true);
-            }
-        }
-    }
-    async generateMeshVertexData(vDatas, subMeshInfos) {
-    }
-}
-class SpecialBrickMesh extends BABYLON.Mesh {
-    constructor(specialBrick, name) {
-        super(name);
-        this.specialBrick = specialBrick;
-    }
-    updateMaterial() { }
-}
 ///  <reference path="./SpecialBrick.ts"/>
 class PictureBrick extends SpecialBrick {
     constructor(arg1, colorIndex, construction) {
@@ -6029,12 +7649,12 @@ class PictureBrick extends SpecialBrick {
         this.text = split.pop();
         this.w = parseInt(split.pop());
     }
-    constructSpecialBrickMesh() {
+    _constructSpecialBrickMesh() {
         return new PictureBrickMesh(this);
     }
     async generateMeshVertexData(vDatas, subMeshInfos) {
     }
-    async generateSpecialBrickVertexData() {
+    async _generateSpecialBrickVertexData() {
         let template = await BrickTemplateManager.Instance.getTemplate(this.index);
         let vData = Mummu.CloneVertexData(template.vertexData);
         let colors = [];
@@ -6080,12 +7700,12 @@ class TextBrick extends SpecialBrick {
         this.text = split.pop();
         this.w = parseInt(split.pop());
     }
-    constructSpecialBrickMesh() {
+    _constructSpecialBrickMesh() {
         return new TextBrickMesh(this);
     }
     async generateMeshVertexData(vDatas, subMeshInfos) {
     }
-    async generateSpecialBrickVertexData() {
+    async _generateSpecialBrickVertexData() {
         let template = await BrickTemplateManager.Instance.getTemplate(this.index);
         let vData = Mummu.CloneVertexData(template.vertexData);
         let colors = [];
@@ -6557,6 +8177,7 @@ class Dodo extends Creature {
     set r(v) {
         Mummu.RotateToRef(BABYLON.Axis.Z, BABYLON.Axis.Y, v, this._tmpForwardAxis);
         Mummu.QuaternionFromZYAxisToRef(this._tmpForwardAxis, BABYLON.Axis.Y, this.rotationQuaternion);
+        this.computeWorldMatrix(true);
     }
     get bodyR() {
         return Mummu.AngleFromToAround(BABYLON.Axis.Z, this.body.forward, BABYLON.Axis.Y);
@@ -6626,6 +8247,13 @@ class Dodo extends Creature {
             material.diffuseTexture = texture;
             this.nameTag.material = material;
         }
+    }
+    setIsVisible(isVisible) {
+        this.meshes.forEach(mesh => {
+            mesh.isVisible = isVisible;
+        });
+        this.eyes[0].isVisible = isVisible;
+        this.eyes[1].isVisible = isVisible;
     }
     async instantiate() {
         this.material = this.game.defaultToonNoOutlineMaterial;
@@ -7425,6 +9053,7 @@ class Brain {
         this.dodo = dodo;
         this.mode = BrainMode.Idle;
         this.subBrains = [];
+        this.inStationTimer = 0;
         for (let n = 0; n < subBrains.length; n++) {
             let mode = subBrains[n];
             if (mode === BrainMode.Idle) {
@@ -7454,6 +9083,12 @@ class Brain {
         });
     }
     update(dt) {
+        if (this.inStation) {
+            this.inStationTimer += dt;
+        }
+        else {
+            this.inStationTimer = 0;
+        }
         let subBrain = this.subBrains[this.mode];
         if (subBrain) {
             subBrain.update(dt);
@@ -7648,8 +9283,8 @@ class BrainPlayer extends SubBrain {
         this._pointerMove = (event) => {
             if (this._pointerDown || this.game.inputManager.isPointerLocked) {
                 this.gamepadInControl = false;
-                this._rotateXAxisInput += event.movementY / 200;
-                this._rotateYAxisInput += event.movementX / 200;
+                this._rotateXAxisInput += event.movementY / 300;
+                this._rotateYAxisInput += event.movementX / 300;
             }
         };
         this._pointerUp = (event) => {
@@ -7820,14 +9455,74 @@ class BrainPlayer extends SubBrain {
                 }
             }
         });
-        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_FORWARD, () => { this._moveYAxisInput = 1; });
-        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_BACK, () => { this._moveYAxisInput = -1; });
-        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_RIGHT, () => { this._moveXAxisInput = 1; });
-        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_LEFT, () => { this._moveXAxisInput = -1; });
-        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_FORWARD, () => { this._moveYAxisInput = 0; });
-        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_BACK, () => { this._moveYAxisInput = 0; });
-        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_RIGHT, () => { this._moveXAxisInput = 0; });
-        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_LEFT, () => { this._moveXAxisInput = 0; });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_FORWARD, () => {
+            this._moveYAxisInput = 1;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Up = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_BACK, () => {
+            this._moveYAxisInput = -1;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Down = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_RIGHT, () => {
+            this._moveXAxisInput = 1;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Right = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_LEFT, () => {
+            this._moveXAxisInput = -1;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Left = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_FORWARD, () => {
+            this._moveYAxisInput = 0;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Up = false;
+                    this.brain.inStation.arcadeEngine.input.UpUp = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_BACK, () => {
+            this._moveYAxisInput = 0;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Down = false;
+                    this.brain.inStation.arcadeEngine.input.DownUp = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_RIGHT, () => {
+            this._moveXAxisInput = 0;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Right = false;
+                    this.brain.inStation.arcadeEngine.input.RightUp = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_LEFT, () => {
+            this._moveXAxisInput = 0;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Left = false;
+                    this.brain.inStation.arcadeEngine.input.LeftUp = true;
+                }
+            }
+        });
         this.game.inputManager.addMappedKeyUpListener(KeyInput.JUMP, () => { this.dodo.jump(); });
         this.game.canvas.addEventListener("pointerdown", this._onPointerDown);
         this.game.canvas.addEventListener("pointerup", this._pointerUp);
@@ -7841,22 +9536,24 @@ class BrainPlayer extends SubBrain {
     }
     update(dt) {
         if (this.game.gameMode === GameMode.Playing) {
-            let moveInput = new BABYLON.Vector2(this._moveXAxisInput, this._moveYAxisInput);
-            let inputForce = moveInput.length();
-            if (inputForce > 1) {
-                moveInput.normalize();
-            }
-            let dir = this.dodo.right.scale(moveInput.x * 0.75).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.75)));
-            if (dir.lengthSquared() > 0) {
-                if (!this.lockControl) {
-                    this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
+            if (!this.dodo.brain.inStation) {
+                let moveInput = new BABYLON.Vector2(this._moveXAxisInput, this._moveYAxisInput);
+                let inputForce = moveInput.length();
+                if (inputForce > 1) {
+                    moveInput.normalize();
                 }
-            }
-            if (this.currentAction) {
-                this.currentAction.onUpdate();
-            }
-            else {
-                this.defaultAction.onUpdate();
+                let dir = this.dodo.right.scale(moveInput.x * 0.75).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.75)));
+                if (dir.lengthSquared() > 0) {
+                    if (!this.lockControl) {
+                        this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
+                    }
+                }
+                if (this.currentAction) {
+                    this.currentAction.onUpdate();
+                }
+                else {
+                    this.defaultAction.onUpdate();
+                }
             }
         }
         this._smoothedRotateXAxisInput = this._smoothedRotateXAxisInput * this._pointerSmoothness + this._rotateXAxisInput * (1 - this._pointerSmoothness);
@@ -7865,7 +9562,7 @@ class BrainPlayer extends SubBrain {
         this._rotateYAxisInput = 0;
         if (!this.lockControl) {
             this.game.camera.verticalAngle += this._smoothedRotateXAxisInput;
-            this.dodo.rotate(BABYLON.Axis.Y, this._smoothedRotateYAxisInput);
+            this.dodo.r += this._smoothedRotateYAxisInput;
         }
         let f = 1;
         if (this.game.gameMode === GameMode.Home) {
@@ -7898,6 +9595,32 @@ class BrainPlayer extends SubBrain {
                 else if (dist - 2.5 > 0.1) {
                     this.dodo.position.addInPlace(this.dodo.forward.scale(1 * dt));
                 }
+            }
+            else if (this.brain.inStation) {
+                let station = this.brain.inStation;
+                let fLookAtStation = Nabu.Easing.smoothNSec(1 / dt, 1);
+                let targetVerticalAngle = 0;
+                let targetR = Math.PI + this.dodo.brain.inStation.r * Math.PI * 0.5;
+                let dR = Nabu.AbsoluteAngularDistance(targetR, this.dodo.r);
+                let dV = Nabu.AbsoluteAngularDistance(targetVerticalAngle, this.game.camera.verticalAngle);
+                let fAngleRange = Nabu.MinMax(this.brain.inStationTimer / 8, 0, 1);
+                let angleRange = fAngleRange * fAngleRange * Math.PI / 16;
+                if (dR > angleRange) {
+                    this.dodo.r = Nabu.LerpAngle(this.dodo.r, targetR, 1 - fLookAtStation);
+                }
+                if (dV > angleRange) {
+                    this.game.camera.verticalAngle = this.game.camera.verticalAngle * fLookAtStation + targetVerticalAngle * (1 - fLookAtStation);
+                }
+                if (this.brain.inStationTimer > 1) {
+                    if (dR > Math.PI / 3) {
+                        this.brain.inStation.stop();
+                    }
+                    if (dV > Math.PI / 3) {
+                        this.brain.inStation.stop();
+                    }
+                }
+                BABYLON.Vector3.LerpToRef(this.dodo.position, station.worldDodoStationPosition, 1 - fLookAtStation, this.dodo.position);
+                this._targetLook.copyFrom(this.dodo.head.position.add(this.game.camera.camDir));
             }
             else {
                 let aimRay = this.game.camera.getForwardRay(50);

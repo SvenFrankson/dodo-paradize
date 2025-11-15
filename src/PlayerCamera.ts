@@ -17,6 +17,7 @@ class PlayerCamera extends BABYLON.FreeCamera {
     public playerPosY: number = 0;
     public dialogOffset: BABYLON.Vector3 = BABYLON.Vector3.Zero();
     public dialogRotation: number = 0;
+    public camDir: BABYLON.Vector3 = BABYLON.Vector3.Forward();
 
     constructor(public game: Game, public useOutline: boolean = true) {
         super("player-camera", BABYLON.Vector3.Zero());
@@ -110,51 +111,73 @@ class PlayerCamera extends BABYLON.FreeCamera {
                 this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
             }
             else if (this.game.gameMode === GameMode.Playing) {
+                
                 let fDialogTransition = Nabu.Easing.smoothNSec(1 / dt, 0.5);
-                if (this.game.playerBrain.inDialog) {
-                    let dialogOffset = this.game.playerBrain.inDialog.dodo.position.subtract(this.player.position).scale(0.5);
-                    dialogOffset.y -= this.pivotHeight;
-                    dialogOffset.y += 0.5;
-                    BABYLON.Vector3.LerpToRef(this.dialogOffset, dialogOffset, 1 - fDialogTransition, this.dialogOffset);
-                    this.dialogRotation = this.dialogRotation * fDialogTransition + this.bestDialogRotation * (1 - fDialogTransition);
-                    this.verticalAngle = this.verticalAngle * fDialogTransition + Math.PI / 8 * (1 - fDialogTransition);
+                if (this.game.playerBrain.inStation) {
+                    let targetPosition = this.game.playerDodo.head.absolutePosition;
+                    let camDir = this.player.forward;
+                    Mummu.RotateInPlace(camDir, this.player.right, this.verticalAngle);
+                    let rotation = Mummu.QuaternionFromZYAxis(camDir, BABYLON.Axis.Y);
+
+                    BABYLON.Vector3.LerpToRef(this.position, targetPosition, 1 - fDialogTransition, this.position);
+                    BABYLON.Quaternion.SlerpToRef(this.rotationQuaternion, rotation, 1 - fDialogTransition, this.rotationQuaternion);
                 }
                 else {
-                    this.dialogOffset.scaleInPlace(fDialogTransition);
-                    this.dialogRotation *= fDialogTransition;
+                    if (this.game.playerBrain.inDialog) {
+                        this.pivotRecoil = 4;
+                        let dialogOffset = this.game.playerBrain.inDialog.dodo.position.subtract(this.player.position).scale(0.5);
+                        dialogOffset.y -= this.pivotHeight;
+                        dialogOffset.y += 0.5;
+                        BABYLON.Vector3.LerpToRef(this.dialogOffset, dialogOffset, 1 - fDialogTransition, this.dialogOffset);
+                        this.dialogRotation = this.dialogRotation * fDialogTransition + this.bestDialogRotation * (1 - fDialogTransition);
+                        this.verticalAngle = this.verticalAngle * fDialogTransition + Math.PI / 8 * (1 - fDialogTransition);
+                    }
+                    else {
+                        this.pivotRecoil = 4;
+                        this.dialogOffset.scaleInPlace(fDialogTransition);
+                        this.dialogRotation *= fDialogTransition;
+                    }
+
+                    let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.1);
+                    this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
+
+                    this.camDir.copyFrom(this.player.forward)
+                    Mummu.RotateInPlace(this.camDir, this.player.right, this.verticalAngle);
+                    Mummu.RotateInPlace(this.camDir, BABYLON.Axis.Y, this.dialogRotation);
+
+                    let camPivot = new BABYLON.Vector3(this.player.position.x, this.pivotHeight + this.playerPosY, this.player.position.z);
+                    camPivot.addInPlace(this.dialogOffset);
+
+                    let ray = new BABYLON.Ray(camPivot, this.camDir.scale(-1), this.pivotRecoil);
+
+                    let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, this.game.playerBrain.inDialog ? 0.5 : 0.1);
+                    let pick = this.game.scene.pickWithRay(ray, (mesh => { return mesh instanceof ConstructionMesh; }));
+                    if (pick && pick.hit) {
+                        this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + pick.distance * (1 - fRecoilSmooth);
+                    }
+                    else {
+                        this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + this.pivotRecoil * (1 - fRecoilSmooth);
+                    }
+
+                    let target = this.camDir.scale(- this.currentPivotRecoil);
+                    target.addInPlace(camPivot);
+
+                    let targetLook = this.camDir.scale(10);
+                    targetLook.addInPlace(camPivot);
+
+                    this.position.copyFrom(target);
+
+                    let dir = targetLook.subtract(this.position);
+                    this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
                 }
 
-                let fYSmooth = Nabu.Easing.smoothNSec(1 / dt, 0.1);
-                this.playerPosY = this.playerPosY * fYSmooth + this.player.position.y * (1 - fYSmooth);
-
-                let camDir = this.player.forward;
-                Mummu.RotateInPlace(camDir, this.player.right, this.verticalAngle);
-                Mummu.RotateInPlace(camDir, BABYLON.Axis.Y, this.dialogRotation);
-
-                let camPivot = new BABYLON.Vector3(this.player.position.x, this.pivotHeight + this.playerPosY, this.player.position.z);
-                camPivot.addInPlace(this.dialogOffset);
-
-                let ray = new BABYLON.Ray(camPivot, camDir.scale(-1), this.pivotRecoil);
-
-                let fRecoilSmooth = Nabu.Easing.smoothNSec(1 / dt, this.game.playerBrain.inDialog ? 0.5 : 0.1);
-                let pick = this.game.scene.pickWithRay(ray, (mesh => { return mesh instanceof ConstructionMesh; }));
-                if (pick && pick.hit) {
-                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + pick.distance * (1 - fRecoilSmooth);
+                let distance = BABYLON.Vector3.DistanceSquared(this.position, this.game.playerDodo.head.position);
+                if (distance < 0.5 * 0.5) {
+                    this.game.playerDodo.setIsVisible(false);
                 }
                 else {
-                    this.currentPivotRecoil = this.currentPivotRecoil * fRecoilSmooth + this.pivotRecoil * (1 - fRecoilSmooth);
+                    this.game.playerDodo.setIsVisible(true);
                 }
-
-                let target = camDir.scale(- this.currentPivotRecoil);
-                target.addInPlace(camPivot);
-
-                let targetLook = camDir.scale(10);
-                targetLook.addInPlace(camPivot);
-
-                this.position.copyFrom(target);
-
-                let dir = targetLook.subtract(this.position);
-                this.rotationQuaternion = Mummu.QuaternionFromZYAxis(dir, BABYLON.Axis.Y);
             }
         }
     }

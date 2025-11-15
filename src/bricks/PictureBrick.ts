@@ -15,7 +15,7 @@ class PictureBrick extends SpecialBrick {
         this.w = parseInt(split.pop());
     }
 
-    public constructSpecialBrickMesh(): SpecialBrickMesh {
+    public _constructSpecialBrickMesh(): SpecialBrickMesh {
         return new PictureBrickMesh(this);
     }
 
@@ -23,7 +23,7 @@ class PictureBrick extends SpecialBrick {
 
     }
 
-    public async generateSpecialBrickVertexData(): Promise<BABYLON.VertexData> {
+    public async _generateSpecialBrickVertexData(): Promise<BABYLON.VertexData> {
         let template = await BrickTemplateManager.Instance.getTemplate(this.index);
         let vData = Mummu.CloneVertexData(template.vertexData);
         let colors = [];

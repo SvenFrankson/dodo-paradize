@@ -46,12 +46,12 @@ void main() {
 		lightFactor = round(sunLightFactor * diffuseCount) / diffuseCount * 0.8 + 0.2;
 	}
 
-	vec3 color = diffuse * texture(diffuseTexture, vUv).rgb;
+	vec3 color = diffuse;
 	if (useVertexColor == 1) {
 		color *= vColor.rgb;
 	}
 	if (useDiffuseTexture == 1) {
-		
+		color *= texture(diffuseTexture, vUv).rgb;
 	}
 
 	float factor = 2. * specularCount - 1.;

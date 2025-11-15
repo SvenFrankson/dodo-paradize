@@ -36,7 +36,8 @@ class PlayerActionEmptyHand {
                     x,
                     y,
                     (mesh) => {
-                        return mesh instanceof DodoInteractCollider && mesh != player.dodo.dodoInteractCollider;
+                        return (mesh instanceof DodoInteractCollider && mesh != player.dodo.dodoInteractCollider) ||
+                            (mesh instanceof SpecialBrickMesh && mesh.specialBrick instanceof StationBrick);
                     }
                 )
 
@@ -45,6 +46,12 @@ class PlayerActionEmptyHand {
                         if (hit.pickedMesh instanceof DodoInteractCollider) {
                             setAimedObject(hit.pickedMesh);
                             return;
+                        }
+                        if (hit.pickedMesh instanceof SpecialBrickMesh) {
+                            if (hit.pickedMesh.specialBrick instanceof StationBrick) {
+                                setAimedObject(hit.pickedMesh.specialBrick);
+                                return;
+                            }
                         }
                     }
                 }
@@ -67,6 +74,9 @@ class PlayerActionEmptyHand {
                         }
                         aimedObject.dodo.brain.npcDialog.start();
                     }
+                }
+                else if (aimedObject instanceof StationBrick) {
+                    aimedObject.start();
                 }
             }
         }

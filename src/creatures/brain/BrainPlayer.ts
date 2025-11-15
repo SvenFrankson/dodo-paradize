@@ -172,15 +172,75 @@ class BrainPlayer extends SubBrain {
             }
         })
 
-        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_FORWARD, () => { this._moveYAxisInput = 1; });
-        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_BACK, () => { this._moveYAxisInput = - 1; });
-        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_RIGHT, () => { this._moveXAxisInput = 1; });
-        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_LEFT, () => { this._moveXAxisInput = - 1; });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_FORWARD, () => {
+            this._moveYAxisInput = 1;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Up = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_BACK, () => {
+            this._moveYAxisInput = - 1;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Down = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_RIGHT, () => {
+            this._moveXAxisInput = 1;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Right = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyDownListener(KeyInput.MOVE_LEFT, () => {
+            this._moveXAxisInput = - 1;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Left = true;
+                }
+            }
+        });
         
-        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_FORWARD, () => { this._moveYAxisInput = 0; });
-        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_BACK, () => { this._moveYAxisInput = 0; });
-        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_RIGHT, () => { this._moveXAxisInput = 0; });
-        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_LEFT, () => { this._moveXAxisInput = 0; });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_FORWARD, () => {
+            this._moveYAxisInput = 0;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Up = false;
+                    this.brain.inStation.arcadeEngine.input.UpUp = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_BACK, () => {
+            this._moveYAxisInput = 0;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Down = false;
+                    this.brain.inStation.arcadeEngine.input.DownUp = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_RIGHT, () => {
+            this._moveXAxisInput = 0;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Right = false;
+                    this.brain.inStation.arcadeEngine.input.RightUp = true;
+                }
+            }
+        });
+        this.game.inputManager.addMappedKeyUpListener(KeyInput.MOVE_LEFT, () => {
+            this._moveXAxisInput = 0;
+            if (this.brain.inStation instanceof ArcadeBrick) {
+                if (this.brain.inStation.arcadeEngine) {
+                    this.brain.inStation.arcadeEngine.input.Left = false;
+                    this.brain.inStation.arcadeEngine.input.LeftUp = true;
+                }
+            }
+        });
         this.game.inputManager.addMappedKeyUpListener(KeyInput.JUMP, () => { this.dodo.jump(); });
 
         this.game.canvas.addEventListener("pointerdown", this._onPointerDown)
@@ -232,8 +292,8 @@ class BrainPlayer extends SubBrain {
     private _pointerMove = (event: PointerEvent) => {
         if (this._pointerDown || this.game.inputManager.isPointerLocked) {
             this.gamepadInControl = false;
-            this._rotateXAxisInput += event.movementY / 200;
-            this._rotateYAxisInput += event.movementX / 200;
+            this._rotateXAxisInput += event.movementY / 300;
+            this._rotateYAxisInput += event.movementX / 300;
         }
     }
 
@@ -286,25 +346,28 @@ class BrainPlayer extends SubBrain {
 
     public update(dt: number): void {
         if (this.game.gameMode === GameMode.Playing) {
-            let moveInput = new BABYLON.Vector2(this._moveXAxisInput, this._moveYAxisInput);
-            let inputForce = moveInput.length();
-            if (inputForce > 1) {
-                moveInput.normalize();
-            }
-            let dir = this.dodo.right.scale(moveInput.x * 0.75).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.75)));
-            if (dir.lengthSquared() > 0) {
-                if (!this.lockControl) {
-                    this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
+            if (!this.dodo.brain.inStation) {
+                let moveInput = new BABYLON.Vector2(this._moveXAxisInput, this._moveYAxisInput);
+                let inputForce = moveInput.length();
+                if (inputForce > 1) {
+                    moveInput.normalize();
+                }
+                let dir = this.dodo.right.scale(moveInput.x * 0.75).add(this.dodo.forward.scale(moveInput.y * (moveInput.y > 0 ? 1 : 0.75)));
+                if (dir.lengthSquared() > 0) {
+                    if (!this.lockControl) {
+                        this.dodo.position.addInPlace(dir.scale(this.dodo.speed * dt));
+                    }
+                }
+
+                if (this.currentAction) {
+                    this.currentAction.onUpdate();
+                }
+                else {
+                    this.defaultAction.onUpdate();
                 }
             }
-
-            if (this.currentAction) {
-                this.currentAction.onUpdate();
-            }
-            else {
-                this.defaultAction.onUpdate();
-            }
         }
+
 
         this._smoothedRotateXAxisInput = this._smoothedRotateXAxisInput * this._pointerSmoothness + this._rotateXAxisInput * (1 - this._pointerSmoothness);
         this._smoothedRotateYAxisInput = this._smoothedRotateYAxisInput * this._pointerSmoothness + this._rotateYAxisInput * (1 - this._pointerSmoothness);
@@ -313,7 +376,7 @@ class BrainPlayer extends SubBrain {
 
         if (!this.lockControl) {
             this.game.camera.verticalAngle += this._smoothedRotateXAxisInput;
-            this.dodo.rotate(BABYLON.Axis.Y, this._smoothedRotateYAxisInput);
+            this.dodo.r += this._smoothedRotateYAxisInput;
         }
 
         let f = 1;
@@ -347,6 +410,38 @@ class BrainPlayer extends SubBrain {
                 else if (dist - 2.5 > 0.1) {
                     this.dodo.position.addInPlace(this.dodo.forward.scale(1 * dt)); 
                 }
+            }
+            else if (this.brain.inStation) {
+                let station = this.brain.inStation;
+
+                let fLookAtStation = Nabu.Easing.smoothNSec(1 / dt, 1);
+
+                let targetVerticalAngle = 0;
+                let targetR = Math.PI + this.dodo.brain.inStation.r * Math.PI * 0.5;
+
+                let dR = Nabu.AbsoluteAngularDistance(targetR, this.dodo.r);
+                let dV = Nabu.AbsoluteAngularDistance(targetVerticalAngle, this.game.camera.verticalAngle);
+
+                let fAngleRange = Nabu.MinMax(this.brain.inStationTimer / 8, 0, 1);
+                let angleRange = fAngleRange * fAngleRange * Math.PI / 16;
+                if (dR > angleRange) {
+                    this.dodo.r = Nabu.LerpAngle(this.dodo.r, targetR, 1 - fLookAtStation);
+                }
+                if (dV > angleRange) {
+                    this.game.camera.verticalAngle = this.game.camera.verticalAngle * fLookAtStation + targetVerticalAngle * (1 - fLookAtStation);
+                }
+
+                if (this.brain.inStationTimer > 1) {
+                    if (dR > Math.PI / 3) {
+                        this.brain.inStation.stop();
+                    }
+                    if (dV > Math.PI / 3) {
+                        this.brain.inStation.stop();
+                    }
+                }
+
+                BABYLON.Vector3.LerpToRef(this.dodo.position, station.worldDodoStationPosition, 1 - fLookAtStation, this.dodo.position);
+                this._targetLook.copyFrom(this.dodo.head.position.add(this.game.camera.camDir));
             }
             else {
                 let aimRay = this.game.camera.getForwardRay(50);

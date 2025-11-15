@@ -11,6 +11,8 @@ class Brain {
     public subBrains: SubBrain[] = [];
     public npcDialog: NPCDialog;
     public inDialog: NPCDialog;
+    public inStation: StationBrick;
+    public inStationTimer: number = 0;
 
     public get game(): Game {
         return this.dodo.game;
@@ -47,6 +49,13 @@ class Brain {
     }
 
     public update(dt: number): void {
+        if (this.inStation) {
+            this.inStationTimer += dt;
+        }
+        else {
+            this.inStationTimer = 0;
+        }
+
         let subBrain = this.subBrains[this.mode];
         if (subBrain) {
             subBrain.update(dt);

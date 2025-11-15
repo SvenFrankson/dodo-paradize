@@ -246,6 +246,7 @@ class Dodo extends Creature {
     public set r(v: number) {
         Mummu.RotateToRef(BABYLON.Axis.Z, BABYLON.Axis.Y, v, this._tmpForwardAxis);
         Mummu.QuaternionFromZYAxisToRef(this._tmpForwardAxis, BABYLON.Axis.Y, this.rotationQuaternion);
+        this.computeWorldMatrix(true);
     }
     public get bodyR(): number {
         return Mummu.AngleFromToAround(BABYLON.Axis.Z, this.body.forward, BABYLON.Axis.Y);
@@ -506,6 +507,14 @@ class Dodo extends Creature {
 
             this.nameTag.material = material;
         }
+    }
+
+    public setIsVisible(isVisible: boolean): void {
+        this.meshes.forEach(mesh => {
+            mesh.isVisible = isVisible;
+        });
+        this.eyes[0].isVisible = isVisible;
+        this.eyes[1].isVisible = isVisible;
     }
 
     private _instantiated: boolean = false;

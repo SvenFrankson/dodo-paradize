@@ -69,7 +69,13 @@ class Construction extends BABYLON.Mesh {
 
     public async updateMesh(): Promise<void> {
         while (this.specialBrickMeshes.length > 0) {
-            this.specialBrickMeshes.pop().dispose(false, true);
+            let sbm = this.specialBrickMeshes.pop();
+            if (sbm.material === this.game.defaultToonMaterial || sbm.material === this.game.defaultToonNoOutlineMaterial) {
+                sbm.dispose();
+            }
+            else {
+                sbm.dispose(false, true);
+            }
         }
 
         this.isMeshUpdated = false;
@@ -79,11 +85,8 @@ class Construction extends BABYLON.Mesh {
         for (let i = 0; i < this.bricks.length; i++) {
             let brick = this.bricks.get(i);
             if (brick instanceof SpecialBrick) {
-                let vData = await brick.generateSpecialBrickVertexData();
-                let specialBrickMesh = brick.constructSpecialBrickMesh();
+                let specialBrickMesh = await brick.generateSpecialBrickMesh();
                 this.specialBrickMeshes.push(specialBrickMesh);
-                specialBrickMesh.updateMaterial();
-                vData.applyToMesh(specialBrickMesh);
                 specialBrickMeshes.push(specialBrickMesh);
             }
             else if (brick instanceof Brick) {
